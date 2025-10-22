@@ -31,6 +31,12 @@
       flex-direction: column;
       gap: 10px;
     }
+    .count {
+      font-size: 14px;
+      color: #ffcc00;
+      font-weight: bold;
+      margin-top: 5px;
+    }
     textarea {
       width: 100%;
       height: 200px;
@@ -76,14 +82,17 @@
   <div class="container">
     <div class="section">
       <label for="gokhanInput">🧑‍🔧 Gökhan'ın Cihazları</label>
+      <div class="count" id="gokhanCount">Adet: 0</div>
       <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
     </div>
     <div class="section">
       <label for="enesInput">🧑‍🔧 Enes'in Cihazları</label>
+      <div class="count" id="enesCount">Adet: 0</div>
       <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
     </div>
     <div class="section">
       <label for="yusufInput">🧑‍🔧 Yusuf'un Cihazları</label>
+      <div class="count" id="yusufCount">Adet: 0</div>
       <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
     </div>
   </div>
@@ -117,6 +126,10 @@
     const yusufInput = document.getElementById("yusufInput");
     const scannerInput = document.getElementById("scannerInput");
     const barcodeList = document.getElementById("barcodeList");
+    
+    const gokhanCount = document.getElementById("gokhanCount");
+    const enesCount = document.getElementById("enesCount");
+    const yusufCount = document.getElementById("yusufCount");
 
     let referenceCodes = [];
     let scannedCodes = new Set();
@@ -144,6 +157,12 @@
         const enesCodes = processAndSave("enes", enesInput);
         const yusufCodes = processAndSave("yusuf", yusufInput);
         referenceCodes = [...gokhanCodes, ...enesCodes, ...yusufCodes];
+        
+        // Adet güncellemeleri
+        gokhanCount.textContent = `Adet: ${gokhanCodes.length}`;
+        enesCount.textContent = `Adet: ${enesCodes.length}`;
+        yusufCount.textContent = `Adet: ${yusufCodes.length}`;
+        
         renderList();
       }, 500);
     }
