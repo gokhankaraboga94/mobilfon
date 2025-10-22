@@ -127,7 +127,7 @@
       const codes = textarea.value.trim().split("\n").map(line => line.trim().slice(0, 15)).filter(Boolean);
       // Firebase'e yaz
       codes.forEach(code => {
-        db.ref(`ozel/${name}/${code}`).set(true);
+        db.ref(`servis/${name}/${code}`).set(true);
       });
       return codes;
     }
@@ -145,19 +145,32 @@
     yusufInput.addEventListener("input", updateReferences);
 
     scannerInput.addEventListener("input", () => {
-      const lines = scannerInput.value.trim().split("\n");
-      lines.forEach(line => {
-        const code = line.trim().slice(0, 15);
-        if (code && !scannedCodes.has(code)) {
-          scannedCodes.add(code);
-          // Eğer eşleşiyorsa Firebase'e yaz
-          if (referenceCodes.includes(code)) {
-            db.ref(`ozel/eslesenler/${code}`).set(true);
+  const lines = scannerInput.value.trim().split("\n");
+
+  lines.forEach(codeRaw => {
+    const code = codeRaw.trim().slice(0, 15);
+    if (!code || scannedCodes.has(code)) return;
+
+    scannedCodes.add(code);
+
+    // Ortak eşleşme listesine ekle
+    if (referenceCodes.includes(code)) {
+      db.ref(`servis/eslesenler/${code}`).set(true);
+
+      // Her teknisyenin kendi listesine bak
+      const teknisyenler = ["gokhan", "enes", "yusuf"];
+      teknisyenler.forEach(teknisyen => {
+        db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
+          if (snapshot.exists()) {
+            db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
           }
-        }
+        });
       });
-      renderList();
-    });
+    }
+  });
+
+  renderList();
+});
 
     function renderList() {
       barcodeList.innerHTML = "";
