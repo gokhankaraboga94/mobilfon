@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Barkod Doğrulama Sistemi</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    /* Stil kodları aynı kaldı */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 30px;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { font-size: 2.5em; margin-bottom: 20px; text-shadow: 1px 1px 3px #000; }
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 1200px;
+    }
+    .section {
+      flex: 1 1 30%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      background-color: #f0f0f0;
+      color: #333;
+      resize: none;
+    }
+    label { font-weight: bold; }
+    .barcode-list {
+      margin-top: 30px;
+      width: 100%;
+      max-width: 800px;
+    }
+    .barcode-item {
+      padding: 10px;
+      background: #444;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .barcode-item.matched { background-color: #2ecc71; }
+    .barcode-item.unmatched { background-color: #e74c3c; }
+    .barcode-code { font-family: monospace; font-size: 18px; }
+    .status { font-size: 20px; }
+    .status::before { content: '⏳'; }
+    .matched .status::before { content: '✅'; }
+    .unmatched .status::before { content: '❌'; }
+    @media (max-width: 768px) {
+      .container { flex-direction: column; }
+      .section { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Barkod Doğrulama Sistemi</h1>
+
+  <div class="container">
+    <div class="section">
+      <label for="gokhanInput">🧑‍🔧 Gökhan’ın Cihazları</label>
+      <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
+    </div>
+    <div class="section">
+      <label for="enesInput">🧑‍🔧 Enes’in Cihazları</label>
+      <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
+    </div>
+    <div class="section">
+      <label for="yusufInput">🧑‍🔧 Yusuf’un Cihazları</label>
+      <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
+    </div>
+  </div>
+
+  <div class="container" style="margin-top: 30px;">
+    <div class="section" style="flex: 1 1 100%;">
+      <label for="scannerInput">📡 Barkod Okut:</label>
+      <textarea id="scannerInput" placeholder="Barkod okuyucu ile okut..." autofocus></textarea>
+    </div>
+  </div>
+
+  <div class="barcode-list" id="barcodeList"></div>
+
+  <script>
+    // Firebase Konfigürasyonu
+    const firebaseConfig = {
+      apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
+      authDomain: "cokluhaber-dc6ff.firebaseapp.com",
+      projectId: "cokluhaber-dc6ff",
+      storageBucket: "cokluhaber-dc6ff.appspot.com",
+      messagingSenderId: "433806685700",
+      appId: "1:433806685700:web:8bedc51407c6c4b56f2751",
+      measurementId: "G-TYRTT351HP",
+      databaseURL: "https://cokluhaber-dc6ff-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const gokhanInput = document.getElementById("gokhanInput");
+    const enesInput = document.getElementById("enesInput");
+    const yusufInput = document.getElementById("yusufInput");
+    const scannerInput = document.getElementById("scannerInput");
+    const barcodeList = document.getElementById("barcodeList");
+
+    let referenceCodes = [];
+    let scannedCodes = new Set();
+
+    function processAndSave(name, textarea) {
+      const codes = textarea.value.trim().split("\n").map(line => line.trim().slice(0, 15)).filter(Boolean);
+      // Firebase'e yaz
+      codes.forEach(code => {
+        db.ref(`ozel/${name}/${code}`).set(true);
+      });
+      return codes;
+    }
+
+    function updateReferences() {
+      const gokhanCodes = processAndSave("gokhan", gokhanInput);
+      const enesCodes = processAndSave("enes", enesInput);
+      const yusufCodes = processAndSave("yusuf", yusufInput);
+      referenceCodes = [...gokhanCodes, ...enesCodes, ...yusufCodes];
+      renderList();
+    }
+
+    gokhanInput.addEventListener("input", updateReferences);
+    enesInput.addEventListener("input", updateReferences);
+    yusufInput.addEventListener("input", updateReferences);
+
+    scannerInput.addEventListener("input", () => {
+      const lines = scannerInput.value.trim().split("\n");
+      lines.forEach(line => {
+        const code = line.trim().slice(0, 15);
+        if (code && !scannedCodes.has(code)) {
+          scannedCodes.add(code);
+          // Eğer eşleşiyorsa Firebase'e yaz
+          if (referenceCodes.includes(code)) {
+            db.ref(`ozel/eslesenler/${code}`).set(true);
+          }
+        }
+      });
+      renderList();
+    });
+
+    function renderList() {
+      barcodeList.innerHTML = "";
+      referenceCodes.forEach(code => {
+        const div = document.createElement("div");
+        div.className = "barcode-item";
+        const matched = scannedCodes.has(code);
+        div.classList.add(matched ? "matched" : "unmatched");
+        div.innerHTML = `
+          <div class="barcode-code">${code}</div>
+          <div class="status"></div>
+        `;
+        barcodeList.appendChild(div);
+      });
+    }
+  </script>
+
+  <h2>gokhan.karaboga@mobilfon.com</h2>
+</body>
+</html>
