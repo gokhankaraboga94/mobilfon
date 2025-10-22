@@ -98,7 +98,6 @@
   <div class="barcode-list" id="barcodeList"></div>
 
   <script>
-    // Firebase konfigürasyonu
     const firebaseConfig = {
       apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
@@ -112,113 +111,78 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const gokhanInput = document.getElementById("gokhanInput");
-    const enesInput = document.getElementById("enesInput");
-    const yusufInput = document.getElementById("yusufInput");
-    const scannerInput = document.getElementById("scannerInput");
+    const inputs = {
+      gokhan: document.getElementById("gokhanInput"),
+      enes: document.getElementById("enesInput"),
+      yusuf: document.getElementById("yusufInput"),
+      scanner: document.getElementById("scannerInput")
+    };
+
     const barcodeList = document.getElementById("barcodeList");
-
-    let referenceCodes = [];
-    let scannedCodes = new Set();
-
-    let updateTimeout;
+    const scannedCodes = new Set();
+    const allCodes = new Set();
 
     function getTimestamp() {
       const now = new Date();
-      const tarih = now.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      const saat = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-      return `${tarih} ${saat}`;
+      return now.toLocaleString('tr-TR');
     }
 
-    function processAndSave(name, textarea) {
-      const codes = textarea.value.trim().split("\n").map(line => line.trim().slice(0, 15)).filter(code => code.length === 15);
+    function saveCodes(name, value) {
+      const codes = value.trim().split("\n")
+        .map(code => code.trim().slice(0, 15))
+        .filter(code => code.length === 15);
+
       const timestamp = getTimestamp();
-      
-      // Önce tüm eski verileri sil
-      db.ref(`servis/${name}`).remove().then(() => {
-        // Sadece geçerli kodları tarih/saat ile kaydet
-        codes.forEach(code => {
-          db.ref(`servis/${name}/${code}`).set(timestamp);
-        });
+      codes.forEach(code => {
+        db.ref(`servis/${name}/${code}`).set(timestamp);
+        allCodes.add(code);
       });
-      
-      return codes;
-    }
-
-    function updateReferences() {
-      clearTimeout(updateTimeout);
-      updateTimeout = setTimeout(() => {
-        const gokhanCodes = processAndSave("gokhan", gokhanInput);
-        const enesCodes = processAndSave("enes", enesInput);
-        const yusufCodes = processAndSave("yusuf", yusufInput);
-        referenceCodes = [...gokhanCodes, ...enesCodes, ...yusufCodes];
-        renderList();
-      }, 500);
-    }
-
-    gokhanInput.addEventListener("input", updateReferences);
-    enesInput.addEventListener("input", updateReferences);
-    yusufInput.addEventListener("input", updateReferences);
-
-    let inputTimeout;
-
-    scannerInput.addEventListener("input", (e) => {
-      const input = e.target.value;
-      
-      // Önceki timeout'u iptal et
-      clearTimeout(inputTimeout);
-      
-      // Enter tuşu basıldıysa veya 15 karakter dolduğunda işle
-      if (input.includes("\n") || input.length >= 15) {
-        const code = input.replace(/\n/g, "").trim().slice(0, 15);
-        processBarcode(code);
-        scannerInput.value = "";
-      } else {
-        // 100ms sonra işle (barkod okuyucu hızlı girer)
-        inputTimeout = setTimeout(() => {
-          const code = input.trim().slice(0, 15);
-          if (code.length === 15) {
-            processBarcode(code);
-            scannerInput.value = "";
-          }
-        }, 100);
-      }
-    });
-
-    function processBarcode(code) {
-      // Geçersizse veya zaten eklendiyse işlem yapma
-      if (code.length !== 15 || scannedCodes.has(code)) {
-        return;
-      }
-
-      scannedCodes.add(code);
-
-      // Tarih ve saat bilgisini oluştur
-      const timestamp = getTimestamp();
-
-      if (referenceCodes.includes(code)) {
-        db.ref(`servis/eslesenler/${code}`).set(timestamp);
-
-        const teknisyenler = ["gokhan", "enes", "yusuf"];
-        teknisyenler.forEach(teknisyen => {
-          db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
-            if (snapshot.exists()) {
-              db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(timestamp);
-            }
-          });
-        });
-      }
 
       renderList();
     }
 
+    // Giriş olaylarını dinle
+    Object.entries(inputs).forEach(([name, textarea]) => {
+      textarea.addEventListener("input", () => {
+        if (name === "scanner") return;
+        saveCodes(name, textarea.value);
+      });
+    });
+
+    // Barkod okutma alanı
+    let scannerTimeout;
+    inputs.scanner.addEventListener("input", e => {
+      clearTimeout(scannerTimeout);
+      scannerTimeout = setTimeout(() => {
+        const raw = e.target.value.trim();
+        const code = raw.slice(0, 15);
+        if (code.length === 15 && !scannedCodes.has(code)) {
+          scannedCodes.add(code);
+          const timestamp = getTimestamp();
+          db.ref(`servis/eslesenler/${code}`).set(timestamp);
+
+          // Kimde varsa ona da kaydet
+          ["gokhan", "enes", "yusuf"].forEach(name => {
+            db.ref(`servis/${name}/${code}`).once("value", snap => {
+              if (snap.exists()) {
+                db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
+              }
+            });
+          });
+
+          renderList();
+        }
+        e.target.value = "";
+      }, 150);
+    });
+
+    // Listeyi ekranda göster
     function renderList() {
       barcodeList.innerHTML = "";
-      referenceCodes.forEach(code => {
+      allCodes.forEach(code => {
         const div = document.createElement("div");
         div.className = "barcode-item";
-        const matched = scannedCodes.has(code);
-        div.classList.add(matched ? "matched" : "unmatched");
+        div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
         div.innerHTML = `
           <div class="barcode-code">${code}</div>
           <div class="status"></div>
@@ -227,35 +191,29 @@
       });
     }
 
-    // Sayfa yüklendiğinde Firebase'den verileri çek
+    // Sayfa yüklendiğinde verileri çek
     window.addEventListener("load", () => {
-      const teknisyenler = ["gokhan", "enes", "yusuf"];
-      let allCodes = [];
+      ["gokhan", "enes", "yusuf"].forEach(name => {
+        db.ref(`servis/${name}`).once("value", snap => {
+          const data = snap.val();
+          if (!data) return;
 
-      teknisyenler.forEach(teknisyen => {
-        db.ref(`servis/${teknisyen}`).once("value", snapshot => {
-          const data = snapshot.val();
-          if (data) {
-            const inputElem = document.getElementById(`${teknisyen}Input`);
-            const codes = Object.keys(data).filter(code => code !== "eslesenler");
-            inputElem.value = codes.join("\n");
-            allCodes = [...allCodes, ...codes];
-            referenceCodes = allCodes;
+          const codes = Object.keys(data).filter(k => k !== "eslesenler");
+          inputs[name].value = codes.join("\n");
+          codes.forEach(code => allCodes.add(code));
 
-            if (data.eslesenler) {
-              Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
-            }
-
-            renderList();
+          if (data.eslesenler) {
+            Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
           }
+
+          renderList();
         });
       });
 
-      // Genel eşleşen barkodlar (servis/eslesenler) varsa onları da çek
-      db.ref("servis/eslesenler").once("value", snapshot => {
-        const matched = snapshot.val();
-        if (matched) {
-          Object.keys(matched).forEach(code => scannedCodes.add(code));
+      db.ref("servis/eslesenler").once("value", snap => {
+        const data = snap.val();
+        if (data) {
+          Object.keys(data).forEach(code => scannedCodes.add(code));
           renderList();
         }
       });
