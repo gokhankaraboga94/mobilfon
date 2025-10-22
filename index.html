@@ -98,7 +98,7 @@
   <div class="barcode-list" id="barcodeList"></div>
 
   <script>
-    // Firebase Konfigürasyonu
+    // Firebase konfigürasyonu
     const firebaseConfig = {
       apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
@@ -142,32 +142,30 @@
     yusufInput.addEventListener("input", updateReferences);
 
     scannerInput.addEventListener("input", () => {
-  const value = scannerInput.value.trim();
+      const value = scannerInput.value.trim();
+      const lines = value.split("\n");
+      const lastLine = lines[lines.length - 1].trim();
 
-  // Son girilen barkod satırını al
-  const lines = value.split("\n");
-  const lastLine = lines[lines.length - 1].trim();
+      if (lastLine.length === 15 && !scannedCodes.has(lastLine)) {
+        const code = lastLine;
+        scannedCodes.add(code);
 
-  // 15 haneli tam barkodsa işle
-  if (lastLine.length === 15 && !scannedCodes.has(lastLine)) {
-    const code = lastLine;
-    scannedCodes.add(code);
+        if (referenceCodes.includes(code)) {
+          db.ref(`servis/eslesenler/${code}`).set(true);
 
-    if (referenceCodes.includes(code)) {
-      db.ref(`servis/eslesenler/${code}`).set(true);
+          const teknisyenler = ["gokhan", "enes", "yusuf"];
+          teknisyenler.forEach(teknisyen => {
+            db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
+              if (snapshot.exists()) {
+                db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
+              }
+            });
+          });
+        }
 
-      const teknisyenler = ["gokhan", "enes", "yusuf"];
-      teknisyenler.forEach(teknisyen => {
-        db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
-          if (snapshot.exists()) {
-            db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
-          }
-        });
-      });
-    }
-
-      scannerInput.value = "";
-      renderList();
+        scannerInput.value = "";
+        renderList();
+      }
     });
 
     function renderList() {
@@ -200,14 +198,13 @@
             allCodes = [...allCodes, ...codes];
             referenceCodes = allCodes;
 
-            // Eğer bu teknisyenin eşleşenleri varsa, onları da ekle
             if (data.eslesenler) {
               Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
             }
 
             renderList();
           }
-        });
+    });
       });
 
       // Genel eşleşen barkodlar (servis/eslesenler) varsa onları da çek
