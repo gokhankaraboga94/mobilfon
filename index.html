@@ -142,29 +142,29 @@
     yusufInput.addEventListener("input", updateReferences);
 
     scannerInput.addEventListener("input", () => {
-      const lines = scannerInput.value.trim().split("\n");
+  const value = scannerInput.value.trim();
 
-      lines.forEach(codeRaw => {
-        const code = codeRaw.trim().slice(0, 15);
-        if (!code || scannedCodes.has(code)) return;
+  // Son girilen barkod satırını al
+  const lines = value.split("\n");
+  const lastLine = lines[lines.length - 1].trim();
 
-        scannedCodes.add(code);
+  // 15 haneli tam barkodsa işle
+  if (lastLine.length === 15 && !scannedCodes.has(lastLine)) {
+    const code = lastLine;
+    scannedCodes.add(code);
 
-        // Ortak eşleşme listesi
-        if (referenceCodes.includes(code)) {
-          db.ref(`servis/eslesenler/${code}`).set(true);
+    if (referenceCodes.includes(code)) {
+      db.ref(`servis/eslesenler/${code}`).set(true);
 
-          // Hangi teknisyene aitse, onun altına da kaydet
-          const teknisyenler = ["gokhan", "enes", "yusuf"];
-          teknisyenler.forEach(teknisyen => {
-            db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
-              if (snapshot.exists()) {
-                db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
-              }
-            });
-          });
-        }
+      const teknisyenler = ["gokhan", "enes", "yusuf"];
+      teknisyenler.forEach(teknisyen => {
+        db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
+          if (snapshot.exists()) {
+            db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
+          }
+        });
       });
+    }
 
       scannerInput.value = "";
       renderList();
