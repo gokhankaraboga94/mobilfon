@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -126,14 +123,22 @@
 
     let updateTimeout;
 
+    function getTimestamp() {
+      const now = new Date();
+      const tarih = now.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const saat = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      return `${tarih} ${saat}`;
+    }
+
     function processAndSave(name, textarea) {
       const codes = textarea.value.trim().split("\n").map(line => line.trim().slice(0, 15)).filter(code => code.length === 15);
+      const timestamp = getTimestamp();
       
       // Önce tüm eski verileri sil
       db.ref(`servis/${name}`).remove().then(() => {
-        // Sadece geçerli kodları kaydet
+        // Sadece geçerli kodları tarih/saat ile kaydet
         codes.forEach(code => {
-          db.ref(`servis/${name}/${code}`).set(true);
+          db.ref(`servis/${name}/${code}`).set(timestamp);
         });
       });
       
@@ -186,13 +191,10 @@
         return;
       }
 
-       scannedCodes.add(code);
+      scannedCodes.add(code);
 
       // Tarih ve saat bilgisini oluştur
-      const now = new Date();
-      const tarih = now.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      const saat = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-      const timestamp = `${tarih} ${saat}`;
+      const timestamp = getTimestamp();
 
       if (referenceCodes.includes(code)) {
         db.ref(`servis/eslesenler/${code}`).set(timestamp);
