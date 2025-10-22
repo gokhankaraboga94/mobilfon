@@ -133,6 +133,11 @@
 
     let referenceCodes = [];
     let scannedCodes = new Set();
+    let technicianCodes = {
+      gokhan: [],
+      enes: [],
+      yusuf: []
+    };
 
     let updateTimeout;
 
@@ -156,15 +161,26 @@
         const gokhanCodes = processAndSave("gokhan", gokhanInput);
         const enesCodes = processAndSave("enes", enesInput);
         const yusufCodes = processAndSave("yusuf", yusufInput);
+        
+        technicianCodes.gokhan = gokhanCodes;
+        technicianCodes.enes = enesCodes;
+        technicianCodes.yusuf = yusufCodes;
+        
         referenceCodes = [...gokhanCodes, ...enesCodes, ...yusufCodes];
         
-        // Adet güncellemeleri
-        gokhanCount.textContent = `Adet: ${gokhanCodes.length}`;
-        enesCount.textContent = `Adet: ${enesCodes.length}`;
-        yusufCount.textContent = `Adet: ${yusufCodes.length}`;
-        
+        updateCounts();
         renderList();
       }, 500);
+    }
+
+    function updateCounts() {
+      const gokhanRemaining = technicianCodes.gokhan.filter(code => !scannedCodes.has(code)).length;
+      const enesRemaining = technicianCodes.enes.filter(code => !scannedCodes.has(code)).length;
+      const yusufRemaining = technicianCodes.yusuf.filter(code => !scannedCodes.has(code)).length;
+      
+      gokhanCount.textContent = `Adet: ${gokhanRemaining}`;
+      enesCount.textContent = `Adet: ${enesRemaining}`;
+      yusufCount.textContent = `Adet: ${yusufRemaining}`;
     }
 
     gokhanInput.addEventListener("input", updateReferences);
@@ -217,6 +233,7 @@
         });
       }
 
+      updateCounts();
       renderList();
     }
 
@@ -248,12 +265,14 @@
             const codes = Object.keys(data).filter(code => code !== "eslesenler");
             inputElem.value = codes.join("\n");
             allCodes = [...allCodes, ...codes];
+            technicianCodes[teknisyen] = codes;
             referenceCodes = allCodes;
 
             if (data.eslesenler) {
               Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
             }
 
+            updateCounts();
             renderList();
           }
         });
@@ -264,6 +283,7 @@
         const matched = snapshot.val();
         if (matched) {
           Object.keys(matched).forEach(code => scannedCodes.add(code));
+          updateCounts();
           renderList();
         }
       });
