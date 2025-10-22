@@ -121,20 +121,31 @@
     let referenceCodes = [];
     let scannedCodes = new Set();
 
+    let updateTimeout;
+
     function processAndSave(name, textarea) {
-      const codes = textarea.value.trim().split("\n").map(line => line.trim().slice(0, 15)).filter(Boolean);
-      codes.forEach(code => {
-        db.ref(`servis/${name}/${code}`).set(true);
+      const codes = textarea.value.trim().split("\n").map(line => line.trim().slice(0, 15)).filter(code => code.length === 15);
+      
+      // Önce tüm eski verileri sil
+      db.ref(`servis/${name}`).remove().then(() => {
+        // Sadece geçerli kodları kaydet
+        codes.forEach(code => {
+          db.ref(`servis/${name}/${code}`).set(true);
+        });
       });
+      
       return codes;
     }
 
     function updateReferences() {
-      const gokhanCodes = processAndSave("gokhan", gokhanInput);
-      const enesCodes = processAndSave("enes", enesInput);
-      const yusufCodes = processAndSave("yusuf", yusufInput);
-      referenceCodes = [...gokhanCodes, ...enesCodes, ...yusufCodes];
-      renderList();
+      clearTimeout(updateTimeout);
+      updateTimeout = setTimeout(() => {
+        const gokhanCodes = processAndSave("gokhan", gokhanInput);
+        const enesCodes = processAndSave("enes", enesInput);
+        const yusufCodes = processAndSave("yusuf", yusufInput);
+        referenceCodes = [...gokhanCodes, ...enesCodes, ...yusufCodes];
+        renderList();
+      }, 500);
     }
 
     gokhanInput.addEventListener("input", updateReferences);
