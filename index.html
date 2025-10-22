@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -7,7 +6,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
-    /* Stil kodları aynı kaldı */
     * { box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -125,7 +123,6 @@
 
     function processAndSave(name, textarea) {
       const codes = textarea.value.trim().split("\n").map(line => line.trim().slice(0, 15)).filter(Boolean);
-      // Firebase'e yaz
       codes.forEach(code => {
         db.ref(`servis/${name}/${code}`).set(true);
       });
@@ -145,32 +142,33 @@
     yusufInput.addEventListener("input", updateReferences);
 
     scannerInput.addEventListener("input", () => {
-  const lines = scannerInput.value.trim().split("\n");
+      const lines = scannerInput.value.trim().split("\n");
 
-  lines.forEach(codeRaw => {
-    const code = codeRaw.trim().slice(0, 15);
-    if (!code || scannedCodes.has(code)) return;
+      lines.forEach(codeRaw => {
+        const code = codeRaw.trim().slice(0, 15);
+        if (!code || scannedCodes.has(code)) return;
 
-    scannedCodes.add(code);
+        scannedCodes.add(code);
 
-    // Ortak eşleşme listesine ekle
-    if (referenceCodes.includes(code)) {
-      db.ref(`servis/eslesenler/${code}`).set(true);
+        // Ortak eşleşme listesi
+        if (referenceCodes.includes(code)) {
+          db.ref(`servis/eslesenler/${code}`).set(true);
 
-      // Her teknisyenin kendi listesine bak
-      const teknisyenler = ["gokhan", "enes", "yusuf"];
-      teknisyenler.forEach(teknisyen => {
-        db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
-          if (snapshot.exists()) {
-            db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
-          }
-        });
+          // Hangi teknisyene aitse, onun altına da kaydet
+          const teknisyenler = ["gokhan", "enes", "yusuf"];
+          teknisyenler.forEach(teknisyen => {
+            db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
+              if (snapshot.exists()) {
+                db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
+              }
+            });
+          });
+        }
       });
-    }
-  });
 
-  renderList();
-});
+      scannerInput.value = "";
+      renderList();
+    });
 
     function renderList() {
       barcodeList.innerHTML = "";
@@ -186,6 +184,41 @@
         barcodeList.appendChild(div);
       });
     }
+
+    // Sayfa yüklendiğinde Firebase'den verileri çek
+    window.addEventListener("load", () => {
+      const teknisyenler = ["gokhan", "enes", "yusuf"];
+      let allCodes = [];
+
+      teknisyenler.forEach(teknisyen => {
+        db.ref(`servis/${teknisyen}`).once("value", snapshot => {
+          const data = snapshot.val();
+          if (data) {
+            const inputElem = document.getElementById(`${teknisyen}Input`);
+            const codes = Object.keys(data).filter(code => code !== "eslesenler");
+            inputElem.value = codes.join("\n");
+            allCodes = [...allCodes, ...codes];
+            referenceCodes = allCodes;
+
+            // Eğer bu teknisyenin eşleşenleri varsa, onları da ekle
+            if (data.eslesenler) {
+              Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
+            }
+
+            renderList();
+          }
+        });
+      });
+
+      // Genel eşleşen barkodlar (servis/eslesenler) varsa onları da çek
+      db.ref("servis/eslesenler").once("value", snapshot => {
+        const matched = snapshot.val();
+        if (matched) {
+          Object.keys(matched).forEach(code => scannedCodes.add(code));
+          renderList();
+        }
+      });
+    });
   </script>
 
   <h2>gokhan.karaboga@mobilfon.com</h2>
