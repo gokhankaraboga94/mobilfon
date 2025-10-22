@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -185,16 +186,22 @@
         return;
       }
 
-      scannedCodes.add(code);
+       scannedCodes.add(code);
+
+      // Tarih ve saat bilgisini oluştur
+      const now = new Date();
+      const tarih = now.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const saat = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      const timestamp = `${tarih} ${saat}`;
 
       if (referenceCodes.includes(code)) {
-        db.ref(`servis/eslesenler/${code}`).set(true);
+        db.ref(`servis/eslesenler/${code}`).set(timestamp);
 
         const teknisyenler = ["gokhan", "enes", "yusuf"];
         teknisyenler.forEach(teknisyen => {
           db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
             if (snapshot.exists()) {
-              db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
+              db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(timestamp);
             }
           });
         });
