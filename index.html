@@ -141,32 +141,42 @@
     enesInput.addEventListener("input", updateReferences);
     yusufInput.addEventListener("input", updateReferences);
 
-    scannerInput.addEventListener("input", () => {
-      const value = scannerInput.value.trim();
-      const lines = value.split("\n");
-      const lastLine = lines[lines.length - 1].trim();
+let barcodeBuffer = "";
 
-      if (lastLine.length === 15 && !scannedCodes.has(lastLine)) {
-        const code = lastLine;
-        scannedCodes.add(code);
+scannerInput.addEventListener("input", (e) => {
+  const input = e.target.value;
+  const lastChar = input.slice(-1);
 
-        if (referenceCodes.includes(code)) {
-          db.ref(`servis/eslesenler/${code}`).set(true);
+  // Barkod okuyucular genelde satır sonu (Enter) gönderir
+  if (lastChar === "\n" || input.length >= 15) {
+    const code = input.trim().slice(0, 15);
 
-          const teknisyenler = ["gokhan", "enes", "yusuf"];
-          teknisyenler.forEach(teknisyen => {
-            db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
-              if (snapshot.exists()) {
-                db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
-              }
-            });
-          });
-        }
+    // Geçersizse veya zaten eklendiyse işlem yapma
+    if (code.length !== 15 || scannedCodes.has(code)) {
+      scannerInput.value = "";
+      return;
+    }
 
-        scannerInput.value = "";
-        renderList();
-      }
-    });
+    scannedCodes.add(code);
+
+    if (referenceCodes.includes(code)) {
+      db.ref(`servis/eslesenler/${code}`).set(true);
+
+      const teknisyenler = ["gokhan", "enes", "yusuf"];
+      teknisyenler.forEach(teknisyen => {
+        db.ref(`servis/${teknisyen}/${code}`).once("value", snapshot => {
+          if (snapshot.exists()) {
+            db.ref(`servis/${teknisyen}/eslesenler/${code}`).set(true);
+          }
+        });
+      });
+    }
+
+    // Alanı temizle ve listeyi güncelle
+    scannerInput.value = "";
+    renderList();
+  }
+});
 
     function renderList() {
       barcodeList.innerHTML = "";
