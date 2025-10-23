@@ -33,7 +33,7 @@
     }
     textarea {
       width: 100%;
-      height: 200px;
+      height: 150px;
       padding: 10px;
       border: none;
       border-radius: 8px;
@@ -43,6 +43,25 @@
       resize: none;
     }
     label { font-weight: bold; }
+    .mini-list {
+      max-height: 300px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .mini-item {
+      padding: 8px;
+      background: #555;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .mini-item.matched { background-color: #2ecc71; }
+    .mini-item.unmatched { background-color: #e74c3c; }
     .barcode-list {
       margin-top: 30px;
       width: 100%;
@@ -77,14 +96,17 @@
     <div class="section">
       <label for="gokhanInput">🧑‍🔧 Gökhan'ın Cihazları</label>
       <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
+      <div id="gokhanList" class="mini-list"></div>
     </div>
     <div class="section">
       <label for="enesInput">🧑‍🔧 Enes'in Cihazları</label>
       <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
+      <div id="enesList" class="mini-list"></div>
     </div>
     <div class="section">
       <label for="yusufInput">🧑‍🔧 Yusuf'un Cihazları</label>
       <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
+      <div id="yusufList" class="mini-list"></div>
     </div>
   </div>
 
@@ -118,9 +140,16 @@
       scanner: document.getElementById("scannerInput")
     };
 
+    const miniLists = {
+      gokhan: document.getElementById("gokhanList"),
+      enes: document.getElementById("enesList"),
+      yusuf: document.getElementById("yusufList")
+    };
+
     const barcodeList = document.getElementById("barcodeList");
     const scannedCodes = new Set();
     const allCodes = new Set();
+    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set() };
 
     function getTimestamp() {
       const now = new Date();
@@ -133,12 +162,15 @@
         .filter(code => code.length === 15);
 
       const timestamp = getTimestamp();
+      userCodes[name].clear();
       codes.forEach(code => {
         db.ref(`servis/${name}/${code}`).set(timestamp);
         allCodes.add(code);
+        userCodes[name].add(code);
       });
 
       renderList();
+      renderMiniList(name);
     }
 
     // Giriş olaylarını dinle
@@ -176,6 +208,22 @@
       }, 150);
     });
 
+    // Her kullanıcının mini listesini render et
+    function renderMiniList(name) {
+      const list = miniLists[name];
+      list.innerHTML = "";
+      userCodes[name].forEach(code => {
+        const div = document.createElement("div");
+        div.className = "mini-item";
+        div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
+        div.innerHTML = `
+          <span>${code}</span>
+          <span class="status"></span>
+        `;
+        list.appendChild(div);
+      });
+    }
+
     // Listeyi ekranda göster
     function renderList() {
       barcodeList.innerHTML = "";
@@ -189,6 +237,9 @@
         `;
         barcodeList.appendChild(div);
       });
+
+      // Tüm mini listeleri de güncelle
+      ["gokhan", "enes", "yusuf"].forEach(name => renderMiniList(name));
     }
 
     // Sayfa yüklendiğinde verileri çek
@@ -200,7 +251,10 @@
 
           const codes = Object.keys(data).filter(k => k !== "eslesenler");
           inputs[name].value = codes.join("\n");
-          codes.forEach(code => allCodes.add(code));
+          codes.forEach(code => {
+            allCodes.add(code);
+            userCodes[name].add(code);
+          });
 
           if (data.eslesenler) {
             Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
