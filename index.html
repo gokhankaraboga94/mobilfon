@@ -94,19 +94,27 @@
 
   <div class="container">
     <div class="section">
-      <label for="gokhanInput">🧑‍🔧 Gökhan'ın Cihazları</label>
+      <label for="gokhanInput"><span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span></label>
       <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
       <div id="gokhanList" class="mini-list"></div>
     </div>
     <div class="section">
-      <label for="enesInput">🧑‍🔧 Enes'in Cihazları</label>
+      <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
       <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
       <div id="enesList" class="mini-list"></div>
     </div>
     <div class="section">
-      <label for="yusufInput">🧑‍🔧 Yusuf'un Cihazları</label>
+      <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları - Adet: 0</span></label>
       <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
       <div id="yusufList" class="mini-list"></div>
+    </div>
+  </div>
+
+  <div class="container" style="margin-top: 30px;">
+    <div class="section" style="flex: 1 1 100%;">
+      <label for="searchInput">🔍 Barkod Ara:</label>
+      <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
+      <div id="searchResult" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
     </div>
   </div>
 
@@ -135,7 +143,14 @@
       gokhan: document.getElementById("gokhanInput"),
       enes: document.getElementById("enesInput"),
       yusuf: document.getElementById("yusufInput"),
-      scanner: document.getElementById("scannerInput")
+      scanner: document.getElementById("scannerInput"),
+      search: document.getElementById("searchInput")
+    };
+
+    const labels = {
+      gokhan: document.getElementById("gokhanLabel"),
+      enes: document.getElementById("enesLabel"),
+      yusuf: document.getElementById("yusufLabel")
     };
 
     const miniLists = {
@@ -144,6 +159,7 @@
       yusuf: document.getElementById("yusufList")
     };
 
+    const searchResult = document.getElementById("searchResult");
     const scannedCodes = new Set();
     const allCodes = new Set();
     const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set() };
@@ -166,6 +182,11 @@
         userCodes[name].add(code);
       });
 
+      // Adet bilgisini güncelle ve kaydet
+      const count = userCodes[name].size;
+      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : 'ın'} Cihazları - Adet: ${count}`;
+      db.ref(`servis/${name}/adet`).set(count);
+
       renderList();
       renderMiniList(name);
     }
@@ -173,9 +194,37 @@
     // Giriş olaylarını dinle
     Object.entries(inputs).forEach(([name, textarea]) => {
       textarea.addEventListener("input", () => {
-        if (name === "scanner") return;
+        if (name === "scanner" || name === "search") return;
         saveCodes(name, textarea.value);
       });
+    });
+
+    // Arama fonksiyonu
+    let searchTimeout;
+    inputs.search.addEventListener("input", e => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        const query = e.target.value.trim().slice(0, 15);
+        if (query.length === 0) {
+          searchResult.style.display = "none";
+          return;
+        }
+
+        searchResult.style.display = "block";
+        const foundIn = [];
+        ["gokhan", "enes", "yusuf"].forEach(name => {
+          if (userCodes[name].has(query)) {
+            const status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
+            foundIn.push(`<strong>${name.charAt(0).toUpperCase() + name.slice(1)}</strong>: ${status}`);
+          }
+        });
+
+        if (foundIn.length > 0) {
+          searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}`;
+        } else {
+          searchResult.innerHTML = `<div style="color: #e74c3c;">❌ Barkod bulunamadı</div>`;
+        }
+      }, 300);
     });
 
     // Barkod okutma alanı
@@ -233,12 +282,16 @@
           const data = snap.val();
           if (!data) return;
 
-          const codes = Object.keys(data).filter(k => k !== "eslesenler");
+          const codes = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
           inputs[name].value = codes.join("\n");
           codes.forEach(code => {
             allCodes.add(code);
             userCodes[name].add(code);
           });
+
+          // Adet bilgisini güncelle
+          const count = codes.length;
+          labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : 'ın'} Cihazları - Adet: ${count}`;
 
           if (data.eslesenler) {
             Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
