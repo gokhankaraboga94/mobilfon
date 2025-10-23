@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Barkod Doğrulama Sistemi</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
     * { box-sizing: border-box; }
@@ -18,6 +19,88 @@
       align-items: center;
     }
     h1 { font-size: 2.5em; margin-bottom: 20px; text-shadow: 1px 1px 3px #000; }
+    
+    /* Login Screen */
+    .login-container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 400px;
+      margin-top: 100px;
+    }
+    .login-container h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2em;
+    }
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .login-input {
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+    }
+    .login-button {
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .login-button:hover {
+      transform: scale(1.05);
+    }
+    .login-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .error-message {
+      background: #e74c3c;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      display: none;
+    }
+    .user-info {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      padding: 15px 25px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .logout-button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      background: #e74c3c;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    /* Main App */
+    .app-container {
+      display: none;
+      width: 100%;
+    }
     .container {
       display: flex;
       gap: 20px;
@@ -77,23 +160,6 @@
     }
     .mini-item.matched { background-color: #2ecc71; }
     .mini-item.unmatched { background-color: #e74c3c; }
-    .barcode-list {
-      margin-top: 30px;
-      width: 100%;
-      max-width: 800px;
-    }
-    .barcode-item {
-      padding: 10px;
-      background: #444;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .barcode-item.matched { background-color: #2ecc71; }
-    .barcode-item.unmatched { background-color: #e74c3c; }
-    .barcode-code { font-family: monospace; font-size: 18px; }
     .status { font-size: 20px; }
     .status::before { content: '⏳'; }
     .matched .status::before { content: '✅'; }
@@ -105,38 +171,58 @@
   </style>
 </head>
 <body>
-  <h1>Barkod Doğrulama Sistemi</h1>
-
-  <div class="container">
-    <div class="section">
-      <label for="gokhanInput"><span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span></label>
-      <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
-      <div id="gokhanList" class="mini-list"></div>
-    </div>
-    <div class="section">
-      <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
-      <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
-      <div id="enesList" class="mini-list"></div>
-    </div>
-    <div class="section">
-      <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları - Adet: 0</span></label>
-      <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
-      <div id="yusufList" class="mini-list"></div>
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-container">
+    <h2>🔐 Giriş Yap</h2>
+    <div class="login-form">
+      <input type="email" id="emailInput" class="login-input" placeholder="Email adresi" autocomplete="email">
+      <input type="password" id="passwordInput" class="login-input" placeholder="Şifre" autocomplete="current-password">
+      <div id="errorMessage" class="error-message"></div>
+      <button id="loginButton" class="login-button">Giriş Yap</button>
     </div>
   </div>
 
-  <div class="container" style="margin-top: 30px;">
-    <div class="section" style="flex: 1 1 100%;">
-      <label for="searchInput">🔍 Barkod Ara:</label>
-      <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
-      <div id="searchResult" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
-    </div>
+  <!-- User Info -->
+  <div id="userInfo" class="user-info" style="display: none;">
+    <span id="userName">👤 Kullanıcı</span>
+    <button id="logoutButton" class="logout-button">Çıkış</button>
   </div>
 
-  <div class="container" style="margin-top: 30px;">
-    <div class="section" style="flex: 1 1 100%;">
-      <label for="scannerInput">📡 Barkod Okut:</label>
-      <textarea id="scannerInput" placeholder="Barkod okuyucu ile okut..." autofocus></textarea>
+  <!-- Main App -->
+  <div id="appContainer" class="app-container">
+    <h1>Barkod Doğrulama Sistemi</h1>
+
+    <div class="container">
+      <div class="section">
+        <label for="gokhanInput"><span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span></label>
+        <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
+        <div id="gokhanList" class="mini-list"></div>
+      </div>
+      <div class="section">
+        <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
+        <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
+        <div id="enesList" class="mini-list"></div>
+      </div>
+      <div class="section">
+        <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları - Adet: 0</span></label>
+        <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
+        <div id="yusufList" class="mini-list"></div>
+      </div>
+    </div>
+
+    <div class="container" style="margin-top: 30px;">
+      <div class="section" style="flex: 1 1 100%;">
+        <label for="searchInput">🔍 Barkod Ara:</label>
+        <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
+        <div id="searchResult" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
+      </div>
+    </div>
+
+    <div class="container" style="margin-top: 30px;">
+      <div class="section" style="flex: 1 1 100%;">
+        <label for="scannerInput">📡 Barkod Okut:</label>
+        <textarea id="scannerInput" placeholder="Barkod okuyucu ile okut..." autofocus></textarea>
+      </div>
     </div>
   </div>
 
@@ -152,7 +238,19 @@
       databaseURL: "https://cokluhaber-dc6ff-default-rtdb.firebaseio.com/"
     };
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.database();
+
+    // DOM Elements
+    const loginScreen = document.getElementById("loginScreen");
+    const appContainer = document.getElementById("appContainer");
+    const userInfo = document.getElementById("userInfo");
+    const userName = document.getElementById("userName");
+    const emailInput = document.getElementById("emailInput");
+    const passwordInput = document.getElementById("passwordInput");
+    const loginButton = document.getElementById("loginButton");
+    const logoutButton = document.getElementById("logoutButton");
+    const errorMessage = document.getElementById("errorMessage");
 
     const inputs = {
       gokhan: document.getElementById("gokhanInput"),
@@ -180,6 +278,74 @@
     const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set() };
     const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {} };
 
+    // Authentication
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginScreen.style.display = "none";
+        appContainer.style.display = "block";
+        userInfo.style.display = "flex";
+        const name = user.email.split('@')[0];
+        userName.textContent = `👤 ${name.charAt(0).toUpperCase() + name.slice(1)}`;
+        loadData();
+      } else {
+        loginScreen.style.display = "flex";
+        appContainer.style.display = "none";
+        userInfo.style.display = "none";
+      }
+    });
+
+    // Login
+    loginButton.addEventListener("click", async () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      
+      if (!email || !password) {
+        showError("Email ve şifre gereklidir!");
+        return;
+      }
+
+      loginButton.disabled = true;
+      loginButton.textContent = "Giriş yapılıyor...";
+
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+        errorMessage.style.display = "none";
+      } catch (error) {
+        let message = "Giriş başarısız!";
+        if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
+          message = "Email veya şifre hatalı!";
+        } else if (error.code === "auth/user-not-found") {
+          message = "Kullanıcı bulunamadı!";
+        } else if (error.code === "auth/invalid-email") {
+          message = "Geçersiz email adresi!";
+        }
+        showError(message);
+      } finally {
+        loginButton.disabled = false;
+        loginButton.textContent = "Giriş Yap";
+      }
+    });
+
+    // Enter key login
+    passwordInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        loginButton.click();
+      }
+    });
+
+    // Logout
+    logoutButton.addEventListener("click", () => {
+      auth.signOut();
+    });
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = "block";
+      setTimeout(() => {
+        errorMessage.style.display = "none";
+      }, 3000);
+    }
+
     function getTimestamp() {
       const now = new Date();
       return now.toLocaleString('tr-TR');
@@ -199,7 +365,6 @@
         codeTimestamps[name][code] = timestamp;
       });
 
-      // Adet bilgisini güncelle ve kaydet
       const count = userCodes[name].size;
       labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : 'ın'} Cihazları - Adet: ${count}`;
       db.ref(`servis/${name}/adet`).set(count);
@@ -208,7 +373,6 @@
       renderMiniList(name);
     }
 
-    // Giriş olaylarını dinle
     Object.entries(inputs).forEach(([name, textarea]) => {
       textarea.addEventListener("input", () => {
         if (name === "scanner" || name === "search") return;
@@ -216,7 +380,6 @@
       });
     });
 
-    // Arama fonksiyonu
     let searchTimeout;
     inputs.search.addEventListener("input", e => {
       clearTimeout(searchTimeout);
@@ -244,7 +407,6 @@
       }, 300);
     });
 
-    // Barkod okutma alanı
     let scannerTimeout;
     inputs.scanner.addEventListener("input", e => {
       clearTimeout(scannerTimeout);
@@ -256,7 +418,6 @@
           const timestamp = getTimestamp();
           db.ref(`servis/eslesenler/${code}`).set(timestamp);
 
-          // Kimde varsa ona da kaydet
           ["gokhan", "enes", "yusuf"].forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
@@ -271,7 +432,6 @@
       }, 150);
     });
 
-    // Her kullanıcının mini listesini render et
     function renderMiniList(name) {
       const list = miniLists[name];
       list.innerHTML = "";
@@ -291,13 +451,11 @@
       });
     }
 
-    // Tüm listeleri güncelle
     function renderList() {
       ["gokhan", "enes", "yusuf"].forEach(name => renderMiniList(name));
     }
 
-    // Sayfa yüklendiğinde verileri çek
-    window.addEventListener("load", () => {
+    function loadData() {
       ["gokhan", "enes", "yusuf"].forEach(name => {
         db.ref(`servis/${name}`).once("value", snap => {
           const data = snap.val();
@@ -311,7 +469,6 @@
             codeTimestamps[name][code] = data[code];
           });
 
-          // Adet bilgisini güncelle
           const count = codes.length;
           labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : 'ın'} Cihazları - Adet: ${count}`;
 
@@ -330,9 +487,7 @@
           renderList();
         }
       });
-    });
+    }
   </script>
-
-  <h2>gokhan.karaboga@mobilfon.com</h2>
 </body>
 </html>
