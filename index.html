@@ -383,7 +383,7 @@
 
   <script>
     const firebaseConfig = {
-       apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
+      apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
       storageBucket: "cokluhaber-dc6ff.appspot.com",
@@ -570,6 +570,12 @@
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
       const specialLists = ['atanacak', 'parcaBekliyor'];
       
+      // PhoneCheck her zaman aktif (tüm kullanıcılar için)
+      inputs.phonecheck.disabled = false;
+      inputs.phonecheck.style.opacity = '1';
+      inputs.phonecheck.style.cursor = 'text';
+      inputs.phonecheck.placeholder = 'PhoneCheck\'e transfer edilecek barkodlar...';
+      
       if (currentUserRole === 'viewer') {
         normalUsers.forEach(name => {
           inputs[name].disabled = true;
@@ -584,11 +590,6 @@
           inputs[name].style.cursor = 'not-allowed';
           inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         });
-        
-        inputs.phonecheck.disabled = true;
-        inputs.phonecheck.style.opacity = '0.6';
-        inputs.phonecheck.style.cursor = 'not-allowed';
-        inputs.phonecheck.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         
         inputs.search.disabled = true;
         inputs.search.style.opacity = '0.6';
@@ -606,11 +607,6 @@
           inputs[name].style.opacity = '1';
           inputs[name].style.cursor = 'text';
         });
-        
-        inputs.phonecheck.disabled = false;
-        inputs.phonecheck.style.opacity = '1';
-        inputs.phonecheck.style.cursor = 'text';
-        inputs.phonecheck.placeholder = 'PhoneCheck\'e transfer edilecek barkodlar...';
         
         inputs.search.disabled = false;
         inputs.search.style.opacity = '1';
@@ -656,11 +652,12 @@
     }
 
     function saveCodes(name, value) {
-      if (currentUserRole === 'viewer') {
+      // PhoneCheck için özel kontrol - herkes kullanabilir
+      if (name === 'phonecheck') {
+        // PhoneCheck'e herkes yazabilir, sadece işlemi yap
+      } else if (currentUserRole === 'viewer') {
         return;
-      }
-      
-      if ((name === 'atanacak' || name === 'parcaBekliyor') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
+      } else if ((name === 'atanacak' || name === 'parcaBekliyor') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
         return;
       }
       
