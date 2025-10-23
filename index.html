@@ -22,57 +22,156 @@
     
     /* Login Screen */
     .login-container {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      padding: 40px;
-      border-radius: 15px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      padding: 50px 40px;
+      border-radius: 25px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 
+                  0 0 0 1px rgba(255, 255, 255, 0.1) inset;
       width: 100%;
-      max-width: 400px;
-      margin-top: 100px;
+      max-width: 450px;
+      margin-top: 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, 
+        transparent 30%, 
+        rgba(102, 126, 234, 0.1) 50%, 
+        transparent 70%);
+      animation: shine 3s infinite;
+    }
+    @keyframes shine {
+      0%, 100% { transform: rotate(0deg) translate(0, 0); }
+      50% { transform: rotate(180deg) translate(20px, 20px); }
+    }
+    .login-brand {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 1;
+    }
+    .login-brand h1 {
+      font-size: 2.8em;
+      font-weight: 900;
+      margin: 0 0 5px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.5)); }
+      to { filter: drop-shadow(0 0 20px rgba(118, 75, 162, 0.8)); }
+    }
+    .login-brand p {
+      font-size: 0.95em;
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      font-weight: 300;
     }
     .login-container h2 {
       text-align: center;
-      margin-bottom: 30px;
-      font-size: 2em;
+      margin-bottom: 35px;
+      font-size: 1.6em;
+      position: relative;
+      z-index: 1;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
     }
     .login-form {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 25px;
+      position: relative;
+      z-index: 1;
     }
     .login-input {
-      padding: 15px;
-      border: none;
-      border-radius: 8px;
+      padding: 18px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
       font-size: 16px;
-      background: rgba(255, 255, 255, 0.9);
-      color: #333;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+    .login-input:focus {
+      border-color: rgba(102, 126, 234, 0.8);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+      transform: translateY(-2px);
+    }
+    .login-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
     }
     .login-button {
-      padding: 15px;
+      padding: 18px;
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 18px;
-      font-weight: bold;
+      font-weight: 700;
       background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    .login-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+    .login-button:hover::before {
+      left: 100%;
     }
     .login-button:hover {
-      transform: scale(1.05);
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+    }
+    .login-button:active {
+      transform: translateY(-1px);
     }
     .login-button:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
+      transform: none;
     }
     .error-message {
-      background: #e74c3c;
-      padding: 10px;
-      border-radius: 8px;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      padding: 15px;
+      border-radius: 10px;
       text-align: center;
       display: none;
+      animation: shake 0.5s;
+      font-weight: 500;
+      box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
     }
     .user-info {
       position: fixed;
@@ -173,6 +272,10 @@
 <body>
   <!-- Login Screen -->
   <div id="loginScreen" class="login-container">
+    <div class="login-brand">
+      <h1>MOBİLFON</h1>
+      <p>TEKNOLOJİ</p>
+    </div>
     <h2>🔐 Giriş Yap</h2>
     <div class="login-form">
       <input type="email" id="emailInput" class="login-input" placeholder="Email adresi" autocomplete="email">
@@ -232,6 +335,16 @@
         <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
         <div id="sametList" class="mini-list"></div>
       </div>
+      <div class="section">
+        <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları - Adet: 0</span></label>
+        <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
+        <div id="ismailList" class="mini-list"></div>
+      </div>
+      <div class="section">
+        <label for="mehmetInput"><span id="mehmetLabel">🧑‍🔧 Mehmet'in Cihazları - Adet: 0</span></label>
+        <textarea id="mehmetInput" placeholder="Mehmet'in barkodlarını buraya yapıştır..."></textarea>
+        <div id="mehmetList" class="mini-list"></div>
+      </div>
     </div>
 
     <div class="container" style="margin-top: 30px;">
@@ -281,6 +394,8 @@
       enes: document.getElementById("enesInput"),
       yusuf: document.getElementById("yusufInput"),
       samet: document.getElementById("sametInput"),
+      ismail: document.getElementById("ismailInput"),
+      mehmet: document.getElementById("mehmetInput"),
       scanner: document.getElementById("scannerInput"),
       search: document.getElementById("searchInput")
     };
@@ -289,21 +404,25 @@
       gokhan: document.getElementById("gokhanLabel"),
       enes: document.getElementById("enesLabel"),
       yusuf: document.getElementById("yusufLabel"),
-      samet: document.getElementById("sametLabel")
+      samet: document.getElementById("sametLabel"),
+      ismail: document.getElementById("ismailLabel"),
+      mehmet: document.getElementById("mehmetLabel")
     };
 
     const miniLists = {
       gokhan: document.getElementById("gokhanList"),
       enes: document.getElementById("enesList"),
       yusuf: document.getElementById("yusufList"),
-      samet: document.getElementById("sametList")
+      samet: document.getElementById("sametList"),
+      ismail: document.getElementById("ismailList"),
+      mehmet: document.getElementById("mehmetList")
     };
 
     const searchResult = document.getElementById("searchResult");
     const scannedCodes = new Set();
     const allCodes = new Set();
-    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set(), samet: new Set() };
-    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {}, samet: {} };
+    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set(), samet: new Set(), ismail: new Set(), mehmet: new Set() };
+    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {}, samet: {}, ismail: {}, mehmet: {} };
 
     let currentUserRole = null;
     let currentUserName = null;
@@ -399,12 +518,14 @@
     }
 
     function applyPermissions() {
-      // Viewer (Gökhan, Yusuf, Samet) için textarea'ları devre dışı bırak
+      // Viewer (Gökhan, Yusuf, Samet, İsmail, Mehmet) için textarea'ları devre dışı bırak
       if (currentUserRole === 'viewer') {
         inputs.gokhan.disabled = true;
         inputs.enes.disabled = true;
         inputs.yusuf.disabled = true;
         inputs.samet.disabled = true;
+        inputs.ismail.disabled = true;
+        inputs.mehmet.disabled = true;
         inputs.search.disabled = true;
         
         // Görsel olarak da belirt
@@ -412,11 +533,15 @@
         inputs.enes.style.opacity = '0.6';
         inputs.yusuf.style.opacity = '0.6';
         inputs.samet.style.opacity = '0.6';
+        inputs.ismail.style.opacity = '0.6';
+        inputs.mehmet.style.opacity = '0.6';
         inputs.search.style.opacity = '0.6';
         inputs.gokhan.style.cursor = 'not-allowed';
         inputs.enes.style.cursor = 'not-allowed';
         inputs.yusuf.style.cursor = 'not-allowed';
         inputs.samet.style.cursor = 'not-allowed';
+        inputs.ismail.style.cursor = 'not-allowed';
+        inputs.mehmet.style.cursor = 'not-allowed';
         inputs.search.style.cursor = 'not-allowed';
         
         // Placeholder'ları değiştir
@@ -424,6 +549,8 @@
         inputs.enes.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.yusuf.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.samet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.ismail.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.mehmet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.search.placeholder = '🔒 Arama yapma yetkiniz yok';
       } else {
         // Admin ve Enes için tüm yetkileri aç
@@ -431,17 +558,23 @@
         inputs.enes.disabled = false;
         inputs.yusuf.disabled = false;
         inputs.samet.disabled = false;
+        inputs.ismail.disabled = false;
+        inputs.mehmet.disabled = false;
         inputs.search.disabled = false;
         
         inputs.gokhan.style.opacity = '1';
         inputs.enes.style.opacity = '1';
         inputs.yusuf.style.opacity = '1';
         inputs.samet.style.opacity = '1';
+        inputs.ismail.style.opacity = '1';
+        inputs.mehmet.style.opacity = '1';
         inputs.search.style.opacity = '1';
         inputs.gokhan.style.cursor = 'text';
         inputs.enes.style.cursor = 'text';
         inputs.yusuf.style.cursor = 'text';
         inputs.samet.style.cursor = 'text';
+        inputs.ismail.style.cursor = 'text';
+        inputs.mehmet.style.cursor = 'text';
         inputs.search.style.cursor = 'text';
       }
     }
@@ -471,7 +604,7 @@
       });
 
       const count = userCodes[name].size;
-      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
+      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : name === 'ismail' ? 'in' : name === 'mehmet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
       db.ref(`servis/${name}/adet`).set(count);
 
       renderList();
@@ -503,7 +636,7 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        ["gokhan", "enes", "yusuf", "samet"].forEach(name => {
+        ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
           if (userCodes[name].has(query)) {
             const status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
             foundIn.push(`<strong>${name.charAt(0).toUpperCase() + name.slice(1)}</strong>: ${status}`);
@@ -529,7 +662,7 @@
           const timestamp = getTimestamp();
           db.ref(`servis/eslesenler/${code}`).set(timestamp);
 
-          ["gokhan", "enes", "yusuf", "samet"].forEach(name => {
+          ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
                 db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
@@ -563,7 +696,7 @@
     }
 
     function renderList() {
-      ["gokhan", "enes", "yusuf", "samet"].forEach(name => renderMiniList(name));
+      ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => renderMiniList(name));
       
       // Admin istatistiklerini güncelle
       if (currentUserRole === 'admin') {
@@ -585,7 +718,7 @@
     }
 
     function loadData() {
-      ["gokhan", "enes", "yusuf"].forEach(name => {
+      ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
         db.ref(`servis/${name}`).once("value", snap => {
           const data = snap.val();
           if (!data) return;
@@ -599,7 +732,7 @@
           });
 
           const count = codes.length;
-          labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : 'ın'} Cihazları - Adet: ${count}`;
+          labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : name === 'ismail' ? 'in' : name === 'mehmet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
 
           if (data.eslesenler) {
             Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
