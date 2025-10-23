@@ -298,6 +298,7 @@
     const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {} };
 
     let currentUserRole = null;
+    let currentUserName = null;
 
     // Authentication
     auth.onAuthStateChanged(user => {
@@ -306,25 +307,34 @@
         appContainer.style.display = "block";
         userInfo.style.display = "flex";
         const name = user.email.split('@')[0];
+        currentUserName = name;
         
-        // Admin kontrolü
+        // Yetki kontrolü
         if (name === 'admin') {
           currentUserRole = 'admin';
           userName.textContent = `👑 Admin`;
           userName.style.background = 'linear-gradient(135deg, #f093fb, #f5576c)';
           userName.style.padding = '5px 15px';
           userName.style.borderRadius = '5px';
+        } else if (name === 'enes') {
+          currentUserRole = 'editor';
+          userName.textContent = `✏️ ${name.charAt(0).toUpperCase() + name.slice(1)}`;
+          userName.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+          userName.style.padding = '5px 15px';
+          userName.style.borderRadius = '5px';
         } else {
-          currentUserRole = 'user';
-          userName.textContent = `👤 ${name.charAt(0).toUpperCase() + name.slice(1)}`;
+          currentUserRole = 'viewer';
+          userName.textContent = `👁️ ${name.charAt(0).toUpperCase() + name.slice(1)} (Görüntüleme)`;
         }
         
         loadData();
+        applyPermissions();
       } else {
         loginScreen.style.display = "flex";
         appContainer.style.display = "none";
         userInfo.style.display = "none";
         currentUserRole = null;
+        currentUserName = null;
       }
     });
 
@@ -380,12 +390,58 @@
       }, 3000);
     }
 
+    function applyPermissions() {
+      // Viewer (Gökhan, Yusuf) için textarea'ları devre dışı bırak
+      if (currentUserRole === 'viewer') {
+        inputs.gokhan.disabled = true;
+        inputs.enes.disabled = true;
+        inputs.yusuf.disabled = true;
+        inputs.search.disabled = true;
+        
+        // Görsel olarak da belirt
+        inputs.gokhan.style.opacity = '0.6';
+        inputs.enes.style.opacity = '0.6';
+        inputs.yusuf.style.opacity = '0.6';
+        inputs.search.style.opacity = '0.6';
+        inputs.gokhan.style.cursor = 'not-allowed';
+        inputs.enes.style.cursor = 'not-allowed';
+        inputs.yusuf.style.cursor = 'not-allowed';
+        inputs.search.style.cursor = 'not-allowed';
+        
+        // Placeholder'ları değiştir
+        inputs.gokhan.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.enes.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.yusuf.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.search.placeholder = '🔒 Arama yapma yetkiniz yok';
+      } else {
+        // Admin ve Enes için tüm yetkileri aç
+        inputs.gokhan.disabled = false;
+        inputs.enes.disabled = false;
+        inputs.yusuf.disabled = false;
+        inputs.search.disabled = false;
+        
+        inputs.gokhan.style.opacity = '1';
+        inputs.enes.style.opacity = '1';
+        inputs.yusuf.style.opacity = '1';
+        inputs.search.style.opacity = '1';
+        inputs.gokhan.style.cursor = 'text';
+        inputs.enes.style.cursor = 'text';
+        inputs.yusuf.style.cursor = 'text';
+        inputs.search.style.cursor = 'text';
+      }
+    }
+
     function getTimestamp() {
       const now = new Date();
       return now.toLocaleString('tr-TR');
     }
 
     function saveCodes(name, value) {
+      // Yetki kontrolü - sadece admin ve enes düzenleyebilir
+      if (currentUserRole === 'viewer') {
+        return;
+      }
+      
       const codes = value.trim().split("\n")
         .map(code => code.trim().slice(0, 15))
         .filter(code => code.length === 15);
@@ -416,6 +472,12 @@
 
     let searchTimeout;
     inputs.search.addEventListener("input", e => {
+      // Yetki kontrolü - viewer arama yapamaz
+      if (currentUserRole === 'viewer') {
+        e.target.value = '';
+        return;
+      }
+      
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
         const query = e.target.value.trim().slice(0, 15);
