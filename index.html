@@ -191,6 +191,25 @@
   <!-- Main App -->
   <div id="appContainer" class="app-container">
     <h1>Barkod Doğrulama Sistemi</h1>
+    
+    <!-- Admin Panel -->
+    <div id="adminPanel" style="display: none; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
+      <h2 style="margin: 0 0 15px 0;">👑 Admin Paneli</h2>
+      <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; flex: 1; min-width: 200px;">
+          <div style="font-size: 14px; opacity: 0.9;">Toplam Barkod</div>
+          <div id="adminTotalBarcodes" style="font-size: 32px; font-weight: bold;">0</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; flex: 1; min-width: 200px;">
+          <div style="font-size: 14px; opacity: 0.9;">Eşleşen Barkod</div>
+          <div id="adminMatchedBarcodes" style="font-size: 32px; font-weight: bold;">0</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; flex: 1; min-width: 200px;">
+          <div style="font-size: 14px; opacity: 0.9;">Eşleşme Oranı</div>
+          <div id="adminMatchRate" style="font-size: 32px; font-weight: bold;">0%</div>
+        </div>
+      </div>
+    </div>
 
     <div class="container">
       <div class="section">
@@ -278,6 +297,8 @@
     const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set() };
     const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {} };
 
+    let currentUserRole = null;
+
     // Authentication
     auth.onAuthStateChanged(user => {
       if (user) {
@@ -285,12 +306,25 @@
         appContainer.style.display = "block";
         userInfo.style.display = "flex";
         const name = user.email.split('@')[0];
-        userName.textContent = `👤 ${name.charAt(0).toUpperCase() + name.slice(1)}`;
+        
+        // Admin kontrolü
+        if (name === 'admin') {
+          currentUserRole = 'admin';
+          userName.textContent = `👑 Admin`;
+          userName.style.background = 'linear-gradient(135deg, #f093fb, #f5576c)';
+          userName.style.padding = '5px 15px';
+          userName.style.borderRadius = '5px';
+        } else {
+          currentUserRole = 'user';
+          userName.textContent = `👤 ${name.charAt(0).toUpperCase() + name.slice(1)}`;
+        }
+        
         loadData();
       } else {
         loginScreen.style.display = "flex";
         appContainer.style.display = "none";
         userInfo.style.display = "none";
+        currentUserRole = null;
       }
     });
 
@@ -453,6 +487,24 @@
 
     function renderList() {
       ["gokhan", "enes", "yusuf"].forEach(name => renderMiniList(name));
+      
+      // Admin istatistiklerini güncelle
+      if (currentUserRole === 'admin') {
+        updateAdminStats();
+      }
+    }
+
+    function updateAdminStats() {
+      const adminPanel = document.getElementById('adminPanel');
+      adminPanel.style.display = 'block';
+      
+      const totalBarcodes = allCodes.size;
+      const matchedBarcodes = scannedCodes.size;
+      const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
+      
+      document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
+      document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
+      document.getElementById('adminMatchRate').textContent = matchRate + '%';
     }
 
     function loadData() {
