@@ -20,7 +20,6 @@
     }
     h1 { font-size: 2.5em; margin-bottom: 20px; text-shadow: 1px 1px 3px #000; }
     
-    /* Login Screen */
     .login-container {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
@@ -97,7 +96,6 @@
       font-size: 14px;
     }
     
-    /* Main App */
     .app-container {
       display: none;
       width: 100%;
@@ -186,7 +184,6 @@
   </style>
 </head>
 <body>
-  <!-- Login Screen -->
   <div id="loginScreen" class="login-container">
     <h2>🔐 Giriş Yap</h2>
     <div class="login-form">
@@ -197,17 +194,14 @@
     </div>
   </div>
 
-  <!-- User Info -->
   <div id="userInfo" class="user-info" style="display: none;">
     <span id="userName">👤 Kullanıcı</span>
     <button id="logoutButton" class="logout-button">Çıkış</button>
   </div>
 
-  <!-- Main App -->
   <div id="appContainer" class="app-container">
     <h1>Barkod Doğrulama Sistemi</h1>
     
-    <!-- Admin Panel -->
     <div id="adminPanel" style="display: none; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
       <h2 style="margin: 0 0 15px 0;">👑 Admin Paneli</h2>
       <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -226,7 +220,6 @@
       </div>
     </div>
 
-    <!-- Özel Listeler (Atanacak Cihazlar ve Parça Bekliyor) -->
     <div class="container" style="margin-bottom: 30px;">
       <div class="section special-section">
         <label for="atanacakInput"><span id="atanacakLabel">📋 Atanacak Cihazlar - Adet: 0</span></label>
@@ -294,17 +287,17 @@
       apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
-      storageBucket: "cokluhaber-dc6ff.appspot.com",
+      storageBucket: "cokluhaber-dc6ff.firebasestorage.app",
       messagingSenderId: "433806685700",
       appId: "1:433806685700:web:8bedc51407c6c4b56f2751",
       measurementId: "G-TYRTT351HP",
       databaseURL: "https://cokluhaber-dc6ff-default-rtdb.firebaseio.com/"
     };
+    
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
 
-    // DOM Elements
     const loginScreen = document.getElementById("loginScreen");
     const appContainer = document.getElementById("appContainer");
     const userInfo = document.getElementById("userInfo");
@@ -378,7 +371,6 @@
     let currentUserName = null;
     let isUpdating = false;
 
-    // Authentication
     auth.onAuthStateChanged(user => {
       if (user) {
         loginScreen.style.display = "none";
@@ -387,7 +379,6 @@
         const name = user.email.split('@')[0];
         currentUserName = name;
         
-        // Yetki kontrolü
         if (name === 'admin') {
           currentUserRole = 'admin';
           userName.textContent = `👑 Admin`;
@@ -416,7 +407,6 @@
       }
     });
 
-    // Login
     loginButton.addEventListener("click", async () => {
       const email = emailInput.value.trim();
       const password = passwordInput.value;
@@ -433,13 +423,16 @@
         await auth.signInWithEmailAndPassword(email, password);
         errorMessage.style.display = "none";
       } catch (error) {
-        let message = "Giriş başarısız!";
+        console.error("Giriş hatası:", error);
+        let message = "Giriş başarısız! " + error.message;
         if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
           message = "Email veya şifre hatalı!";
         } else if (error.code === "auth/user-not-found") {
           message = "Kullanıcı bulunamadı!";
         } else if (error.code === "auth/invalid-email") {
           message = "Geçersiz email adresi!";
+        } else if (error.code === "auth/too-many-requests") {
+          message = "Çok fazla başarısız deneme. Lütfen daha sonra tekrar deneyin.";
         }
         showError(message);
       } finally {
@@ -448,14 +441,12 @@
       }
     });
 
-    // Enter key login
     passwordInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         loginButton.click();
       }
     });
 
-    // Logout
     logoutButton.addEventListener("click", () => {
       auth.signOut();
     });
@@ -465,16 +456,14 @@
       errorMessage.style.display = "block";
       setTimeout(() => {
         errorMessage.style.display = "none";
-      }, 3000);
+      }, 5000);
     }
 
     function applyPermissions() {
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
       const specialLists = ['atanacak', 'parcaBekliyor'];
       
-      // Viewer (Gökhan, Yusuf, Samet, İsmail, Mehmet) için textarea'ları devre dışı bırak
       if (currentUserRole === 'viewer') {
-        // Normal inputları devre dışı bırak
         normalUsers.forEach(name => {
           inputs[name].disabled = true;
           inputs[name].style.opacity = '0.6';
@@ -482,7 +471,6 @@
           inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         });
         
-        // Özel listeler için (atanacak ve parça bekliyor) - sadece görüntüleme
         specialLists.forEach(name => {
           inputs[name].disabled = true;
           inputs[name].style.opacity = '0.6';
@@ -495,7 +483,6 @@
         inputs.search.style.cursor = 'not-allowed';
         inputs.search.placeholder = '🔒 Arama yapma yetkiniz yok';
       } else {
-        // Admin ve Enes için tüm yetkileri aç
         normalUsers.forEach(name => {
           inputs[name].disabled = false;
           inputs[name].style.opacity = '1';
@@ -520,7 +507,6 @@
     }
 
     function removeFromSpecialLists(code) {
-      // Atanacak listesinden sil
       if (userCodes.atanacak.has(code)) {
         userCodes.atanacak.delete(code);
         delete codeTimestamps.atanacak[code];
@@ -529,7 +515,6 @@
         renderMiniList('atanacak');
       }
       
-      // Parça bekliyor listesinden sil
       if (userCodes.parcaBekliyor.has(code)) {
         userCodes.parcaBekliyor.delete(code);
         delete codeTimestamps.parcaBekliyor[code];
@@ -557,12 +542,10 @@
     }
 
     function saveCodes(name, value) {
-      // Yetki kontrolü
       if (currentUserRole === 'viewer') {
         return;
       }
       
-      // Özel listeler (atanacak, parcaBekliyor) için sadece admin ve enes yetkili
       if ((name === 'atanacak' || name === 'parcaBekliyor') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
         return;
       }
@@ -575,14 +558,9 @@
         .filter(code => code.length === 15);
 
       const timestamp = getTimestamp();
-      
-      // Mevcut kodları al
       const oldCodes = new Set(userCodes[name]);
-      
-      // Yeni kodları belirle
       const newCodes = new Set(codes);
       
-      // Silinen kodları bul
       oldCodes.forEach(code => {
         if (!newCodes.has(code)) {
           db.ref(`servis/${name}/${code}`).remove();
@@ -590,10 +568,8 @@
         }
       });
       
-      // Yeni kodları kaydet
       userCodes[name].clear();
       codes.forEach(code => {
-        // Normal listelerden (gökhan, enes, vb.) ekleniyorsa özel listelerden sil
         if (name !== 'atanacak' && name !== 'parcaBekliyor') {
           removeFromSpecialLists(code);
         }
@@ -620,7 +596,6 @@
 
     let searchTimeout;
     inputs.search.addEventListener("input", e => {
-      // Yetki kontrolü - viewer arama yapamaz
       if (currentUserRole === 'viewer') {
         e.target.value = '';
         return;
@@ -670,4 +645,37 @@
         if (code.length === 15 && !scannedCodes.has(code)) {
           scannedCodes.add(code);
           const timestamp = getTimestamp();
-          db.ref
+          db.ref(`servis/eslesenler/${code}`).set(timestamp);
+
+          ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
+            db.ref(`servis/${name}/${code}`).once("value", snap => {
+              if (snap.exists()) {
+                db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
+              }
+            });
+          });
+
+          renderList();
+        }
+        e.target.value = "";
+      }, 150);
+    });
+
+    function renderMiniList(name) {
+      const list = miniLists[name];
+      list.innerHTML = "";
+      userCodes[name].forEach(code => {
+        const div = document.createElement("div");
+        div.className = "mini-item";
+        
+        if (name === 'atanacak' || name === 'parcaBekliyor') {
+          div.classList.add("waiting");
+        } else {
+          div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
+        }
+        
+        const timestamp = codeTimestamps[name][code] || "Tarih yok";
+        div.innerHTML = `
+          <div class="mini-item-row">
+            <span>${code}</span>
+            <span class="status
