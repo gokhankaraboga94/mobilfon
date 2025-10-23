@@ -603,16 +603,24 @@
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
       const specialLists = ['atanacak', 'parcaBekliyor'];
       
-      // PhoneCheck ve Onarım her zaman aktif (tüm kullanıcılar için)
+      // PhoneCheck her zaman aktif (tüm kullanıcılar için)
       inputs.phonecheck.disabled = false;
       inputs.phonecheck.style.opacity = '1';
       inputs.phonecheck.style.cursor = 'text';
       inputs.phonecheck.placeholder = 'PhoneCheck\'e transfer edilecek barkodlar...';
 
-      inputs.onarim.disabled = false;
-      inputs.onarim.style.opacity = '1';
-      inputs.onarim.style.cursor = 'text';
-      inputs.onarim.placeholder = 'Onarımı tamamlanan barkodları girin...';
+      // Onarım Tamamlandı sadece yusuf için düzenlenebilir
+      if (currentUserName === 'yusuf') {
+        inputs.onarim.disabled = false;
+        inputs.onarim.style.opacity = '1';
+        inputs.onarim.style.cursor = 'text';
+        inputs.onarim.placeholder = 'Onarımı tamamlanan barkodları girin...';
+      } else {
+        inputs.onarim.disabled = true;
+        inputs.onarim.style.opacity = '0.6';
+        inputs.onarim.style.cursor = 'not-allowed';
+        inputs.onarim.placeholder = '🔒 Sadece Yusuf düzenleyebilir - Görüntüleme modu';
+      }
       
       if (currentUserRole === 'viewer') {
         normalUsers.forEach(name => {
@@ -665,7 +673,7 @@
           userCodes[name].delete(code);
           delete codeTimestamps[name][code];
           delete codeUsers[name][code];
-          db.ref(`servis/${name}/${code}`).remove();
+          db.ref(`servis/${name}`).child(code).remove();
           updateLabelAndCount(name);
           renderMiniList(name);
         }
@@ -694,14 +702,17 @@
     }
 
     function saveCodes(name, value) {
-      // PhoneCheck ve Onarım herkes yazabilir
       if (isUpdating) return;
+      
+      // Onarım Tamamlandı için sadece yusuf yetkili
+      if (name === 'onarim' && currentUserName !== 'yusuf') {
+        return;
+      }
+      
       isUpdating = true;
 
-      // Extract codes: support lines like "3510... - gokhan" or just "3510..."
       const rawLines = value.trim().split("\n").map(l=>l.trim()).filter(l=>l.length>0);
       const codes = rawLines.map(line => {
-        // first 15 digits sequence in the line
         const m = line.match(/(\d{15})/);
         return m ? m[1] : null;
       }).filter(Boolean);
@@ -710,28 +721,23 @@
       const oldCodes = new Set(userCodes[name]);
       const newCodes = new Set(codes);
       
-      // remove deleted codes from DB
       oldCodes.forEach(code => {
         if (!newCodes.has(code)) {
-          db.ref(`servis/${name}/${code}`).remove();
+          const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
+          db.ref(`servis/${dbPath}/${code}`).remove();
           allCodes.delete(code);
         }
       });
 
-      // clear local set and repopulate
       userCodes[name].clear();
 
       codes.forEach(code => {
         if (name === 'phonecheck') {
-          // ensure unique: remove from other lists
           removeFromOtherLists(code, name);
-          // save as object with user and timestamp
           db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
           codeTimestamps[name][code] = timestamp;
           codeUsers[name][code] = currentUserName;
         } else if (name === 'onarim') {
-          // Onarım: move from phonecheck to onarım
-          // remove from phonecheck if exists
           if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
             db.ref(`servis/phonecheck/${code}`).remove();
             userCodes.phonecheck.delete(code);
@@ -740,18 +746,15 @@
             updateLabelAndCount('phonecheck');
             renderMiniList('phonecheck');
           } else {
-            // also try removal from DB regardless
             db.ref(`servis/phonecheck/${code}`).remove();
           }
 
-          // save to onarım with user+timestamp
           db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
           codeTimestamps.onarim[code] = timestamp;
           codeUsers.onarim[code] = currentUserName;
           userCodes.onarim.add(code);
           allCodes.add(code);
         } else {
-          // normal lists: remove from other lists (so unique across lists)
           removeFromOtherLists(code, name);
           db.ref(`servis/${name}/${code}`).set(timestamp);
           codeTimestamps[name][code] = timestamp;
@@ -760,21 +763,18 @@
           allCodes.add(code);
         }
 
-        // ensure it's present in userCodes (phonecheck and onarım handled above)
         if (name === 'phonecheck') {
           userCodes.phonecheck.add(code);
           allCodes.add(code);
         }
       });
 
-      // update labels and UI
       updateLabelAndCount(name);
       renderList();
       
       isUpdating = false;
     }
 
-    // Attach input listeners
     Object.entries(inputs).forEach(([name, textarea]) => {
       textarea.addEventListener("input", () => {
         if (name === "scanner" || name === "search") return;
@@ -850,11 +850,9 @@
             });
           });
 
-          // also mark in phonecheck/onarim eslesenler if necessary
           ["phonecheck", "onarimTamamlandi", "atanacak", "parcaBekliyor"].forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
-                // write eslesenler under that list
                 db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
               }
             });
@@ -934,10 +932,8 @@
           if (!data) return;
 
           const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
-          // For mapping: if name === 'onarimTamamlandi' we map to local 'onarim'
           const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
 
-          // populate textarea and local sets
           inputs[localName].value = keys.map(code => {
             const val = data[code];
             if (typeof val === 'object') {
@@ -949,7 +945,6 @@
               allCodes.add(code);
               return user ? `${code} - ${user}` : code;
             } else {
-              // old format: val is timestamp string
               codeTimestamps[localName][code] = val;
               codeUsers[localName][code] = null;
               userCodes[localName].add(code);
