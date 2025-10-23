@@ -227,6 +227,11 @@
         <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
         <div id="yusufList" class="mini-list"></div>
       </div>
+      <div class="section">
+        <label for="sametInput"><span id="sametLabel">🧑‍🔧 Samet'in Cihazları - Adet: 0</span></label>
+        <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
+        <div id="sametList" class="mini-list"></div>
+      </div>
     </div>
 
     <div class="container" style="margin-top: 30px;">
@@ -275,6 +280,7 @@
       gokhan: document.getElementById("gokhanInput"),
       enes: document.getElementById("enesInput"),
       yusuf: document.getElementById("yusufInput"),
+      samet: document.getElementById("sametInput"),
       scanner: document.getElementById("scannerInput"),
       search: document.getElementById("searchInput")
     };
@@ -282,20 +288,22 @@
     const labels = {
       gokhan: document.getElementById("gokhanLabel"),
       enes: document.getElementById("enesLabel"),
-      yusuf: document.getElementById("yusufLabel")
+      yusuf: document.getElementById("yusufLabel"),
+      samet: document.getElementById("sametLabel")
     };
 
     const miniLists = {
       gokhan: document.getElementById("gokhanList"),
       enes: document.getElementById("enesList"),
-      yusuf: document.getElementById("yusufList")
+      yusuf: document.getElementById("yusufList"),
+      samet: document.getElementById("sametList")
     };
 
     const searchResult = document.getElementById("searchResult");
     const scannedCodes = new Set();
     const allCodes = new Set();
-    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set() };
-    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {} };
+    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set(), samet: new Set() };
+    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {}, samet: {} };
 
     let currentUserRole = null;
     let currentUserName = null;
@@ -391,42 +399,49 @@
     }
 
     function applyPermissions() {
-      // Viewer (Gökhan, Yusuf) için textarea'ları devre dışı bırak
+      // Viewer (Gökhan, Yusuf, Samet) için textarea'ları devre dışı bırak
       if (currentUserRole === 'viewer') {
         inputs.gokhan.disabled = true;
         inputs.enes.disabled = true;
         inputs.yusuf.disabled = true;
+        inputs.samet.disabled = true;
         inputs.search.disabled = true;
         
         // Görsel olarak da belirt
         inputs.gokhan.style.opacity = '0.6';
         inputs.enes.style.opacity = '0.6';
         inputs.yusuf.style.opacity = '0.6';
+        inputs.samet.style.opacity = '0.6';
         inputs.search.style.opacity = '0.6';
         inputs.gokhan.style.cursor = 'not-allowed';
         inputs.enes.style.cursor = 'not-allowed';
         inputs.yusuf.style.cursor = 'not-allowed';
+        inputs.samet.style.cursor = 'not-allowed';
         inputs.search.style.cursor = 'not-allowed';
         
         // Placeholder'ları değiştir
         inputs.gokhan.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.enes.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.yusuf.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.samet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.search.placeholder = '🔒 Arama yapma yetkiniz yok';
       } else {
         // Admin ve Enes için tüm yetkileri aç
         inputs.gokhan.disabled = false;
         inputs.enes.disabled = false;
         inputs.yusuf.disabled = false;
+        inputs.samet.disabled = false;
         inputs.search.disabled = false;
         
         inputs.gokhan.style.opacity = '1';
         inputs.enes.style.opacity = '1';
         inputs.yusuf.style.opacity = '1';
+        inputs.samet.style.opacity = '1';
         inputs.search.style.opacity = '1';
         inputs.gokhan.style.cursor = 'text';
         inputs.enes.style.cursor = 'text';
         inputs.yusuf.style.cursor = 'text';
+        inputs.samet.style.cursor = 'text';
         inputs.search.style.cursor = 'text';
       }
     }
@@ -456,7 +471,7 @@
       });
 
       const count = userCodes[name].size;
-      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : 'ın'} Cihazları - Adet: ${count}`;
+      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
       db.ref(`servis/${name}/adet`).set(count);
 
       renderList();
@@ -488,7 +503,7 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        ["gokhan", "enes", "yusuf"].forEach(name => {
+        ["gokhan", "enes", "yusuf", "samet"].forEach(name => {
           if (userCodes[name].has(query)) {
             const status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
             foundIn.push(`<strong>${name.charAt(0).toUpperCase() + name.slice(1)}</strong>: ${status}`);
@@ -514,7 +529,7 @@
           const timestamp = getTimestamp();
           db.ref(`servis/eslesenler/${code}`).set(timestamp);
 
-          ["gokhan", "enes", "yusuf"].forEach(name => {
+          ["gokhan", "enes", "yusuf", "samet"].forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
                 db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
@@ -548,7 +563,7 @@
     }
 
     function renderList() {
-      ["gokhan", "enes", "yusuf"].forEach(name => renderMiniList(name));
+      ["gokhan", "enes", "yusuf", "samet"].forEach(name => renderMiniList(name));
       
       // Admin istatistiklerini güncelle
       if (currentUserRole === 'admin') {
