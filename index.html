@@ -1080,24 +1080,6 @@ function loadData() {
           const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
           const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
 
-          inputs[localName].value = keys.map(code => {
-            const val = data[code];
-            if (typeof val === 'object') {
-              const user = val.user || '';
-              const ts = val.ts || '';
-              codeTimestamps[localName][code] = ts;
-              codeUsers[localName][code] = user;
-              userCodes[localName].add(code);
-              allCodes.add(code);
-              return user ? `${code} - ${user}` : code;
-            } else {
-              codeTimestamps[localName][code] = val;
-              codeUsers[localName][code] = null;
-              userCodes[localName].add(code);
-              allCodes.add(code);
-              return code;
-            }
-          }).join("\n");
 
           updateLabelAndCount(localName);
 
