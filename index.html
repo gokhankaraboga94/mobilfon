@@ -59,6 +59,21 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .mini-item-row {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .mini-item-time {
+      font-size: 11px;
+      color: #ddd;
+      font-family: 'Segoe UI', sans-serif;
+      width: 100%;
+      text-align: right;
     }
     .mini-item.matched { background-color: #2ecc71; }
     .mini-item.unmatched { background-color: #e74c3c; }
@@ -163,6 +178,7 @@
     const scannedCodes = new Set();
     const allCodes = new Set();
     const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set() };
+    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {} };
 
     function getTimestamp() {
       const now = new Date();
@@ -180,6 +196,7 @@
         db.ref(`servis/${name}/${code}`).set(timestamp);
         allCodes.add(code);
         userCodes[name].add(code);
+        codeTimestamps[name][code] = timestamp;
       });
 
       // Adet bilgisini güncelle ve kaydet
@@ -262,9 +279,13 @@
         const div = document.createElement("div");
         div.className = "mini-item";
         div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
+        const timestamp = codeTimestamps[name][code] || "Tarih yok";
         div.innerHTML = `
-          <span>${code}</span>
-          <span class="status"></span>
+          <div class="mini-item-row">
+            <span>${code}</span>
+            <span class="status"></span>
+          </div>
+          <div class="mini-item-time">📅 ${timestamp}</div>
         `;
         list.appendChild(div);
       });
@@ -287,6 +308,7 @@
           codes.forEach(code => {
             allCodes.add(code);
             userCodes[name].add(code);
+            codeTimestamps[name][code] = data[code];
           });
 
           // Adet bilgisini güncelle
