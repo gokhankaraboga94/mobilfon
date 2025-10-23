@@ -2,8 +2,8 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-   <title>Barkod Doğrulama Sistemi</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <title>Barkod Doğrulama Sistemi</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
@@ -383,7 +383,7 @@
 
   <script>
     const firebaseConfig = {
-           apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
+       apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
       storageBucket: "cokluhaber-dc6ff.appspot.com",
@@ -496,9 +496,11 @@
           userName.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
           userName.style.padding = '5px 15px';
           userName.style.borderRadius = '5px';
+          document.getElementById('adminPanel').style.display = 'none';
         } else {
           currentUserRole = 'viewer';
           userName.textContent = `👁️ ${name.charAt(0).toUpperCase() + name.slice(1)} (Görüntüleme)`;
+          document.getElementById('adminPanel').style.display = 'none';
         }
         
         loadData();
@@ -566,7 +568,7 @@
 
     function applyPermissions() {
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
-      const specialLists = ['atanacak', 'parcaBekliyor', 'phonecheck'];
+      const specialLists = ['atanacak', 'parcaBekliyor'];
       
       if (currentUserRole === 'viewer') {
         normalUsers.forEach(name => {
@@ -582,6 +584,11 @@
           inputs[name].style.cursor = 'not-allowed';
           inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         });
+        
+        inputs.phonecheck.disabled = true;
+        inputs.phonecheck.style.opacity = '0.6';
+        inputs.phonecheck.style.cursor = 'not-allowed';
+        inputs.phonecheck.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         
         inputs.search.disabled = true;
         inputs.search.style.opacity = '0.6';
@@ -599,6 +606,11 @@
           inputs[name].style.opacity = '1';
           inputs[name].style.cursor = 'text';
         });
+        
+        inputs.phonecheck.disabled = false;
+        inputs.phonecheck.style.opacity = '1';
+        inputs.phonecheck.style.cursor = 'text';
+        inputs.phonecheck.placeholder = 'PhoneCheck\'e transfer edilecek barkodlar...';
         
         inputs.search.disabled = false;
         inputs.search.style.opacity = '1';
@@ -648,7 +660,7 @@
         return;
       }
       
-      if ((name === 'atanacak' || name === 'parcaBekliyor' || name === 'phonecheck') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
+      if ((name === 'atanacak' || name === 'parcaBekliyor') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
         return;
       }
       
@@ -672,7 +684,11 @@
       
       userCodes[name].clear();
       codes.forEach(code => {
-        removeFromOtherLists(code, name);
+        if (name === 'phonecheck') {
+          removeFromOtherLists(code, name);
+        } else if (name !== 'atanacak' && name !== 'parcaBekliyor') {
+          removeFromOtherLists(code, name);
+        }
         
         db.ref(`servis/${name}/${code}`).set(timestamp);
         allCodes.add(code);
