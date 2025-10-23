@@ -109,6 +109,7 @@
       transition: all 0.3s ease;
       outline: none;
       box-sizing: border-box;
+      margin: 0;
     }
     .login-input:focus {
       border-color: rgba(102, 126, 234, 0.8);
@@ -118,6 +119,13 @@
     }
     .login-input::placeholder {
       color: rgba(255, 255, 255, 0.5);
+    }
+    .login-input:-webkit-autofill,
+    .login-input:-webkit-autofill:hover,
+    .login-input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #fff;
+      -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.08) inset;
+      transition: background-color 5000s ease-in-out 0s;
     }
     .login-button {
       width: 100%;
