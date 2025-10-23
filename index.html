@@ -20,6 +20,7 @@
     }
     h1 { font-size: 2.5em; margin-bottom: 20px; text-shadow: 1px 1px 3px #000; }
     
+    /* Login Screen */
     .login-container {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
@@ -84,7 +85,6 @@
       display: flex;
       align-items: center;
       gap: 15px;
-      z-index: 1000;
     }
     .logout-button {
       padding: 8px 15px;
@@ -96,6 +96,7 @@
       font-size: 14px;
     }
     
+    /* Main App */
     .app-container {
       display: none;
       width: 100%;
@@ -105,25 +106,13 @@
       gap: 20px;
       flex-wrap: wrap;
       width: 100%;
-      max-width: 1400px;
+      max-width: 1200px;
     }
     .section {
       flex: 1 1 30%;
       display: flex;
       flex-direction: column;
       gap: 10px;
-      min-width: 280px;
-    }
-    .special-section {
-      background: linear-gradient(135deg, #f093fb, #f5576c);
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-    .special-section label {
-      color: #fff;
-      font-size: 1.1em;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
     textarea {
       width: 100%;
@@ -171,12 +160,10 @@
     }
     .mini-item.matched { background-color: #2ecc71; }
     .mini-item.unmatched { background-color: #e74c3c; }
-    .mini-item.waiting { background-color: #f39c12; }
     .status { font-size: 20px; }
     .status::before { content: '⏳'; }
     .matched .status::before { content: '✅'; }
     .unmatched .status::before { content: '❌'; }
-    .waiting .status::before { content: '⏰'; }
     @media (max-width: 768px) {
       .container { flex-direction: column; }
       .section { flex: 1 1 100%; }
@@ -184,6 +171,7 @@
   </style>
 </head>
 <body>
+  <!-- Login Screen -->
   <div id="loginScreen" class="login-container">
     <h2>🔐 Giriş Yap</h2>
     <div class="login-form">
@@ -194,14 +182,17 @@
     </div>
   </div>
 
+  <!-- User Info -->
   <div id="userInfo" class="user-info" style="display: none;">
     <span id="userName">👤 Kullanıcı</span>
     <button id="logoutButton" class="logout-button">Çıkış</button>
   </div>
 
+  <!-- Main App -->
   <div id="appContainer" class="app-container">
     <h1>Barkod Doğrulama Sistemi</h1>
     
+    <!-- Admin Panel -->
     <div id="adminPanel" style="display: none; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
       <h2 style="margin: 0 0 15px 0;">👑 Admin Paneli</h2>
       <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -217,19 +208,6 @@
           <div style="font-size: 14px; opacity: 0.9;">Eşleşme Oranı</div>
           <div id="adminMatchRate" style="font-size: 32px; font-weight: bold;">0%</div>
         </div>
-      </div>
-    </div>
-
-    <div class="container" style="margin-bottom: 30px;">
-      <div class="section special-section">
-        <label for="atanacakInput"><span id="atanacakLabel">📋 Atanacak Cihazlar - Adet: 0</span></label>
-        <textarea id="atanacakInput" placeholder="Atanacak cihazların barkodlarını buraya yapıştır..."></textarea>
-        <div id="atanacakList" class="mini-list"></div>
-      </div>
-      <div class="section special-section">
-        <label for="parcaBekliyorInput"><span id="parcaBekliyorLabel">⚙️ Parça Bekliyor - Adet: 0</span></label>
-        <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazların barkodlarını buraya yapıştır..."></textarea>
-        <div id="parcaBekliyorList" class="mini-list"></div>
       </div>
     </div>
 
@@ -287,17 +265,17 @@
       apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
-      storageBucket: "cokluhaber-dc6ff.firebasestorage.app",
+      storageBucket: "cokluhaber-dc6ff.appspot.com",
       messagingSenderId: "433806685700",
       appId: "1:433806685700:web:8bedc51407c6c4b56f2751",
       measurementId: "G-TYRTT351HP",
       databaseURL: "https://cokluhaber-dc6ff-default-rtdb.firebaseio.com/"
     };
-    
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
 
+    // DOM Elements
     const loginScreen = document.getElementById("loginScreen");
     const appContainer = document.getElementById("appContainer");
     const userInfo = document.getElementById("userInfo");
@@ -309,8 +287,6 @@
     const errorMessage = document.getElementById("errorMessage");
 
     const inputs = {
-      atanacak: document.getElementById("atanacakInput"),
-      parcaBekliyor: document.getElementById("parcaBekliyorInput"),
       gokhan: document.getElementById("gokhanInput"),
       enes: document.getElementById("enesInput"),
       yusuf: document.getElementById("yusufInput"),
@@ -322,8 +298,6 @@
     };
 
     const labels = {
-      atanacak: document.getElementById("atanacakLabel"),
-      parcaBekliyor: document.getElementById("parcaBekliyorLabel"),
       gokhan: document.getElementById("gokhanLabel"),
       enes: document.getElementById("enesLabel"),
       yusuf: document.getElementById("yusufLabel"),
@@ -333,8 +307,6 @@
     };
 
     const miniLists = {
-      atanacak: document.getElementById("atanacakList"),
-      parcaBekliyor: document.getElementById("parcaBekliyorList"),
       gokhan: document.getElementById("gokhanList"),
       enes: document.getElementById("enesList"),
       yusuf: document.getElementById("yusufList"),
@@ -346,31 +318,13 @@
     const searchResult = document.getElementById("searchResult");
     const scannedCodes = new Set();
     const allCodes = new Set();
-    const userCodes = { 
-      atanacak: new Set(), 
-      parcaBekliyor: new Set(),
-      gokhan: new Set(), 
-      enes: new Set(), 
-      yusuf: new Set(), 
-      samet: new Set(), 
-      ismail: new Set(), 
-      mehmet: new Set() 
-    };
-    const codeTimestamps = { 
-      atanacak: {}, 
-      parcaBekliyor: {},
-      gokhan: {}, 
-      enes: {}, 
-      yusuf: {}, 
-      samet: {}, 
-      ismail: {}, 
-      mehmet: {} 
-    };
+    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set(), samet: new Set(), ismail: new Set(), mehmet: new Set() };
+    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {}, samet: {}, ismail: {}, mehmet: {} };
 
     let currentUserRole = null;
     let currentUserName = null;
-    let isUpdating = false;
 
+    // Authentication
     auth.onAuthStateChanged(user => {
       if (user) {
         loginScreen.style.display = "none";
@@ -379,6 +333,7 @@
         const name = user.email.split('@')[0];
         currentUserName = name;
         
+        // Yetki kontrolü
         if (name === 'admin') {
           currentUserRole = 'admin';
           userName.textContent = `👑 Admin`;
@@ -407,6 +362,7 @@
       }
     });
 
+    // Login
     loginButton.addEventListener("click", async () => {
       const email = emailInput.value.trim();
       const password = passwordInput.value;
@@ -423,16 +379,13 @@
         await auth.signInWithEmailAndPassword(email, password);
         errorMessage.style.display = "none";
       } catch (error) {
-        console.error("Giriş hatası:", error);
-        let message = "Giriş başarısız! " + error.message;
+        let message = "Giriş başarısız!";
         if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
           message = "Email veya şifre hatalı!";
         } else if (error.code === "auth/user-not-found") {
           message = "Kullanıcı bulunamadı!";
         } else if (error.code === "auth/invalid-email") {
           message = "Geçersiz email adresi!";
-        } else if (error.code === "auth/too-many-requests") {
-          message = "Çok fazla başarısız deneme. Lütfen daha sonra tekrar deneyin.";
         }
         showError(message);
       } finally {
@@ -441,12 +394,14 @@
       }
     });
 
+    // Enter key login
     passwordInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         loginButton.click();
       }
     });
 
+    // Logout
     logoutButton.addEventListener("click", () => {
       auth.signOut();
     });
@@ -456,47 +411,67 @@
       errorMessage.style.display = "block";
       setTimeout(() => {
         errorMessage.style.display = "none";
-      }, 5000);
+      }, 3000);
     }
 
     function applyPermissions() {
-      const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
-      const specialLists = ['atanacak', 'parcaBekliyor'];
-      
+      // Viewer (Gökhan, Yusuf, Samet, İsmail, Mehmet) için textarea'ları devre dışı bırak
       if (currentUserRole === 'viewer') {
-        normalUsers.forEach(name => {
-          inputs[name].disabled = true;
-          inputs[name].style.opacity = '0.6';
-          inputs[name].style.cursor = 'not-allowed';
-          inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
-        });
-        
-        specialLists.forEach(name => {
-          inputs[name].disabled = true;
-          inputs[name].style.opacity = '0.6';
-          inputs[name].style.cursor = 'not-allowed';
-          inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
-        });
-        
+        inputs.gokhan.disabled = true;
+        inputs.enes.disabled = true;
+        inputs.yusuf.disabled = true;
+        inputs.samet.disabled = true;
+        inputs.ismail.disabled = true;
+        inputs.mehmet.disabled = true;
         inputs.search.disabled = true;
+        
+        // Görsel olarak da belirt
+        inputs.gokhan.style.opacity = '0.6';
+        inputs.enes.style.opacity = '0.6';
+        inputs.yusuf.style.opacity = '0.6';
+        inputs.samet.style.opacity = '0.6';
+        inputs.ismail.style.opacity = '0.6';
+        inputs.mehmet.style.opacity = '0.6';
         inputs.search.style.opacity = '0.6';
+        inputs.gokhan.style.cursor = 'not-allowed';
+        inputs.enes.style.cursor = 'not-allowed';
+        inputs.yusuf.style.cursor = 'not-allowed';
+        inputs.samet.style.cursor = 'not-allowed';
+        inputs.ismail.style.cursor = 'not-allowed';
+        inputs.mehmet.style.cursor = 'not-allowed';
         inputs.search.style.cursor = 'not-allowed';
+        
+        // Placeholder'ları değiştir
+        inputs.gokhan.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.enes.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.yusuf.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.samet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.ismail.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.mehmet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.search.placeholder = '🔒 Arama yapma yetkiniz yok';
       } else {
-        normalUsers.forEach(name => {
-          inputs[name].disabled = false;
-          inputs[name].style.opacity = '1';
-          inputs[name].style.cursor = 'text';
-        });
-        
-        specialLists.forEach(name => {
-          inputs[name].disabled = false;
-          inputs[name].style.opacity = '1';
-          inputs[name].style.cursor = 'text';
-        });
-        
+        // Admin ve Enes için tüm yetkileri aç
+        inputs.gokhan.disabled = false;
+        inputs.enes.disabled = false;
+        inputs.yusuf.disabled = false;
+        inputs.samet.disabled = false;
+        inputs.ismail.disabled = false;
+        inputs.mehmet.disabled = false;
         inputs.search.disabled = false;
+        
+        inputs.gokhan.style.opacity = '1';
+        inputs.enes.style.opacity = '1';
+        inputs.yusuf.style.opacity = '1';
+        inputs.samet.style.opacity = '1';
+        inputs.ismail.style.opacity = '1';
+        inputs.mehmet.style.opacity = '1';
         inputs.search.style.opacity = '1';
+        inputs.gokhan.style.cursor = 'text';
+        inputs.enes.style.cursor = 'text';
+        inputs.yusuf.style.cursor = 'text';
+        inputs.samet.style.cursor = 'text';
+        inputs.ismail.style.cursor = 'text';
+        inputs.mehmet.style.cursor = 'text';
         inputs.search.style.cursor = 'text';
       }
     }
@@ -506,85 +481,31 @@
       return now.toLocaleString('tr-TR');
     }
 
-    function removeFromSpecialLists(code) {
-      if (userCodes.atanacak.has(code)) {
-        userCodes.atanacak.delete(code);
-        delete codeTimestamps.atanacak[code];
-        db.ref(`servis/atanacak/${code}`).remove();
-        updateLabelAndCount('atanacak');
-        renderMiniList('atanacak');
-      }
-      
-      if (userCodes.parcaBekliyor.has(code)) {
-        userCodes.parcaBekliyor.delete(code);
-        delete codeTimestamps.parcaBekliyor[code];
-        db.ref(`servis/parcaBekliyor/${code}`).remove();
-        updateLabelAndCount('parcaBekliyor');
-        renderMiniList('parcaBekliyor');
-      }
-    }
-
-    function updateLabelAndCount(name) {
-      const count = userCodes[name].size;
-      const labelTexts = {
-        atanacak: '📋 Atanacak Cihazlar',
-        parcaBekliyor: '⚙️ Parça Bekliyor',
-        gokhan: "🧑‍🔧 Gökhan'ın Cihazları",
-        enes: "🧑‍🔧 Enes'in Cihazları",
-        yusuf: "🧑‍🔧 Yusuf'un Cihazları",
-        samet: "🧑‍🔧 Samet'in Cihazları",
-        ismail: "🧑‍🔧 İsmail'in Cihazları",
-        mehmet: "🧑‍🔧 Mehmet'in Cihazları"
-      };
-      
-      labels[name].textContent = `${labelTexts[name]} - Adet: ${count}`;
-      db.ref(`servis/${name}/adet`).set(count);
-    }
-
     function saveCodes(name, value) {
+      // Yetki kontrolü - sadece admin ve enes düzenleyebilir
       if (currentUserRole === 'viewer') {
         return;
       }
       
-      if ((name === 'atanacak' || name === 'parcaBekliyor') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
-        return;
-      }
-      
-      if (isUpdating) return;
-      isUpdating = true;
-
       const codes = value.trim().split("\n")
         .map(code => code.trim().slice(0, 15))
         .filter(code => code.length === 15);
 
       const timestamp = getTimestamp();
-      const oldCodes = new Set(userCodes[name]);
-      const newCodes = new Set(codes);
-      
-      oldCodes.forEach(code => {
-        if (!newCodes.has(code)) {
-          db.ref(`servis/${name}/${code}`).remove();
-          allCodes.delete(code);
-        }
-      });
-      
       userCodes[name].clear();
       codes.forEach(code => {
-        if (name !== 'atanacak' && name !== 'parcaBekliyor') {
-          removeFromSpecialLists(code);
-        }
-        
         db.ref(`servis/${name}/${code}`).set(timestamp);
         allCodes.add(code);
         userCodes[name].add(code);
         codeTimestamps[name][code] = timestamp;
       });
 
-      updateLabelAndCount(name);
+      const count = userCodes[name].size;
+      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : name === 'ismail' ? 'in' : name === 'mehmet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
+      db.ref(`servis/${name}/adet`).set(count);
+
       renderList();
       renderMiniList(name);
-      
-      isUpdating = false;
     }
 
     Object.entries(inputs).forEach(([name, textarea]) => {
@@ -596,6 +517,7 @@
 
     let searchTimeout;
     inputs.search.addEventListener("input", e => {
+      // Yetki kontrolü - viewer arama yapamaz
       if (currentUserRole === 'viewer') {
         e.target.value = '';
         return;
@@ -611,20 +533,10 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        const allLists = ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"];
-        
-        allLists.forEach(name => {
+        ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
           if (userCodes[name].has(query)) {
-            let status = "";
-            if (name === 'atanacak' || name === 'parcaBekliyor') {
-              status = "⏰ Bekliyor";
-            } else {
-              status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
-            }
-            const displayName = name === 'atanacak' ? 'Atanacak Cihazlar' : 
-                               name === 'parcaBekliyor' ? 'Parça Bekliyor' :
-                               name.charAt(0).toUpperCase() + name.slice(1);
-            foundIn.push(`<strong>${displayName}</strong>: ${status}`);
+            const status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
+            foundIn.push(`<strong>${name.charAt(0).toUpperCase() + name.slice(1)}</strong>: ${status}`);
           }
         });
 
@@ -667,13 +579,7 @@
       userCodes[name].forEach(code => {
         const div = document.createElement("div");
         div.className = "mini-item";
-        
-        if (name === 'atanacak' || name === 'parcaBekliyor') {
-          div.classList.add("waiting");
-        } else {
-          div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
-        }
-        
+        div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
         const timestamp = codeTimestamps[name][code] || "Tarih yok";
         div.innerHTML = `
           <div class="mini-item-row">
@@ -687,8 +593,9 @@
     }
 
     function renderList() {
-      ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => renderMiniList(name));
+      ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => renderMiniList(name));
       
+      // Admin istatistiklerini güncelle
       if (currentUserRole === 'admin') {
         updateAdminStats();
       }
@@ -708,7 +615,7 @@
     }
 
     function loadData() {
-      ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
+      ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
         db.ref(`servis/${name}`).once("value", snap => {
           const data = snap.val();
           if (!data) return;
@@ -722,7 +629,7 @@
           });
 
           const count = codes.length;
-          updateLabelAndCount(name);
+          labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : name === 'ismail' ? 'in' : name === 'mehmet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
 
           if (data.eslesenler) {
             Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
