@@ -868,6 +868,9 @@ function deleteCode(name, code) {
     db.ref(`servis/${dbPath}/eslesenler/${code}`).remove();
   }
   
+   Object.keys(inputs).forEach(key => {
+    if (!['search', 'scanner'].includes(key)) inputs[key].value = "";
+  });
   // Güncelle
   updateLabelAndCount(name);
   renderList();
