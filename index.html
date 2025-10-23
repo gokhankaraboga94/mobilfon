@@ -113,7 +113,7 @@
       gap: 20px;
     }
     .right-side {
-      width: 320px;
+      width: 360px;
       display: flex;
       flex-direction: column;
       gap: 15px;
@@ -212,12 +212,14 @@
     .mini-item.unmatched { background-color: #e74c3c; }
     .mini-item.waiting { background-color: #f39c12; }
     .mini-item.phonecheck { background-color: #9b59b6; }
+    .mini-item.onarim { background-color: #16a085; }
     .status { font-size: 20px; }
     .status::before { content: '⏳'; }
     .matched .status::before { content: '✅'; }
     .unmatched .status::before { content: '❌'; }
     .waiting .status::before { content: '⏰'; }
     .phonecheck .status::before { content: '📱'; }
+    .onarim .status::before { content: '🔧'; }
     
     #adminPanel {
       display: none;
@@ -305,6 +307,14 @@
           <div class="label">Parça Bekliyor</div>
           <div id="adminParcaBekliyor" class="value">0</div>
         </div>
+        <div class="admin-stat-box">
+          <div class="label">PhoneCheck Cihazları</div>
+          <div id="adminPhonecheck" class="value">0</div>
+        </div>
+        <div class="admin-stat-box">
+          <div class="label">Onarım Tamamlandı</div>
+          <div id="adminOnarim" class="value">0</div>
+        </div>
       </div>
     </div>
 
@@ -377,6 +387,12 @@
           <textarea id="phonecheckInput" placeholder="PhoneCheck'e transfer edilecek barkodlar..."></textarea>
           <div id="phonecheckList" class="mini-list"></div>
         </div>
+
+        <div class="right-section">
+          <label for="onarimInput"><span id="onarimLabel">🔧 Onarım Tamamlandı - Adet: 0</span></label>
+          <textarea id="onarimInput" placeholder="Onarımı tamamlanan cihazlar..."></textarea>
+          <div id="onarimList" class="mini-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -418,7 +434,8 @@
       ismail: document.getElementById("ismailInput"),
       mehmet: document.getElementById("mehmetInput"),
       scanner: document.getElementById("scannerInput"),
-      search: document.getElementById("searchInput")
+      search: document.getElementById("searchInput"),
+      onarim: document.getElementById("onarimInput")
     };
 
     const labels = {
@@ -430,7 +447,8 @@
       yusuf: document.getElementById("yusufLabel"),
       samet: document.getElementById("sametLabel"),
       ismail: document.getElementById("ismailLabel"),
-      mehmet: document.getElementById("mehmetLabel")
+      mehmet: document.getElementById("mehmetLabel"),
+      onarim: document.getElementById("onarimLabel")
     };
 
     const miniLists = {
@@ -442,7 +460,8 @@
       yusuf: document.getElementById("yusufList"),
       samet: document.getElementById("sametList"),
       ismail: document.getElementById("ismailList"),
-      mehmet: document.getElementById("mehmetList")
+      mehmet: document.getElementById("mehmetList"),
+      onarim: document.getElementById("onarimList")
     };
 
     const searchResult = document.getElementById("searchResult");
@@ -457,7 +476,8 @@
       yusuf: new Set(), 
       samet: new Set(), 
       ismail: new Set(), 
-      mehmet: new Set() 
+      mehmet: new Set(),
+      onarim: new Set()
     };
     const codeTimestamps = { 
       atanacak: {}, 
@@ -468,7 +488,20 @@
       yusuf: {}, 
       samet: {}, 
       ismail: {}, 
-      mehmet: {} 
+      mehmet: {},
+      onarim: {}
+    };
+    const codeUsers = {
+      atanacak: {},
+      parcaBekliyor: {},
+      phonecheck: {},
+      gokhan: {},
+      enes: {},
+      yusuf: {},
+      samet: {},
+      ismail: {},
+      mehmet: {},
+      onarim: {}
     };
 
     let currentUserRole = null;
@@ -531,7 +564,7 @@
         errorMessage.style.display = "none";
       } catch (error) {
         console.error("Giriş hatası:", error);
-        let message = "Giriş başarısız! " + error.message;
+        let message = "Giriş başarısız! " + (error.message || "");
         if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password") {
           message = "Email veya şifre hatalı!";
         } else if (error.code === "auth/user-not-found") {
@@ -570,11 +603,16 @@
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
       const specialLists = ['atanacak', 'parcaBekliyor'];
       
-      // PhoneCheck her zaman aktif (tüm kullanıcılar için)
+      // PhoneCheck ve Onarım her zaman aktif (tüm kullanıcılar için)
       inputs.phonecheck.disabled = false;
       inputs.phonecheck.style.opacity = '1';
       inputs.phonecheck.style.cursor = 'text';
       inputs.phonecheck.placeholder = 'PhoneCheck\'e transfer edilecek barkodlar...';
+
+      inputs.onarim.disabled = false;
+      inputs.onarim.style.opacity = '1';
+      inputs.onarim.style.cursor = 'text';
+      inputs.onarim.placeholder = 'Onarımı tamamlanan barkodları girin...';
       
       if (currentUserRole === 'viewer') {
         normalUsers.forEach(name => {
@@ -620,12 +658,13 @@
     }
 
     function removeFromOtherLists(code, exceptList) {
-      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
+      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet', 'onarim'];
       
       allLists.forEach(name => {
         if (name !== exceptList && userCodes[name].has(code)) {
           userCodes[name].delete(code);
           delete codeTimestamps[name][code];
+          delete codeUsers[name][code];
           db.ref(`servis/${name}/${code}`).remove();
           updateLabelAndCount(name);
           renderMiniList(name);
@@ -644,66 +683,102 @@
         yusuf: "🧑‍🔧 Yusuf'un Cihazları",
         samet: "🧑‍🔧 Samet'in Cihazları",
         ismail: "🧑‍🔧 İsmail'in Cihazları",
-        mehmet: "🧑‍🔧 Mehmet'in Cihazları"
+        mehmet: "🧑‍🔧 Mehmet'in Cihazları",
+        onarim: "🔧 Onarım Tamamlandı"
       };
       
-      labels[name].textContent = `${labelTexts[name]} - Adet: ${count}`;
+      if (labels[name]) {
+        labels[name].textContent = `${labelTexts[name]} - Adet: ${count}`;
+      }
       db.ref(`servis/${name}/adet`).set(count);
     }
 
     function saveCodes(name, value) {
-      // PhoneCheck için özel kontrol - herkes kullanabilir
-      if (name === 'phonecheck') {
-        // PhoneCheck'e herkes yazabilir, sadece işlemi yap
-      } else if (currentUserRole === 'viewer') {
-        return;
-      } else if ((name === 'atanacak' || name === 'parcaBekliyor') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
-        return;
-      }
-      
+      // PhoneCheck ve Onarım herkes yazabilir
       if (isUpdating) return;
       isUpdating = true;
 
-      const codes = value.trim().split("\n")
-        .map(code => code.trim().slice(0, 15))
-        .filter(code => code.length === 15);
+      // Extract codes: support lines like "3510... - gokhan" or just "3510..."
+      const rawLines = value.trim().split("\n").map(l=>l.trim()).filter(l=>l.length>0);
+      const codes = rawLines.map(line => {
+        // first 15 digits sequence in the line
+        const m = line.match(/(\d{15})/);
+        return m ? m[1] : null;
+      }).filter(Boolean);
 
       const timestamp = getTimestamp();
       const oldCodes = new Set(userCodes[name]);
       const newCodes = new Set(codes);
       
+      // remove deleted codes from DB
       oldCodes.forEach(code => {
         if (!newCodes.has(code)) {
           db.ref(`servis/${name}/${code}`).remove();
           allCodes.delete(code);
         }
       });
-      
+
+      // clear local set and repopulate
       userCodes[name].clear();
+
       codes.forEach(code => {
         if (name === 'phonecheck') {
+          // ensure unique: remove from other lists
           removeFromOtherLists(code, name);
-        } else if (name !== 'atanacak' && name !== 'parcaBekliyor') {
+          // save as object with user and timestamp
+          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+          codeTimestamps[name][code] = timestamp;
+          codeUsers[name][code] = currentUserName;
+        } else if (name === 'onarim') {
+          // Onarım: move from phonecheck to onarım
+          // remove from phonecheck if exists
+          if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
+            db.ref(`servis/phonecheck/${code}`).remove();
+            userCodes.phonecheck.delete(code);
+            delete codeTimestamps.phonecheck[code];
+            delete codeUsers.phonecheck[code];
+            updateLabelAndCount('phonecheck');
+            renderMiniList('phonecheck');
+          } else {
+            // also try removal from DB regardless
+            db.ref(`servis/phonecheck/${code}`).remove();
+          }
+
+          // save to onarım with user+timestamp
+          db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
+          codeTimestamps.onarim[code] = timestamp;
+          codeUsers.onarim[code] = currentUserName;
+          userCodes.onarim.add(code);
+          allCodes.add(code);
+        } else {
+          // normal lists: remove from other lists (so unique across lists)
           removeFromOtherLists(code, name);
+          db.ref(`servis/${name}/${code}`).set(timestamp);
+          codeTimestamps[name][code] = timestamp;
+          codeUsers[name][code] = null;
+          userCodes[name].add(code);
+          allCodes.add(code);
         }
-        
-        db.ref(`servis/${name}/${code}`).set(timestamp);
-        allCodes.add(code);
-        userCodes[name].add(code);
-        codeTimestamps[name][code] = timestamp;
+
+        // ensure it's present in userCodes (phonecheck and onarım handled above)
+        if (name === 'phonecheck') {
+          userCodes.phonecheck.add(code);
+          allCodes.add(code);
+        }
       });
 
+      // update labels and UI
       updateLabelAndCount(name);
       renderList();
-      renderMiniList(name);
       
       isUpdating = false;
     }
 
+    // Attach input listeners
     Object.entries(inputs).forEach(([name, textarea]) => {
       textarea.addEventListener("input", () => {
         if (name === "scanner" || name === "search") return;
-        saveCodes(name, textarea.value);
+        saveCodes(name === 'onarim' ? 'onarim' : name, textarea.value);
       });
     });
 
@@ -724,7 +799,7 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"];
+        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim"];
         
         allLists.forEach(name => {
           if (userCodes[name].has(query)) {
@@ -732,13 +807,16 @@
             if (name === 'atanacak' || name === 'parcaBekliyor') {
               status = "⏰ Bekliyor";
             } else if (name === 'phonecheck') {
-              status = "📱 PhoneCheck'te";
+              status = `📱 PhoneCheck'te - ${codeUsers.phonecheck[query] || ''}`;
+            } else if (name === 'onarim') {
+              status = `🔧 Onarım Tamamlandı - ${codeUsers.onarim[query] || ''}`;
             } else {
               status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
             }
             const displayName = name === 'atanacak' ? 'Atanacak Cihazlar' : 
                                name === 'parcaBekliyor' ? 'Parça Bekliyor' :
                                name === 'phonecheck' ? 'PhoneCheck' :
+                               name === 'onarim' ? 'Onarım Tamamlandı' :
                                name.charAt(0).toUpperCase() + name.slice(1);
             foundIn.push(`<strong>${displayName}</strong>: ${status}`);
           }
@@ -757,8 +835,9 @@
       clearTimeout(scannerTimeout);
       scannerTimeout = setTimeout(() => {
         const raw = e.target.value.trim();
-        const code = raw.slice(0, 15);
-        if (code.length === 15 && !scannedCodes.has(code)) {
+        const m = raw.match(/(\d{15})/);
+        const code = m ? m[1] : null;
+        if (code && !scannedCodes.has(code)) {
           scannedCodes.add(code);
           const timestamp = getTimestamp();
           db.ref(`servis/eslesenler/${code}`).set(timestamp);
@@ -766,6 +845,16 @@
           ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
+                db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
+              }
+            });
+          });
+
+          // also mark in phonecheck/onarim eslesenler if necessary
+          ["phonecheck", "onarimTamamlandi", "atanacak", "parcaBekliyor"].forEach(name => {
+            db.ref(`servis/${name}/${code}`).once("value", snap => {
+              if (snap.exists()) {
+                // write eslesenler under that list
                 db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
               }
             });
@@ -788,24 +877,35 @@
           div.classList.add("waiting");
         } else if (name === 'phonecheck') {
           div.classList.add("phonecheck");
+        } else if (name === 'onarim') {
+          div.classList.add("onarim");
         } else {
           div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
         }
         
         const timestamp = codeTimestamps[name][code] || "Tarih yok";
+        const user = codeUsers[name][code] || "";
+        let codeDisplay = code;
+        if (name === 'phonecheck' && user) {
+          codeDisplay = `${code} - ${user}`;
+        }
+        if (name === 'onarim' && user) {
+          codeDisplay = `${code} - ${user}`;
+        }
+
         div.innerHTML = `
           <div class="mini-item-row">
-            <span>${code}</span>
+            <span>${codeDisplay}</span>
             <span class="status"></span>
           </div>
-          <div class="mini-item-time">📅 ${timestamp}</div>
+          <div class="mini-item-time">📅 ${timestamp}${user ? ' • ' + user : ''}</div>
         `;
         list.appendChild(div);
       });
     }
 
     function renderList() {
-      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => renderMiniList(name));
+      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim"].forEach(name => renderMiniList(name));
       
       if (currentUserRole === 'admin') {
         updateAdminStats();
@@ -822,24 +922,43 @@
       document.getElementById('adminMatchRate').textContent = matchRate + '%';
       document.getElementById('adminAtanacak').textContent = userCodes.atanacak.size;
       document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor.size;
+      document.getElementById('adminPhonecheck').textContent = userCodes.phonecheck.size;
+      document.getElementById('adminOnarim').textContent = userCodes.onarim.size;
     }
 
     function loadData() {
-      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
+      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarimTamamlandi"];
+      lists.forEach(name => {
         db.ref(`servis/${name}`).once("value", snap => {
           const data = snap.val();
           if (!data) return;
 
-          const codes = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
-          inputs[name].value = codes.join("\n");
-          codes.forEach(code => {
-            allCodes.add(code);
-            userCodes[name].add(code);
-            codeTimestamps[name][code] = data[code];
-          });
+          const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
+          // For mapping: if name === 'onarimTamamlandi' we map to local 'onarim'
+          const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
 
-          const count = codes.length;
-          updateLabelAndCount(name);
+          // populate textarea and local sets
+          inputs[localName].value = keys.map(code => {
+            const val = data[code];
+            if (typeof val === 'object') {
+              const user = val.user || '';
+              const ts = val.ts || '';
+              codeTimestamps[localName][code] = ts;
+              codeUsers[localName][code] = user;
+              userCodes[localName].add(code);
+              allCodes.add(code);
+              return user ? `${code} - ${user}` : code;
+            } else {
+              // old format: val is timestamp string
+              codeTimestamps[localName][code] = val;
+              codeUsers[localName][code] = null;
+              userCodes[localName].add(code);
+              allCodes.add(code);
+              return code;
+            }
+          }).join("\n");
+
+          updateLabelAndCount(localName);
 
           if (data.eslesenler) {
             Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
