@@ -263,6 +263,19 @@
       .section { flex: 1 1 100%; }
       .right-side { flex-direction: column; }
     }
+
+
+
+    .mini-item button:hover {
+  background: #c0392b !important;
+  transform: scale(1.1);
+}
+
+/* Textarea placeholder stilini güncelle */
+textarea::placeholder {
+  color: #999;
+  font-style: italic;
+}
   </style>
 </head>
 <body>
@@ -701,79 +714,212 @@
       db.ref(`servis/${name}/adet`).set(count);
     }
 
-    function saveCodes(name, value) {
-      if (isUpdating) return;
-      
-      // Onarım Tamamlandı için sadece yusuf yetkili
-      if (name === 'onarim' && currentUserName !== 'yusuf') {
-        return;
+ // saveCodes fonksiyonunu güncelle
+function saveCodes(name, value) {
+  if (isUpdating) return;
+  
+  // Boş değerse hiçbir şey yapma
+  if (!value.trim()) return;
+  
+  // Onarım Tamamlandı için sadece yusuf yetkili
+  if (name === 'onarim' && currentUserName !== 'yusuf') {
+    return;
+  }
+  
+  isUpdating = true;
+
+  const rawLines = value.trim().split("\n").map(l=>l.trim()).filter(l=>l.length>0);
+  const codes = rawLines.map(line => {
+    const m = line.match(/(\d{15})/);
+    return m ? m[1] : null;
+  }).filter(Boolean);
+
+  const timestamp = getTimestamp();
+
+  // Yeni kodları ekle (silme işlemi yapmıyoruz artık)
+  codes.forEach(code => {
+    // Eğer bu kod zaten bu listede varsa, ekleme
+    if (userCodes[name].has(code)) {
+      return;
+    }
+
+    if (name === 'phonecheck') {
+      removeFromOtherLists(code, name);
+      db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+      codeTimestamps[name][code] = timestamp;
+      codeUsers[name][code] = currentUserName;
+      userCodes[name].add(code);
+      allCodes.add(code);
+    } else if (name === 'onarim') {
+      if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
+        db.ref(`servis/phonecheck/${code}`).remove();
+        userCodes.phonecheck.delete(code);
+        delete codeTimestamps.phonecheck[code];
+        delete codeUsers.phonecheck[code];
+        updateLabelAndCount('phonecheck');
+        renderMiniList('phonecheck');
+      } else {
+        db.ref(`servis/phonecheck/${code}`).remove();
       }
-      
-      isUpdating = true;
 
-      const rawLines = value.trim().split("\n").map(l=>l.trim()).filter(l=>l.length>0);
-      const codes = rawLines.map(line => {
-        const m = line.match(/(\d{15})/);
-        return m ? m[1] : null;
-      }).filter(Boolean);
+      db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
+      codeTimestamps.onarim[code] = timestamp;
+      codeUsers.onarim[code] = currentUserName;
+      userCodes.onarim.add(code);
+      allCodes.add(code);
+    } else {
+      removeFromOtherLists(code, name);
+      db.ref(`servis/${name}/${code}`).set(timestamp);
+      codeTimestamps[name][code] = timestamp;
+      codeUsers[name][code] = null;
+      userCodes[name].add(code);
+      allCodes.add(code);
+    }
+  });
 
-      const timestamp = getTimestamp();
-      const oldCodes = new Set(userCodes[name]);
-      const newCodes = new Set(codes);
-      
-      oldCodes.forEach(code => {
-        if (!newCodes.has(code)) {
-          const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
-          db.ref(`servis/${dbPath}/${code}`).remove();
-          allCodes.delete(code);
-        }
-      });
+  updateLabelAndCount(name);
+  renderList();
+  
+  // İşlem tamamlandıktan sonra textarea'yı temizle
+  setTimeout(() => {
+    isUpdating = true;
+    inputs[name].value = '';
+    isUpdating = false;
+  }, 100);
+  
+  isUpdating = false;
+}
 
-      userCodes[name].clear();
+// renderMiniList fonksiyonuna silme butonu ekle
+function renderMiniList(name) {
+  const list = miniLists[name];
+  list.innerHTML = "";
+  userCodes[name].forEach(code => {
+    const div = document.createElement("div");
+    div.className = "mini-item";
+    
+    if (name === 'atanacak' || name === 'parcaBekliyor') {
+      div.classList.add("waiting");
+    } else if (name === 'phonecheck') {
+      div.classList.add("phonecheck");
+    } else if (name === 'onarim') {
+      div.classList.add("onarim");
+    } else {
+      div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
+    }
+    
+    const timestamp = codeTimestamps[name][code] || "Tarih yok";
+    const user = codeUsers[name][code] || "";
+    let codeDisplay = code;
+    if (name === 'phonecheck' && user) {
+      codeDisplay = `${code} - ${user}`;
+    }
+    if (name === 'onarim' && user) {
+      codeDisplay = `${code} - ${user}`;
+    }
 
-      codes.forEach(code => {
-        if (name === 'phonecheck') {
-          removeFromOtherLists(code, name);
-          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-          codeTimestamps[name][code] = timestamp;
-          codeUsers[name][code] = currentUserName;
-        } else if (name === 'onarim') {
-          if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
-            db.ref(`servis/phonecheck/${code}`).remove();
-            userCodes.phonecheck.delete(code);
-            delete codeTimestamps.phonecheck[code];
-            delete codeUsers.phonecheck[code];
-            updateLabelAndCount('phonecheck');
-            renderMiniList('phonecheck');
-          } else {
-            db.ref(`servis/phonecheck/${code}`).remove();
-          }
+    div.innerHTML = `
+      <div class="mini-item-row">
+        <span>${codeDisplay}</span>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <span class="status"></span>
+          ${(currentUserRole !== 'viewer' && !(name === 'onarim' && currentUserName !== 'yusuf')) ? 
+            `<button onclick="deleteCode('${name}', '${code}')" style="
+              background: #e74c3c;
+              color: white;
+              border: none;
+              border-radius: 3px;
+              padding: 2px 8px;
+              cursor: pointer;
+              font-size: 12px;
+            ">🗑️</button>` : ''}
+        </div>
+      </div>
+      <div class="mini-item-time">📅 ${timestamp}${user ? ' • ' + user : ''}</div>
+    `;
+    list.appendChild(div);
+  });
+}
 
-          db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
-          codeTimestamps.onarim[code] = timestamp;
-          codeUsers.onarim[code] = currentUserName;
-          userCodes.onarim.add(code);
+// Silme fonksiyonu ekle
+function deleteCode(name, code) {
+  if (currentUserRole === 'viewer') return;
+  if (name === 'onarim' && currentUserName !== 'yusuf') return;
+  
+  // Kullanıcıdan onay al
+  if (!confirm(`${code} barkodunu silmek istediğinize emin misiniz?`)) {
+    return;
+  }
+  
+  // Kodu sil
+  userCodes[name].delete(code);
+  delete codeTimestamps[name][code];
+  delete codeUsers[name][code];
+  allCodes.delete(code);
+  
+  // Veritabanından sil
+  const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
+  db.ref(`servis/${dbPath}/${code}`).remove();
+  
+  // Eğer eşleşmişse, eşleşenlerden de sil
+  if (scannedCodes.has(code)) {
+    scannedCodes.delete(code);
+    db.ref(`servis/eslesenler/${code}`).remove();
+    db.ref(`servis/${dbPath}/eslesenler/${code}`).remove();
+  }
+  
+  // Güncelle
+  updateLabelAndCount(name);
+  renderList();
+}
+
+// loadData fonksiyonunu güncelle - textarea'ları doldurma
+function loadData() {
+  const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarimTamamlandi"];
+  lists.forEach(name => {
+    db.ref(`servis/${name}`).once("value", snap => {
+      const data = snap.val();
+      if (!data) return;
+
+      const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
+      const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
+
+      // Textarea'yı DOLDURMA, sadece veriyi yükle
+      keys.forEach(code => {
+        const val = data[code];
+        if (typeof val === 'object') {
+          const user = val.user || '';
+          const ts = val.ts || '';
+          codeTimestamps[localName][code] = ts;
+          codeUsers[localName][code] = user;
+          userCodes[localName].add(code);
           allCodes.add(code);
         } else {
-          removeFromOtherLists(code, name);
-          db.ref(`servis/${name}/${code}`).set(timestamp);
-          codeTimestamps[name][code] = timestamp;
-          codeUsers[name][code] = null;
-          userCodes[name].add(code);
-          allCodes.add(code);
-        }
-
-        if (name === 'phonecheck') {
-          userCodes.phonecheck.add(code);
+          codeTimestamps[localName][code] = val;
+          codeUsers[localName][code] = null;
+          userCodes[localName].add(code);
           allCodes.add(code);
         }
       });
 
-      updateLabelAndCount(name);
+      updateLabelAndCount(localName);
+
+      if (data.eslesenler) {
+        Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
+      }
+
       renderList();
-      
-      isUpdating = false;
+    });
+  });
+
+  db.ref("servis/eslesenler").once("value", snap => {
+    const data = snap.val();
+    if (data) {
+      Object.keys(data).forEach(code => scannedCodes.add(code));
+      renderList();
     }
+  });
+}
 
     Object.entries(inputs).forEach(([name, textarea]) => {
       textarea.addEventListener("input", () => {
