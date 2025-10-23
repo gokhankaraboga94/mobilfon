@@ -85,6 +85,7 @@
       display: flex;
       align-items: center;
       gap: 15px;
+      z-index: 1000;
     }
     .logout-button {
       padding: 8px 15px;
@@ -106,13 +107,25 @@
       gap: 20px;
       flex-wrap: wrap;
       width: 100%;
-      max-width: 1200px;
+      max-width: 1400px;
     }
     .section {
       flex: 1 1 30%;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-width: 280px;
+    }
+    .special-section {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    .special-section label {
+      color: #fff;
+      font-size: 1.1em;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
     textarea {
       width: 100%;
@@ -160,10 +173,12 @@
     }
     .mini-item.matched { background-color: #2ecc71; }
     .mini-item.unmatched { background-color: #e74c3c; }
+    .mini-item.waiting { background-color: #f39c12; }
     .status { font-size: 20px; }
     .status::before { content: '⏳'; }
     .matched .status::before { content: '✅'; }
     .unmatched .status::before { content: '❌'; }
+    .waiting .status::before { content: '⏰'; }
     @media (max-width: 768px) {
       .container { flex-direction: column; }
       .section { flex: 1 1 100%; }
@@ -208,6 +223,20 @@
           <div style="font-size: 14px; opacity: 0.9;">Eşleşme Oranı</div>
           <div id="adminMatchRate" style="font-size: 32px; font-weight: bold;">0%</div>
         </div>
+      </div>
+    </div>
+
+    <!-- Özel Listeler (Atanacak Cihazlar ve Parça Bekliyor) -->
+    <div class="container" style="margin-bottom: 30px;">
+      <div class="section special-section">
+        <label for="atanacakInput"><span id="atanacakLabel">📋 Atanacak Cihazlar - Adet: 0</span></label>
+        <textarea id="atanacakInput" placeholder="Atanacak cihazların barkodlarını buraya yapıştır..."></textarea>
+        <div id="atanacakList" class="mini-list"></div>
+      </div>
+      <div class="section special-section">
+        <label for="parcaBekliyorInput"><span id="parcaBekliyorLabel">⚙️ Parça Bekliyor - Adet: 0</span></label>
+        <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazların barkodlarını buraya yapıştır..."></textarea>
+        <div id="parcaBekliyorList" class="mini-list"></div>
       </div>
     </div>
 
@@ -287,6 +316,8 @@
     const errorMessage = document.getElementById("errorMessage");
 
     const inputs = {
+      atanacak: document.getElementById("atanacakInput"),
+      parcaBekliyor: document.getElementById("parcaBekliyorInput"),
       gokhan: document.getElementById("gokhanInput"),
       enes: document.getElementById("enesInput"),
       yusuf: document.getElementById("yusufInput"),
@@ -298,6 +329,8 @@
     };
 
     const labels = {
+      atanacak: document.getElementById("atanacakLabel"),
+      parcaBekliyor: document.getElementById("parcaBekliyorLabel"),
       gokhan: document.getElementById("gokhanLabel"),
       enes: document.getElementById("enesLabel"),
       yusuf: document.getElementById("yusufLabel"),
@@ -307,6 +340,8 @@
     };
 
     const miniLists = {
+      atanacak: document.getElementById("atanacakList"),
+      parcaBekliyor: document.getElementById("parcaBekliyorList"),
       gokhan: document.getElementById("gokhanList"),
       enes: document.getElementById("enesList"),
       yusuf: document.getElementById("yusufList"),
@@ -318,11 +353,30 @@
     const searchResult = document.getElementById("searchResult");
     const scannedCodes = new Set();
     const allCodes = new Set();
-    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set(), samet: new Set(), ismail: new Set(), mehmet: new Set() };
-    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {}, samet: {}, ismail: {}, mehmet: {} };
+    const userCodes = { 
+      atanacak: new Set(), 
+      parcaBekliyor: new Set(),
+      gokhan: new Set(), 
+      enes: new Set(), 
+      yusuf: new Set(), 
+      samet: new Set(), 
+      ismail: new Set(), 
+      mehmet: new Set() 
+    };
+    const codeTimestamps = { 
+      atanacak: {}, 
+      parcaBekliyor: {},
+      gokhan: {}, 
+      enes: {}, 
+      yusuf: {}, 
+      samet: {}, 
+      ismail: {}, 
+      mehmet: {} 
+    };
 
     let currentUserRole = null;
     let currentUserName = null;
+    let isUpdating = false;
 
     // Authentication
     auth.onAuthStateChanged(user => {
@@ -415,63 +469,47 @@
     }
 
     function applyPermissions() {
+      const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
+      const specialLists = ['atanacak', 'parcaBekliyor'];
+      
       // Viewer (Gökhan, Yusuf, Samet, İsmail, Mehmet) için textarea'ları devre dışı bırak
       if (currentUserRole === 'viewer') {
-        inputs.gokhan.disabled = true;
-        inputs.enes.disabled = true;
-        inputs.yusuf.disabled = true;
-        inputs.samet.disabled = true;
-        inputs.ismail.disabled = true;
-        inputs.mehmet.disabled = true;
+        // Normal inputları devre dışı bırak
+        normalUsers.forEach(name => {
+          inputs[name].disabled = true;
+          inputs[name].style.opacity = '0.6';
+          inputs[name].style.cursor = 'not-allowed';
+          inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        });
+        
+        // Özel listeler için (atanacak ve parça bekliyor) - sadece görüntüleme
+        specialLists.forEach(name => {
+          inputs[name].disabled = true;
+          inputs[name].style.opacity = '0.6';
+          inputs[name].style.cursor = 'not-allowed';
+          inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        });
+        
         inputs.search.disabled = true;
-        
-        // Görsel olarak da belirt
-        inputs.gokhan.style.opacity = '0.6';
-        inputs.enes.style.opacity = '0.6';
-        inputs.yusuf.style.opacity = '0.6';
-        inputs.samet.style.opacity = '0.6';
-        inputs.ismail.style.opacity = '0.6';
-        inputs.mehmet.style.opacity = '0.6';
         inputs.search.style.opacity = '0.6';
-        inputs.gokhan.style.cursor = 'not-allowed';
-        inputs.enes.style.cursor = 'not-allowed';
-        inputs.yusuf.style.cursor = 'not-allowed';
-        inputs.samet.style.cursor = 'not-allowed';
-        inputs.ismail.style.cursor = 'not-allowed';
-        inputs.mehmet.style.cursor = 'not-allowed';
         inputs.search.style.cursor = 'not-allowed';
-        
-        // Placeholder'ları değiştir
-        inputs.gokhan.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
-        inputs.enes.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
-        inputs.yusuf.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
-        inputs.samet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
-        inputs.ismail.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
-        inputs.mehmet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.search.placeholder = '🔒 Arama yapma yetkiniz yok';
       } else {
         // Admin ve Enes için tüm yetkileri aç
-        inputs.gokhan.disabled = false;
-        inputs.enes.disabled = false;
-        inputs.yusuf.disabled = false;
-        inputs.samet.disabled = false;
-        inputs.ismail.disabled = false;
-        inputs.mehmet.disabled = false;
-        inputs.search.disabled = false;
+        normalUsers.forEach(name => {
+          inputs[name].disabled = false;
+          inputs[name].style.opacity = '1';
+          inputs[name].style.cursor = 'text';
+        });
         
-        inputs.gokhan.style.opacity = '1';
-        inputs.enes.style.opacity = '1';
-        inputs.yusuf.style.opacity = '1';
-        inputs.samet.style.opacity = '1';
-        inputs.ismail.style.opacity = '1';
-        inputs.mehmet.style.opacity = '1';
+        specialLists.forEach(name => {
+          inputs[name].disabled = false;
+          inputs[name].style.opacity = '1';
+          inputs[name].style.cursor = 'text';
+        });
+        
+        inputs.search.disabled = false;
         inputs.search.style.opacity = '1';
-        inputs.gokhan.style.cursor = 'text';
-        inputs.enes.style.cursor = 'text';
-        inputs.yusuf.style.cursor = 'text';
-        inputs.samet.style.cursor = 'text';
-        inputs.ismail.style.cursor = 'text';
-        inputs.mehmet.style.cursor = 'text';
         inputs.search.style.cursor = 'text';
       }
     }
@@ -481,31 +519,96 @@
       return now.toLocaleString('tr-TR');
     }
 
+    function removeFromSpecialLists(code) {
+      // Atanacak listesinden sil
+      if (userCodes.atanacak.has(code)) {
+        userCodes.atanacak.delete(code);
+        delete codeTimestamps.atanacak[code];
+        db.ref(`servis/atanacak/${code}`).remove();
+        updateLabelAndCount('atanacak');
+        renderMiniList('atanacak');
+      }
+      
+      // Parça bekliyor listesinden sil
+      if (userCodes.parcaBekliyor.has(code)) {
+        userCodes.parcaBekliyor.delete(code);
+        delete codeTimestamps.parcaBekliyor[code];
+        db.ref(`servis/parcaBekliyor/${code}`).remove();
+        updateLabelAndCount('parcaBekliyor');
+        renderMiniList('parcaBekliyor');
+      }
+    }
+
+    function updateLabelAndCount(name) {
+      const count = userCodes[name].size;
+      const labelTexts = {
+        atanacak: '📋 Atanacak Cihazlar',
+        parcaBekliyor: '⚙️ Parça Bekliyor',
+        gokhan: "🧑‍🔧 Gökhan'ın Cihazları",
+        enes: "🧑‍🔧 Enes'in Cihazları",
+        yusuf: "🧑‍🔧 Yusuf'un Cihazları",
+        samet: "🧑‍🔧 Samet'in Cihazları",
+        ismail: "🧑‍🔧 İsmail'in Cihazları",
+        mehmet: "🧑‍🔧 Mehmet'in Cihazları"
+      };
+      
+      labels[name].textContent = `${labelTexts[name]} - Adet: ${count}`;
+      db.ref(`servis/${name}/adet`).set(count);
+    }
+
     function saveCodes(name, value) {
-      // Yetki kontrolü - sadece admin ve enes düzenleyebilir
+      // Yetki kontrolü
       if (currentUserRole === 'viewer') {
         return;
       }
       
+      // Özel listeler (atanacak, parcaBekliyor) için sadece admin ve enes yetkili
+      if ((name === 'atanacak' || name === 'parcaBekliyor') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
+        return;
+      }
+      
+      if (isUpdating) return;
+      isUpdating = true;
+
       const codes = value.trim().split("\n")
         .map(code => code.trim().slice(0, 15))
         .filter(code => code.length === 15);
 
       const timestamp = getTimestamp();
+      
+      // Mevcut kodları al
+      const oldCodes = new Set(userCodes[name]);
+      
+      // Yeni kodları belirle
+      const newCodes = new Set(codes);
+      
+      // Silinen kodları bul
+      oldCodes.forEach(code => {
+        if (!newCodes.has(code)) {
+          db.ref(`servis/${name}/${code}`).remove();
+          allCodes.delete(code);
+        }
+      });
+      
+      // Yeni kodları kaydet
       userCodes[name].clear();
       codes.forEach(code => {
+        // Normal listelerden (gökhan, enes, vb.) ekleniyorsa özel listelerden sil
+        if (name !== 'atanacak' && name !== 'parcaBekliyor') {
+          removeFromSpecialLists(code);
+        }
+        
         db.ref(`servis/${name}/${code}`).set(timestamp);
         allCodes.add(code);
         userCodes[name].add(code);
         codeTimestamps[name][code] = timestamp;
       });
 
-      const count = userCodes[name].size;
-      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : name === 'ismail' ? 'in' : name === 'mehmet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
-      db.ref(`servis/${name}/adet`).set(count);
-
+      updateLabelAndCount(name);
       renderList();
       renderMiniList(name);
+      
+      isUpdating = false;
     }
 
     Object.entries(inputs).forEach(([name, textarea]) => {
@@ -533,10 +636,20 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
+        const allLists = ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"];
+        
+        allLists.forEach(name => {
           if (userCodes[name].has(query)) {
-            const status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
-            foundIn.push(`<strong>${name.charAt(0).toUpperCase() + name.slice(1)}</strong>: ${status}`);
+            let status = "";
+            if (name === 'atanacak' || name === 'parcaBekliyor') {
+              status = "⏰ Bekliyor";
+            } else {
+              status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
+            }
+            const displayName = name === 'atanacak' ? 'Atanacak Cihazlar' : 
+                               name === 'parcaBekliyor' ? 'Parça Bekliyor' :
+                               name.charAt(0).toUpperCase() + name.slice(1);
+            foundIn.push(`<strong>${displayName}</strong>: ${status}`);
           }
         });
 
@@ -557,96 +670,4 @@
         if (code.length === 15 && !scannedCodes.has(code)) {
           scannedCodes.add(code);
           const timestamp = getTimestamp();
-          db.ref(`servis/eslesenler/${code}`).set(timestamp);
-
-          ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
-            db.ref(`servis/${name}/${code}`).once("value", snap => {
-              if (snap.exists()) {
-                db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
-              }
-            });
-          });
-
-          renderList();
-        }
-        e.target.value = "";
-      }, 150);
-    });
-
-    function renderMiniList(name) {
-      const list = miniLists[name];
-      list.innerHTML = "";
-      userCodes[name].forEach(code => {
-        const div = document.createElement("div");
-        div.className = "mini-item";
-        div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
-        const timestamp = codeTimestamps[name][code] || "Tarih yok";
-        div.innerHTML = `
-          <div class="mini-item-row">
-            <span>${code}</span>
-            <span class="status"></span>
-          </div>
-          <div class="mini-item-time">📅 ${timestamp}</div>
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    function renderList() {
-      ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => renderMiniList(name));
-      
-      // Admin istatistiklerini güncelle
-      if (currentUserRole === 'admin') {
-        updateAdminStats();
-      }
-    }
-
-    function updateAdminStats() {
-      const adminPanel = document.getElementById('adminPanel');
-      adminPanel.style.display = 'block';
-      
-      const totalBarcodes = allCodes.size;
-      const matchedBarcodes = scannedCodes.size;
-      const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
-      
-      document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
-      document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
-      document.getElementById('adminMatchRate').textContent = matchRate + '%';
-    }
-
-    function loadData() {
-      ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
-        db.ref(`servis/${name}`).once("value", snap => {
-          const data = snap.val();
-          if (!data) return;
-
-          const codes = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
-          inputs[name].value = codes.join("\n");
-          codes.forEach(code => {
-            allCodes.add(code);
-            userCodes[name].add(code);
-            codeTimestamps[name][code] = data[code];
-          });
-
-          const count = codes.length;
-          labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : name === 'ismail' ? 'in' : name === 'mehmet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
-
-          if (data.eslesenler) {
-            Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
-          }
-
-          renderList();
-        });
-      });
-
-      db.ref("servis/eslesenler").once("value", snap => {
-        const data = snap.val();
-        if (data) {
-          Object.keys(data).forEach(code => scannedCodes.add(code));
-          renderList();
-        }
-      });
-    }
-  </script>
-</body>
-</html>
+          db.ref
