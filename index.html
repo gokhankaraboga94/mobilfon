@@ -678,4 +678,68 @@
         div.innerHTML = `
           <div class="mini-item-row">
             <span>${code}</span>
-            <span class="status
+            <span class="status"></span>
+          </div>
+          <div class="mini-item-time">📅 ${timestamp}</div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function renderList() {
+      ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => renderMiniList(name));
+      
+      if (currentUserRole === 'admin') {
+        updateAdminStats();
+      }
+    }
+
+    function updateAdminStats() {
+      const adminPanel = document.getElementById('adminPanel');
+      adminPanel.style.display = 'block';
+      
+      const totalBarcodes = allCodes.size;
+      const matchedBarcodes = scannedCodes.size;
+      const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
+      
+      document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
+      document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
+      document.getElementById('adminMatchRate').textContent = matchRate + '%';
+    }
+
+    function loadData() {
+      ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
+        db.ref(`servis/${name}`).once("value", snap => {
+          const data = snap.val();
+          if (!data) return;
+
+          const codes = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
+          inputs[name].value = codes.join("\n");
+          codes.forEach(code => {
+            allCodes.add(code);
+            userCodes[name].add(code);
+            codeTimestamps[name][code] = data[code];
+          });
+
+          const count = codes.length;
+          updateLabelAndCount(name);
+
+          if (data.eslesenler) {
+            Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
+          }
+
+          renderList();
+        });
+      });
+
+      db.ref("servis/eslesenler").once("value", snap => {
+        const data = snap.val();
+        if (data) {
+          Object.keys(data).forEach(code => scannedCodes.add(code));
+          renderList();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
