@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-
   <meta charset="UTF-8">
-  <title>Barkod Doğrulama Sistemi</title>
+   <title>Barkod Doğrulama Sistemi</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -101,12 +100,29 @@
       display: none;
       width: 100%;
     }
+    .main-layout {
+      display: flex;
+      gap: 20px;
+      width: 100%;
+      max-width: 1600px;
+    }
+    .left-side {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .right-side {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
     .container {
       display: flex;
       gap: 20px;
       flex-wrap: wrap;
       width: 100%;
-      max-width: 1400px;
     }
     .section {
       flex: 1 1 30%;
@@ -126,6 +142,21 @@
       font-size: 1.1em;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
+    .right-section {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .right-section label {
+      color: #fff;
+      font-size: 0.95em;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
     textarea {
       width: 100%;
       height: 150px;
@@ -137,6 +168,10 @@
       color: #333;
       resize: none;
     }
+    .right-section textarea {
+      height: 100px;
+      font-size: 13px;
+    }
     label { font-weight: bold; }
     .mini-list {
       max-height: 300px;
@@ -144,6 +179,9 @@
       display: flex;
       flex-direction: column;
       gap: 5px;
+    }
+    .right-section .mini-list {
+      max-height: 200px;
     }
     .mini-item {
       padding: 8px;
@@ -173,14 +211,55 @@
     .mini-item.matched { background-color: #2ecc71; }
     .mini-item.unmatched { background-color: #e74c3c; }
     .mini-item.waiting { background-color: #f39c12; }
+    .mini-item.phonecheck { background-color: #9b59b6; }
     .status { font-size: 20px; }
     .status::before { content: '⏳'; }
     .matched .status::before { content: '✅'; }
     .unmatched .status::before { content: '❌'; }
     .waiting .status::before { content: '⏰'; }
+    .phonecheck .status::before { content: '📱'; }
+    
+    #adminPanel {
+      display: none;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    #adminPanel h2 {
+      margin: 0 0 15px 0;
+    }
+    .admin-stats {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .admin-stat-box {
+      background: rgba(255,255,255,0.2);
+      padding: 15px;
+      border-radius: 10px;
+      flex: 1;
+      min-width: 150px;
+    }
+    .admin-stat-box .label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .admin-stat-box .value {
+      font-size: 32px;
+      font-weight: bold;
+    }
+    
+    @media (max-width: 1200px) {
+      .main-layout { flex-direction: column; }
+      .right-side { width: 100%; flex-direction: row; }
+      .right-section { flex: 1; }
+    }
     @media (max-width: 768px) {
       .container { flex-direction: column; }
       .section { flex: 1 1 100%; }
+      .right-side { flex-direction: column; }
     }
   </style>
 </head>
@@ -203,89 +282,108 @@
   <div id="appContainer" class="app-container">
     <h1>Barkod Doğrulama Sistemi</h1>
     
-    <div id="adminPanel" style="display: none; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 15px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);">
-      <h2 style="margin: 0 0 15px 0;">👑 Admin Paneli</h2>
-      <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; flex: 1; min-width: 200px;">
-          <div style="font-size: 14px; opacity: 0.9;">Toplam Barkod</div>
-          <div id="adminTotalBarcodes" style="font-size: 32px; font-weight: bold;">0</div>
+    <div id="adminPanel">
+      <h2>👑 Admin Paneli</h2>
+      <div class="admin-stats">
+        <div class="admin-stat-box">
+          <div class="label">Toplam Barkod</div>
+          <div id="adminTotalBarcodes" class="value">0</div>
         </div>
-        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; flex: 1; min-width: 200px;">
-          <div style="font-size: 14px; opacity: 0.9;">Eşleşen Barkod</div>
-          <div id="adminMatchedBarcodes" style="font-size: 32px; font-weight: bold;">0</div>
+        <div class="admin-stat-box">
+          <div class="label">Eşleşen Barkod</div>
+          <div id="adminMatchedBarcodes" class="value">0</div>
         </div>
-        <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 10px; flex: 1; min-width: 200px;">
-          <div style="font-size: 14px; opacity: 0.9;">Eşleşme Oranı</div>
-          <div id="adminMatchRate" style="font-size: 32px; font-weight: bold;">0%</div>
+        <div class="admin-stat-box">
+          <div class="label">Eşleşme Oranı</div>
+          <div id="adminMatchRate" class="value">0%</div>
+        </div>
+        <div class="admin-stat-box">
+          <div class="label">Atanacak Cihazlar</div>
+          <div id="adminAtanacak" class="value">0</div>
+        </div>
+        <div class="admin-stat-box">
+          <div class="label">Parça Bekliyor</div>
+          <div id="adminParcaBekliyor" class="value">0</div>
         </div>
       </div>
     </div>
 
-    <div class="container" style="margin-bottom: 30px;">
-      <div class="section special-section">
-        <label for="atanacakInput"><span id="atanacakLabel">📋 Atanacak Cihazlar - Adet: 0</span></label>
-        <textarea id="atanacakInput" placeholder="Atanacak cihazların barkodlarını buraya yapıştır..."></textarea>
-        <div id="atanacakList" class="mini-list"></div>
-      </div>
-      <div class="section special-section">
-        <label for="parcaBekliyorInput"><span id="parcaBekliyorLabel">⚙️ Parça Bekliyor - Adet: 0</span></label>
-        <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazların barkodlarını buraya yapıştır..."></textarea>
-        <div id="parcaBekliyorList" class="mini-list"></div>
-      </div>
-    </div>
+    <div class="main-layout">
+      <div class="left-side">
+        <div class="container">
+          <div class="section">
+            <label for="gokhanInput"><span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span></label>
+            <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
+            <div id="gokhanList" class="mini-list"></div>
+          </div>
+          <div class="section">
+            <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
+            <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
+            <div id="enesList" class="mini-list"></div>
+          </div>
+          <div class="section">
+            <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları - Adet: 0</span></label>
+            <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
+            <div id="yusufList" class="mini-list"></div>
+          </div>
+          <div class="section">
+            <label for="sametInput"><span id="sametLabel">🧑‍🔧 Samet'in Cihazları - Adet: 0</span></label>
+            <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
+            <div id="sametList" class="mini-list"></div>
+          </div>
+          <div class="section">
+            <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları - Adet: 0</span></label>
+            <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
+            <div id="ismailList" class="mini-list"></div>
+          </div>
+          <div class="section">
+            <label for="mehmetInput"><span id="mehmetLabel">🧑‍🔧 Mehmet'in Cihazları - Adet: 0</span></label>
+            <textarea id="mehmetInput" placeholder="Mehmet'in barkodlarını buraya yapıştır..."></textarea>
+            <div id="mehmetList" class="mini-list"></div>
+          </div>
+        </div>
 
-    <div class="container">
-      <div class="section">
-        <label for="gokhanInput"><span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span></label>
-        <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
-        <div id="gokhanList" class="mini-list"></div>
-      </div>
-      <div class="section">
-        <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
-        <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
-        <div id="enesList" class="mini-list"></div>
-      </div>
-      <div class="section">
-        <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları - Adet: 0</span></label>
-        <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
-        <div id="yusufList" class="mini-list"></div>
-      </div>
-      <div class="section">
-        <label for="sametInput"><span id="sametLabel">🧑‍🔧 Samet'in Cihazları - Adet: 0</span></label>
-        <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
-        <div id="sametList" class="mini-list"></div>
-      </div>
-      <div class="section">
-        <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları - Adet: 0</span></label>
-        <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
-        <div id="ismailList" class="mini-list"></div>
-      </div>
-      <div class="section">
-        <label for="mehmetInput"><span id="mehmetLabel">🧑‍🔧 Mehmet'in Cihazları - Adet: 0</span></label>
-        <textarea id="mehmetInput" placeholder="Mehmet'in barkodlarını buraya yapıştır..."></textarea>
-        <div id="mehmetList" class="mini-list"></div>
-      </div>
-    </div>
+        <div class="container" style="margin-top: 20px;">
+          <div class="section" style="flex: 1 1 100%;">
+            <label for="searchInput">🔍 Barkod Ara:</label>
+            <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
+            <div id="searchResult" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
+          </div>
+        </div>
 
-    <div class="container" style="margin-top: 30px;">
-      <div class="section" style="flex: 1 1 100%;">
-        <label for="searchInput">🔍 Barkod Ara:</label>
-        <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
-        <div id="searchResult" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
+        <div class="container" style="margin-top: 20px;">
+          <div class="section" style="flex: 1 1 100%;">
+            <label for="scannerInput">📡 Barkod Okut:</label>
+            <textarea id="scannerInput" placeholder="Barkod okuyucu ile okut..." autofocus></textarea>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="container" style="margin-top: 30px;">
-      <div class="section" style="flex: 1 1 100%;">
-        <label for="scannerInput">📡 Barkod Okut:</label>
-        <textarea id="scannerInput" placeholder="Barkod okuyucu ile okut..." autofocus></textarea>
+      <div class="right-side">
+        <div class="right-section">
+          <label for="atanacakInput"><span id="atanacakLabel">📋 Atanacak - Adet: 0</span></label>
+          <textarea id="atanacakInput" placeholder="Atanacak cihazlar..."></textarea>
+          <div id="atanacakList" class="mini-list"></div>
+        </div>
+        
+        <div class="right-section">
+          <label for="parcaBekliyorInput"><span id="parcaBekliyorLabel">⚙️ Parça Bekliyor - Adet: 0</span></label>
+          <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazlar..."></textarea>
+          <div id="parcaBekliyorList" class="mini-list"></div>
+        </div>
+        
+        <div class="right-section">
+          <label for="phonecheckInput"><span id="phonecheckLabel">📱 PhoneCheck - Adet: 0</span></label>
+          <textarea id="phonecheckInput" placeholder="PhoneCheck'e transfer edilecek barkodlar..."></textarea>
+          <div id="phonecheckList" class="mini-list"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
     const firebaseConfig = {
-            apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
+           apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
       storageBucket: "cokluhaber-dc6ff.appspot.com",
@@ -312,6 +410,7 @@
     const inputs = {
       atanacak: document.getElementById("atanacakInput"),
       parcaBekliyor: document.getElementById("parcaBekliyorInput"),
+      phonecheck: document.getElementById("phonecheckInput"),
       gokhan: document.getElementById("gokhanInput"),
       enes: document.getElementById("enesInput"),
       yusuf: document.getElementById("yusufInput"),
@@ -325,6 +424,7 @@
     const labels = {
       atanacak: document.getElementById("atanacakLabel"),
       parcaBekliyor: document.getElementById("parcaBekliyorLabel"),
+      phonecheck: document.getElementById("phonecheckLabel"),
       gokhan: document.getElementById("gokhanLabel"),
       enes: document.getElementById("enesLabel"),
       yusuf: document.getElementById("yusufLabel"),
@@ -336,6 +436,7 @@
     const miniLists = {
       atanacak: document.getElementById("atanacakList"),
       parcaBekliyor: document.getElementById("parcaBekliyorList"),
+      phonecheck: document.getElementById("phonecheckList"),
       gokhan: document.getElementById("gokhanList"),
       enes: document.getElementById("enesList"),
       yusuf: document.getElementById("yusufList"),
@@ -350,6 +451,7 @@
     const userCodes = { 
       atanacak: new Set(), 
       parcaBekliyor: new Set(),
+      phonecheck: new Set(),
       gokhan: new Set(), 
       enes: new Set(), 
       yusuf: new Set(), 
@@ -360,6 +462,7 @@
     const codeTimestamps = { 
       atanacak: {}, 
       parcaBekliyor: {},
+      phonecheck: {},
       gokhan: {}, 
       enes: {}, 
       yusuf: {}, 
@@ -386,6 +489,7 @@
           userName.style.background = 'linear-gradient(135deg, #f093fb, #f5576c)';
           userName.style.padding = '5px 15px';
           userName.style.borderRadius = '5px';
+          document.getElementById('adminPanel').style.display = 'block';
         } else if (name === 'enes') {
           currentUserRole = 'editor';
           userName.textContent = `✏️ ${name.charAt(0).toUpperCase() + name.slice(1)}`;
@@ -462,7 +566,7 @@
 
     function applyPermissions() {
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
-      const specialLists = ['atanacak', 'parcaBekliyor'];
+      const specialLists = ['atanacak', 'parcaBekliyor', 'phonecheck'];
       
       if (currentUserRole === 'viewer') {
         normalUsers.forEach(name => {
@@ -507,29 +611,26 @@
       return now.toLocaleString('tr-TR');
     }
 
-    function removeFromSpecialLists(code) {
-      if (userCodes.atanacak.has(code)) {
-        userCodes.atanacak.delete(code);
-        delete codeTimestamps.atanacak[code];
-        db.ref(`servis/atanacak/${code}`).remove();
-        updateLabelAndCount('atanacak');
-        renderMiniList('atanacak');
-      }
+    function removeFromOtherLists(code, exceptList) {
+      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
       
-      if (userCodes.parcaBekliyor.has(code)) {
-        userCodes.parcaBekliyor.delete(code);
-        delete codeTimestamps.parcaBekliyor[code];
-        db.ref(`servis/parcaBekliyor/${code}`).remove();
-        updateLabelAndCount('parcaBekliyor');
-        renderMiniList('parcaBekliyor');
-      }
+      allLists.forEach(name => {
+        if (name !== exceptList && userCodes[name].has(code)) {
+          userCodes[name].delete(code);
+          delete codeTimestamps[name][code];
+          db.ref(`servis/${name}/${code}`).remove();
+          updateLabelAndCount(name);
+          renderMiniList(name);
+        }
+      });
     }
 
     function updateLabelAndCount(name) {
       const count = userCodes[name].size;
       const labelTexts = {
-        atanacak: '📋 Atanacak Cihazlar',
+        atanacak: '📋 Atanacak',
         parcaBekliyor: '⚙️ Parça Bekliyor',
+        phonecheck: '📱 PhoneCheck',
         gokhan: "🧑‍🔧 Gökhan'ın Cihazları",
         enes: "🧑‍🔧 Enes'in Cihazları",
         yusuf: "🧑‍🔧 Yusuf'un Cihazları",
@@ -547,7 +648,7 @@
         return;
       }
       
-      if ((name === 'atanacak' || name === 'parcaBekliyor') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
+      if ((name === 'atanacak' || name === 'parcaBekliyor' || name === 'phonecheck') && currentUserRole !== 'admin' && currentUserRole !== 'editor') {
         return;
       }
       
@@ -571,9 +672,7 @@
       
       userCodes[name].clear();
       codes.forEach(code => {
-        if (name !== 'atanacak' && name !== 'parcaBekliyor') {
-          removeFromSpecialLists(code);
-        }
+        removeFromOtherLists(code, name);
         
         db.ref(`servis/${name}/${code}`).set(timestamp);
         allCodes.add(code);
@@ -612,18 +711,21 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        const allLists = ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"];
+        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"];
         
         allLists.forEach(name => {
           if (userCodes[name].has(query)) {
             let status = "";
             if (name === 'atanacak' || name === 'parcaBekliyor') {
               status = "⏰ Bekliyor";
+            } else if (name === 'phonecheck') {
+              status = "📱 PhoneCheck'te";
             } else {
               status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
             }
             const displayName = name === 'atanacak' ? 'Atanacak Cihazlar' : 
                                name === 'parcaBekliyor' ? 'Parça Bekliyor' :
+                               name === 'phonecheck' ? 'PhoneCheck' :
                                name.charAt(0).toUpperCase() + name.slice(1);
             foundIn.push(`<strong>${displayName}</strong>: ${status}`);
           }
@@ -671,6 +773,8 @@
         
         if (name === 'atanacak' || name === 'parcaBekliyor') {
           div.classList.add("waiting");
+        } else if (name === 'phonecheck') {
+          div.classList.add("phonecheck");
         } else {
           div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
         }
@@ -688,7 +792,7 @@
     }
 
     function renderList() {
-      ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => renderMiniList(name));
+      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => renderMiniList(name));
       
       if (currentUserRole === 'admin') {
         updateAdminStats();
@@ -696,9 +800,6 @@
     }
 
     function updateAdminStats() {
-      const adminPanel = document.getElementById('adminPanel');
-      adminPanel.style.display = 'block';
-      
       const totalBarcodes = allCodes.size;
       const matchedBarcodes = scannedCodes.size;
       const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
@@ -706,10 +807,12 @@
       document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
       document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
       document.getElementById('adminMatchRate').textContent = matchRate + '%';
+      document.getElementById('adminAtanacak').textContent = userCodes.atanacak.size;
+      document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor.size;
     }
 
     function loadData() {
-      ["atanacak", "parcaBekliyor", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
+      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name => {
         db.ref(`servis/${name}`).once("value", snap => {
           const data = snap.val();
           if (!data) return;
