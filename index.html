@@ -2,77 +2,191 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Barkod Doğrulama Sistemi</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
-    * { box-sizing: border-box; }
+    * { 
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box; 
+    }
     body {
       font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 30px;
       background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       color: #fff;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 30px 20px;
     }
     h1 { font-size: 2.5em; margin-bottom: 20px; text-shadow: 1px 1px 3px #000; }
     
     /* Login Screen */
     .login-container {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      padding: 40px;
-      border-radius: 15px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      width: 100%;
-      max-width: 400px;
-      margin-top: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      padding: 60px;
+      border-radius: 25px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 
+                  0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+      width: 90%;
+      max-width: 600px;
+      margin-top: 50px;
+      position: relative;
+      overflow: hidden;
+    }
+    .login-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, 
+        transparent 30%, 
+        rgba(102, 126, 234, 0.1) 50%, 
+        transparent 70%);
+      animation: shine 3s infinite;
+    }
+    @keyframes shine {
+      0%, 100% { transform: rotate(0deg) translate(0, 0); }
+      50% { transform: rotate(180deg) translate(20px, 20px); }
+    }
+    .login-brand {
+      text-align: center;
+      margin-bottom: 50px;
+      position: relative;
+      z-index: 1;
+    }
+    .login-brand h1 {
+      font-size: 3.5em;
+      font-weight: 900;
+      margin: 0 0 10px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.5)); }
+      to { filter: drop-shadow(0 0 20px rgba(118, 75, 162, 0.8)); }
+    }
+    .login-brand p {
+      font-size: 1.1em;
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-weight: 300;
     }
     .login-container h2 {
       text-align: center;
-      margin-bottom: 30px;
-      font-size: 2em;
+      margin-bottom: 40px;
+      font-size: 1.8em;
+      position: relative;
+      z-index: 1;
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
     }
     .login-form {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 30px;
+      position: relative;
+      z-index: 1;
     }
     .login-input {
-      padding: 15px;
-      border: none;
-      border-radius: 8px;
+      width: 100%;
+      padding: 25px 30px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
       font-size: 20px;
-      background: rgba(255, 255, 255, 0.9);
-      color: #333;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+    .login-input:focus {
+      border-color: rgba(102, 126, 234, 0.8);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 25px rgba(102, 126, 234, 0.4);
+      transform: translateY(-2px);
+    }
+    .login-input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 16px;
+    }
+    .login-input:-webkit-autofill,
+    .login-input:-webkit-autofill:hover,
+    .login-input:-webkit-autofill:focus {
+      -webkit-text-fill-color: #fff;
+      -webkit-box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.08) inset;
+      transition: background-color 5000s ease-in-out 0s;
     }
     .login-button {
-      padding: 15px;
+      width: 100%;
+      padding: 25px;
       border: none;
-      border-radius: 8px;
-      font-size: 18px;
-      font-weight: bold;
+      border-radius: 15px;
+      font-size: 20px;
+      font-weight: 700;
       background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+    .login-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+    .login-button:hover::before {
+      left: 100%;
     }
     .login-button:hover {
-      transform: scale(1.05);
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+    }
+    .login-button:active {
+      transform: translateY(-1px);
     }
     .login-button:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
+      transform: none;
     }
     .error-message {
-      background: #e74c3c;
-      padding: 10px;
-      border-radius: 8px;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      padding: 18px;
+      border-radius: 12px;
       text-align: center;
       display: none;
+      animation: shake 0.5s;
+      font-weight: 500;
+      font-size: 16px;
+      box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
     }
     .user-info {
       position: fixed;
@@ -85,6 +199,7 @@
       display: flex;
       align-items: center;
       gap: 15px;
+      z-index: 1000;
     }
     .logout-button {
       padding: 8px 15px;
@@ -100,19 +215,20 @@
     .app-container {
       display: none;
       width: 100%;
+      max-width: 1400px;
     }
     .container {
       display: flex;
       gap: 20px;
       flex-wrap: wrap;
       width: 100%;
-      max-width: 1200px;
     }
     .section {
       flex: 1 1 30%;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      min-width: 280px;
     }
     textarea {
       width: 100%;
@@ -167,12 +283,23 @@
     @media (max-width: 768px) {
       .container { flex-direction: column; }
       .section { flex: 1 1 100%; }
+      .login-container {
+        padding: 40px 30px;
+        width: 95%;
+      }
+      .login-brand h1 {
+        font-size: 2.5em;
+      }
     }
   </style>
 </head>
 <body>
   <!-- Login Screen -->
   <div id="loginScreen" class="login-container">
+    <div class="login-brand">
+      <h1>MOBİLFON</h1>
+      <p>TEKNOLOJİ</p>
+    </div>
     <h2>🔐 Giriş Yap</h2>
     <div class="login-form">
       <input type="email" id="emailInput" class="login-input" placeholder="Email adresi" autocomplete="email">
@@ -232,6 +359,16 @@
         <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
         <div id="sametList" class="mini-list"></div>
       </div>
+      <div class="section">
+        <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları - Adet: 0</span></label>
+        <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
+        <div id="ismailList" class="mini-list"></div>
+      </div>
+      <div class="section">
+        <label for="mehmetInput"><span id="mehmetLabel">🧑‍🔧 Mehmet'in Cihazları - Adet: 0</span></label>
+        <textarea id="mehmetInput" placeholder="Mehmet'in barkodlarını buraya yapıştır..."></textarea>
+        <div id="mehmetList" class="mini-list"></div>
+      </div>
     </div>
 
     <div class="container" style="margin-top: 30px;">
@@ -281,6 +418,8 @@
       enes: document.getElementById("enesInput"),
       yusuf: document.getElementById("yusufInput"),
       samet: document.getElementById("sametInput"),
+      ismail: document.getElementById("ismailInput"),
+      mehmet: document.getElementById("mehmetInput"),
       scanner: document.getElementById("scannerInput"),
       search: document.getElementById("searchInput")
     };
@@ -289,21 +428,25 @@
       gokhan: document.getElementById("gokhanLabel"),
       enes: document.getElementById("enesLabel"),
       yusuf: document.getElementById("yusufLabel"),
-      samet: document.getElementById("sametLabel")
+      samet: document.getElementById("sametLabel"),
+      ismail: document.getElementById("ismailLabel"),
+      mehmet: document.getElementById("mehmetLabel")
     };
 
     const miniLists = {
       gokhan: document.getElementById("gokhanList"),
       enes: document.getElementById("enesList"),
       yusuf: document.getElementById("yusufList"),
-      samet: document.getElementById("sametList")
+      samet: document.getElementById("sametList"),
+      ismail: document.getElementById("ismailList"),
+      mehmet: document.getElementById("mehmetList")
     };
 
     const searchResult = document.getElementById("searchResult");
     const scannedCodes = new Set();
     const allCodes = new Set();
-    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set(), samet: new Set() };
-    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {}, samet: {} };
+    const userCodes = { gokhan: new Set(), enes: new Set(), yusuf: new Set(), samet: new Set(), ismail: new Set(), mehmet: new Set() };
+    const codeTimestamps = { gokhan: {}, enes: {}, yusuf: {}, samet: {}, ismail: {}, mehmet: {} };
 
     let currentUserRole = null;
     let currentUserName = null;
@@ -399,12 +542,14 @@
     }
 
     function applyPermissions() {
-      // Viewer (Gökhan, Yusuf, Samet) için textarea'ları devre dışı bırak
+      // Viewer (Gökhan, Yusuf, Samet, İsmail, Mehmet) için textarea'ları devre dışı bırak
       if (currentUserRole === 'viewer') {
         inputs.gokhan.disabled = true;
         inputs.enes.disabled = true;
         inputs.yusuf.disabled = true;
         inputs.samet.disabled = true;
+        inputs.ismail.disabled = true;
+        inputs.mehmet.disabled = true;
         inputs.search.disabled = true;
         
         // Görsel olarak da belirt
@@ -412,11 +557,15 @@
         inputs.enes.style.opacity = '0.6';
         inputs.yusuf.style.opacity = '0.6';
         inputs.samet.style.opacity = '0.6';
+        inputs.ismail.style.opacity = '0.6';
+        inputs.mehmet.style.opacity = '0.6';
         inputs.search.style.opacity = '0.6';
         inputs.gokhan.style.cursor = 'not-allowed';
         inputs.enes.style.cursor = 'not-allowed';
         inputs.yusuf.style.cursor = 'not-allowed';
         inputs.samet.style.cursor = 'not-allowed';
+        inputs.ismail.style.cursor = 'not-allowed';
+        inputs.mehmet.style.cursor = 'not-allowed';
         inputs.search.style.cursor = 'not-allowed';
         
         // Placeholder'ları değiştir
@@ -424,6 +573,8 @@
         inputs.enes.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.yusuf.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.samet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.ismail.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        inputs.mehmet.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         inputs.search.placeholder = '🔒 Arama yapma yetkiniz yok';
       } else {
         // Admin ve Enes için tüm yetkileri aç
@@ -431,17 +582,23 @@
         inputs.enes.disabled = false;
         inputs.yusuf.disabled = false;
         inputs.samet.disabled = false;
+        inputs.ismail.disabled = false;
+        inputs.mehmet.disabled = false;
         inputs.search.disabled = false;
         
         inputs.gokhan.style.opacity = '1';
         inputs.enes.style.opacity = '1';
         inputs.yusuf.style.opacity = '1';
         inputs.samet.style.opacity = '1';
+        inputs.ismail.style.opacity = '1';
+        inputs.mehmet.style.opacity = '1';
         inputs.search.style.opacity = '1';
         inputs.gokhan.style.cursor = 'text';
         inputs.enes.style.cursor = 'text';
         inputs.yusuf.style.cursor = 'text';
         inputs.samet.style.cursor = 'text';
+        inputs.ismail.style.cursor = 'text';
+        inputs.mehmet.style.cursor = 'text';
         inputs.search.style.cursor = 'text';
       }
     }
@@ -471,7 +628,7 @@
       });
 
       const count = userCodes[name].size;
-      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
+      labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : name === 'samet' ? 'in' : name === 'ismail' ? 'in' : name === 'mehmet' ? 'in' : 'ın'} Cihazları - Adet: ${count}`;
       db.ref(`servis/${name}/adet`).set(count);
 
       renderList();
@@ -503,120 +660,4 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        ["gokhan", "enes", "yusuf", "samet"].forEach(name => {
-          if (userCodes[name].has(query)) {
-            const status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
-            foundIn.push(`<strong>${name.charAt(0).toUpperCase() + name.slice(1)}</strong>: ${status}`);
-          }
-        });
-
-        if (foundIn.length > 0) {
-          searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}`;
-        } else {
-          searchResult.innerHTML = `<div style="color: #e74c3c;">❌ Barkod bulunamadı</div>`;
-        }
-      }, 300);
-    });
-
-    let scannerTimeout;
-    inputs.scanner.addEventListener("input", e => {
-      clearTimeout(scannerTimeout);
-      scannerTimeout = setTimeout(() => {
-        const raw = e.target.value.trim();
-        const code = raw.slice(0, 15);
-        if (code.length === 15 && !scannedCodes.has(code)) {
-          scannedCodes.add(code);
-          const timestamp = getTimestamp();
-          db.ref(`servis/eslesenler/${code}`).set(timestamp);
-
-          ["gokhan", "enes", "yusuf", "samet"].forEach(name => {
-            db.ref(`servis/${name}/${code}`).once("value", snap => {
-              if (snap.exists()) {
-                db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
-              }
-            });
-          });
-
-          renderList();
-        }
-        e.target.value = "";
-      }, 150);
-    });
-
-    function renderMiniList(name) {
-      const list = miniLists[name];
-      list.innerHTML = "";
-      userCodes[name].forEach(code => {
-        const div = document.createElement("div");
-        div.className = "mini-item";
-        div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
-        const timestamp = codeTimestamps[name][code] || "Tarih yok";
-        div.innerHTML = `
-          <div class="mini-item-row">
-            <span>${code}</span>
-            <span class="status"></span>
-          </div>
-          <div class="mini-item-time">📅 ${timestamp}</div>
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    function renderList() {
-      ["gokhan", "enes", "yusuf", "samet"].forEach(name => renderMiniList(name));
-      
-      // Admin istatistiklerini güncelle
-      if (currentUserRole === 'admin') {
-        updateAdminStats();
-      }
-    }
-
-    function updateAdminStats() {
-      const adminPanel = document.getElementById('adminPanel');
-      adminPanel.style.display = 'block';
-      
-      const totalBarcodes = allCodes.size;
-      const matchedBarcodes = scannedCodes.size;
-      const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
-      
-      document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
-      document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
-      document.getElementById('adminMatchRate').textContent = matchRate + '%';
-    }
-
-    function loadData() {
-      ["gokhan", "enes", "yusuf"].forEach(name => {
-        db.ref(`servis/${name}`).once("value", snap => {
-          const data = snap.val();
-          if (!data) return;
-
-          const codes = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
-          inputs[name].value = codes.join("\n");
-          codes.forEach(code => {
-            allCodes.add(code);
-            userCodes[name].add(code);
-            codeTimestamps[name][code] = data[code];
-          });
-
-          const count = codes.length;
-          labels[name].textContent = `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'${name === 'enes' ? 'in' : name === 'yusuf' ? 'un' : 'ın'} Cihazları - Adet: ${count}`;
-
-          if (data.eslesenler) {
-            Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
-          }
-
-          renderList();
-        });
-      });
-
-      db.ref("servis/eslesenler").once("value", snap => {
-        const data = snap.val();
-        if (data) {
-          Object.keys(data).forEach(code => scannedCodes.add(code));
-          renderList();
-        }
-      });
-    }
-  </script>
-</body>
-</html>
+        ["gokhan", "enes", "yusuf", "samet", "ismail", "mehmet"].forEach(name =>
