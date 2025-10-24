@@ -737,6 +737,28 @@
       }).filter(Boolean);
 
       const timestamp = getTimestamp();
+      
+      if (name === 'phonecheck' || name === 'parcaBekliyor' || name === 'atanacak') {
+        // PhoneCheck, Parça Bekliyor ve Atanacak için özel işlem - sadece ekleme yapıyoruz
+        codes.forEach(code => {
+          // Diğer listelerden kaldır
+          removeFromOtherLists(code, name);
+          
+          // Yeni kodu ekle
+          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+          codeTimestamps[name][code] = timestamp;
+          codeUsers[name][code] = currentUserName;
+          userCodes[name].add(code);
+          allCodes.add(code);
+        });
+        
+        updateLabelAndCount(name);
+        renderList();
+        isUpdating = false;
+        return;
+      }
+      
+      // Diğer listeler için normal işlem
       const oldCodes = new Set(userCodes[name]);
       const newCodes = new Set(codes);
       
@@ -751,21 +773,7 @@
       userCodes[name].clear();
 
       codes.forEach(code => {
-        if (name === 'phonecheck') {
-          removeFromOtherLists(code, name);
-          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-          codeTimestamps[name][code] = timestamp;
-          codeUsers[name][code] = currentUserName;
-          userCodes.phonecheck.add(code);
-          allCodes.add(code);
-        } else if (name === 'parcaBekliyor') {
-          removeFromOtherLists(code, name);
-          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-          codeTimestamps[name][code] = timestamp;
-          codeUsers[name][code] = currentUserName;
-          userCodes.parcaBekliyor.add(code);
-          allCodes.add(code);
-        } else if (name === 'onarim') {
+        if (name === 'onarim') {
           if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
             db.ref(`servis/phonecheck/${code}`).remove();
             userCodes.phonecheck.delete(code);
@@ -781,13 +789,6 @@
           codeTimestamps.onarim[code] = timestamp;
           codeUsers.onarim[code] = currentUserName;
           userCodes.onarim.add(code);
-          allCodes.add(code);
-        } else if (name === 'atanacak') {
-          removeFromOtherLists(code, name);
-          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-          codeTimestamps[name][code] = timestamp;
-          codeUsers[name][code] = currentUserName;
-          userCodes.atanacak.add(code);
           allCodes.add(code);
         } else {
           removeFromOtherLists(code, name);
