@@ -623,12 +623,16 @@
 
     function applyPermissions() {
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
-      const specialLists = ['atanacak', 'parcaBekliyor'];
       
       inputs.phonecheck.disabled = false;
       inputs.phonecheck.style.opacity = '1';
       inputs.phonecheck.style.cursor = 'text';
       inputs.phonecheck.placeholder = 'PhoneCheck\'e transfer edilecek barkodlar...';
+      
+      inputs.parcaBekliyor.disabled = false;
+      inputs.parcaBekliyor.style.opacity = '1';
+      inputs.parcaBekliyor.style.cursor = 'text';
+      inputs.parcaBekliyor.placeholder = 'Parça bekleyen cihazları girin...';
 
       if (currentUserName === 'yusuf') {
         inputs.onarim.disabled = false;
@@ -650,12 +654,15 @@
           inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         });
         
-        specialLists.forEach(name => {
-          inputs[name].disabled = true;
-          inputs[name].style.opacity = '0.6';
-          inputs[name].style.cursor = 'not-allowed';
-          inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
-        });
+        inputs.atanacak.disabled = true;
+        inputs.atanacak.style.opacity = '0.6';
+        inputs.atanacak.style.cursor = 'not-allowed';
+        inputs.atanacak.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        
+        inputs.parcaBekliyor.disabled = true;
+        inputs.parcaBekliyor.style.opacity = '0.6';
+        inputs.parcaBekliyor.style.cursor = 'not-allowed';
+        inputs.parcaBekliyor.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         
         inputs.search.disabled = true;
         inputs.search.style.opacity = '0.6';
@@ -668,11 +675,13 @@
           inputs[name].style.cursor = 'text';
         });
         
-        specialLists.forEach(name => {
-          inputs[name].disabled = false;
-          inputs[name].style.opacity = '1';
-          inputs[name].style.cursor = 'text';
-        });
+        inputs.atanacak.disabled = false;
+        inputs.atanacak.style.opacity = '1';
+        inputs.atanacak.style.cursor = 'text';
+        
+        inputs.parcaBekliyor.disabled = false;
+        inputs.parcaBekliyor.style.opacity = '1';
+        inputs.parcaBekliyor.style.cursor = 'text';
         
         inputs.search.disabled = false;
         inputs.search.style.opacity = '1';
@@ -756,6 +765,15 @@
           db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
           codeTimestamps[name][code] = timestamp;
           codeUsers[name][code] = currentUserName;
+          userCodes.phonecheck.add(code);
+          allCodes.add(code);
+        } else if (name === 'parcaBekliyor') {
+          removeFromOtherLists(code, name);
+          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+          codeTimestamps[name][code] = timestamp;
+          codeUsers[name][code] = currentUserName;
+          userCodes.parcaBekliyor.add(code);
+          allCodes.add(code);
         } else if (name === 'onarim') {
           if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
             db.ref(`servis/phonecheck/${code}`).remove();
@@ -773,17 +791,19 @@
           codeUsers.onarim[code] = currentUserName;
           userCodes.onarim.add(code);
           allCodes.add(code);
+        } else if (name === 'atanacak') {
+          removeFromOtherLists(code, name);
+          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+          codeTimestamps[name][code] = timestamp;
+          codeUsers[name][code] = currentUserName;
+          userCodes.atanacak.add(code);
+          allCodes.add(code);
         } else {
           removeFromOtherLists(code, name);
           db.ref(`servis/${name}/${code}`).set(timestamp);
           codeTimestamps[name][code] = timestamp;
           codeUsers[name][code] = null;
           userCodes[name].add(code);
-          allCodes.add(code);
-        }
-
-        if (name === 'phonecheck') {
-          userCodes.phonecheck.add(code);
           allCodes.add(code);
         }
       });
@@ -890,7 +910,9 @@
         const div = document.createElement("div");
         div.className = "mini-item";
         
-        if (name === 'atanacak' || name === 'parcaBekliyor') {
+        if (name === 'atanacak') {
+          div.classList.add("waiting");
+        } else if (name === 'parcaBekliyor') {
           div.classList.add("waiting");
         } else if (name === 'phonecheck') {
           div.classList.add("phonecheck");
@@ -903,10 +925,7 @@
         const timestamp = codeTimestamps[name][code] || "Tarih yok";
         const user = codeUsers[name][code] || "";
         let codeDisplay = code;
-        if (name === 'phonecheck' && user) {
-          codeDisplay = `${code} - ${user}`;
-        }
-        if (name === 'onarim' && user) {
+        if ((name === 'phonecheck' || name === 'parcaBekliyor' || name === 'atanacak' || name === 'onarim') && user) {
           codeDisplay = `${code} - ${user}`;
         }
 
@@ -945,13 +964,23 @@
 
     function loadData() {
       const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarimTamamlandi"];
+      
       lists.forEach(name => {
-        db.ref(`servis/${name}`).once("value", snap => {
+        db.ref(`servis/${name}`).on("value", snap => {
           const data = snap.val();
-          if (!data) return;
+          const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
+          
+          userCodes[localName].clear();
+          codeTimestamps[localName] = {};
+          codeUsers[localName] = {};
+          
+          if (!data) {
+            updateLabelAndCount(localName);
+            renderList();
+            return;
+          }
 
           const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
-          const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
 
           keys.forEach(code => {
             const val = data[code];
@@ -980,9 +1009,10 @@
         });
       });
 
-      db.ref("servis/eslesenler").once("value", snap => {
+      db.ref("servis/eslesenler").on("value", snap => {
         const data = snap.val();
         if (data) {
+          scannedCodes.clear();
           Object.keys(data).forEach(code => scannedCodes.add(code));
           renderList();
         }
