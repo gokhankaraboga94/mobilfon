@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Barkod Doğrulama Sistemi</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
@@ -507,6 +507,7 @@
     let currentUserRole = null;
     let currentUserName = null;
     let isUpdating = false;
+    let dataLoaded = false;
 
     auth.onAuthStateChanged(user => {
       if (user) {
@@ -536,7 +537,7 @@
           document.getElementById('adminPanel').style.display = 'none';
         }
         
-        clearAllInputs();
+        dataLoaded = false;
         loadData();
         applyPermissions();
       } else {
@@ -545,6 +546,7 @@
         userInfo.style.display = "none";
         currentUserRole = null;
         currentUserName = null;
+        dataLoaded = false;
       }
     });
 
@@ -598,27 +600,6 @@
       setTimeout(() => {
         errorMessage.style.display = "none";
       }, 5000);
-    }
-
-    function clearAllInputs() {
-      Object.values(inputs).forEach(input => {
-        input.value = '';
-      });
-      
-      Object.keys(userCodes).forEach(key => {
-        userCodes[key].clear();
-      });
-      
-      Object.keys(codeTimestamps).forEach(key => {
-        codeTimestamps[key] = {};
-      });
-      
-      Object.keys(codeUsers).forEach(key => {
-        codeUsers[key] = {};
-      });
-      
-      scannedCodes.clear();
-      allCodes.clear();
     }
 
     function applyPermissions() {
@@ -693,7 +674,8 @@
           userCodes[name].delete(code);
           delete codeTimestamps[name][code];
           delete codeUsers[name][code];
-          db.ref(`servis/${name}`).child(code).remove();
+          const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
+          db.ref(`servis/${dbPath}`).child(code).remove();
           updateLabelAndCount(name);
           renderMiniList(name);
         }
@@ -718,11 +700,12 @@
       if (labels[name]) {
         labels[name].textContent = `${labelTexts[name]} - Adet: ${count}`;
       }
-      db.ref(`servis/${name}/adet`).set(count);
+      const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
+      db.ref(`servis/${dbPath}/adet`).set(count);
     }
 
     function saveCodes(name, value) {
-      if (isUpdating) return;
+      if (isUpdating || !dataLoaded) return;
       
       if (name === 'onarim' && currentUserName !== 'yusuf') {
         return;
@@ -739,35 +722,32 @@
       const timestamp = getTimestamp();
       
       if (name === 'phonecheck' || name === 'parcaBekliyor' || name === 'atanacak' || name === 'onarim') {
-        // PhoneCheck, Parça Bekliyor, Atanacak ve Onarım Tamamlandı için özel işlem - sadece ekleme yapıyoruz
         codes.forEach(code => {
-          // Diğer listelerden kaldır
-          removeFromOtherLists(code, name);
-          
-          // Onarım Tamamlandı için phonecheck'ten de kaldır
-          if (name === 'onarim') {
-            if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
-              db.ref(`servis/phonecheck/${code}`).remove();
-              userCodes.phonecheck.delete(code);
-              delete codeTimestamps.phonecheck[code];
-              delete codeUsers.phonecheck[code];
-              updateLabelAndCount('phonecheck');
-              renderMiniList('phonecheck');
-            }
+          if (!userCodes[name].has(code)) {
+            removeFromOtherLists(code, name);
             
-            // Onarım Tamamlandı için özel database path
-            db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
-            codeTimestamps.onarim[code] = timestamp;
-            codeUsers.onarim[code] = currentUserName;
-            userCodes.onarim.add(code);
-            allCodes.add(code);
-          } else {
-            // Diğer özel listeler için
-            db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-            codeTimestamps[name][code] = timestamp;
-            codeUsers[name][code] = currentUserName;
-            userCodes[name].add(code);
-            allCodes.add(code);
+            if (name === 'onarim') {
+              if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
+                db.ref(`servis/phonecheck/${code}`).remove();
+                userCodes.phonecheck.delete(code);
+                delete codeTimestamps.phonecheck[code];
+                delete codeUsers.phonecheck[code];
+                updateLabelAndCount('phonecheck');
+                renderMiniList('phonecheck');
+              }
+              
+              db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
+              codeTimestamps.onarim[code] = timestamp;
+              codeUsers.onarim[code] = currentUserName;
+              userCodes.onarim.add(code);
+              allCodes.add(code);
+            } else {
+              db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+              codeTimestamps[name][code] = timestamp;
+              codeUsers[name][code] = currentUserName;
+              userCodes[name].add(code);
+              allCodes.add(code);
+            }
           }
         });
         
@@ -777,26 +757,15 @@
         return;
       }
       
-      // Diğer listeler için normal işlem
-      const oldCodes = new Set(userCodes[name]);
-      const newCodes = new Set(codes);
-      
-      oldCodes.forEach(code => {
-        if (!newCodes.has(code)) {
-          db.ref(`servis/${name}/${code}`).remove();
-          allCodes.delete(code);
-        }
-      });
-
-      userCodes[name].clear();
-
       codes.forEach(code => {
-        removeFromOtherLists(code, name);
-        db.ref(`servis/${name}/${code}`).set(timestamp);
-        codeTimestamps[name][code] = timestamp;
-        codeUsers[name][code] = null;
-        userCodes[name].add(code);
-        allCodes.add(code);
+        if (!userCodes[name].has(code)) {
+          removeFromOtherLists(code, name);
+          db.ref(`servis/${name}/${code}`).set(timestamp);
+          codeTimestamps[name][code] = timestamp;
+          codeUsers[name][code] = null;
+          userCodes[name].add(code);
+          allCodes.add(code);
+        }
       });
 
       updateLabelAndCount(name);
@@ -953,11 +922,22 @@
       document.getElementById('adminOnarim').textContent = userCodes.onarim.size;
     }
 
+    function syncTextareaWithData(name) {
+      if (!dataLoaded) return;
+      
+      const codes = Array.from(userCodes[name]);
+      if (codes.length > 0) {
+        inputs[name].value = codes.join('\n');
+      }
+    }
+
     function loadData() {
       const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarimTamamlandi"];
+      let loadedCount = 0;
+      const totalLists = lists.length + 1;
       
       lists.forEach(name => {
-        db.ref(`servis/${name}`).on("value", snap => {
+        db.ref(`servis/${name}`).once("value", snap => {
           const data = snap.val();
           const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
           
@@ -966,8 +946,12 @@
           codeUsers[localName] = {};
           
           if (!data) {
+            loadedCount++;
+            if (loadedCount === totalLists) {
+              dataLoaded = true;
+              renderList();
+            }
             updateLabelAndCount(localName);
-            renderList();
             return;
           }
 
@@ -991,20 +975,29 @@
           });
 
           updateLabelAndCount(localName);
+          syncTextareaWithData(localName);
 
           if (data.eslesenler) {
             Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
           }
 
-          renderList();
+          loadedCount++;
+          if (loadedCount === totalLists) {
+            dataLoaded = true;
+            renderList();
+          }
         });
       });
 
-      db.ref("servis/eslesenler").on("value", snap => {
+      db.ref("servis/eslesenler").once("value", snap => {
         const data = snap.val();
         if (data) {
           scannedCodes.clear();
           Object.keys(data).forEach(code => scannedCodes.add(code));
+        }
+        loadedCount++;
+        if (loadedCount === totalLists) {
+          dataLoaded = true;
           renderList();
         }
       });
