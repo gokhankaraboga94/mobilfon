@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -172,6 +173,21 @@
       font-weight: bold;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
+    .delivered-section {
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .delivered-section label {
+      color: #fff;
+      font-size: 0.95em;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
     textarea {
       width: 100%;
       height: 150px;
@@ -183,7 +199,7 @@
       color: #333;
       resize: none;
     }
-    .right-section textarea, .special-right-section textarea {
+    .right-section textarea, .special-right-section textarea, .delivered-section textarea {
       height: 100px;
       font-size: 13px;
     }
@@ -195,7 +211,7 @@
       flex-direction: column;
       gap: 5px;
     }
-    .right-section .mini-list, .special-right-section .mini-list {
+    .right-section .mini-list, .special-right-section .mini-list, .delivered-section .mini-list {
       max-height: 200px;
     }
     .mini-item {
@@ -232,6 +248,7 @@
     .mini-item.satisa { background-color: #27ae60; }
     .mini-item.sahiniden { background-color: #8e44ad; }
     .mini-item.mediamarkt { background-color: #c0392b; }
+    .mini-item.teslim { background-color: #2ecc71; }
     .status { font-size: 20px; }
     .status::before { content: '⏳'; }
     .matched .status::before { content: '✅'; }
@@ -243,6 +260,7 @@
     .satisa .status::before { content: '💰'; }
     .sahiniden .status::before { content: '🏪'; }
     .mediamarkt .status::before { content: '🛒'; }
+    .teslim .status::before { content: '✅'; }
     
     #adminPanel {
       display: none;
@@ -279,7 +297,7 @@
     @media (max-width: 1200px) {
       .main-layout { flex-direction: column; }
       .right-side { width: 100%; flex-direction: row; flex-wrap: wrap; }
-      .right-section, .special-right-section { flex: 1; min-width: 250px; }
+      .right-section, .special-right-section, .delivered-section { flex: 1; min-width: 250px; }
     }
     @media (max-width: 768px) {
       .container { flex-direction: column; }
@@ -321,6 +339,10 @@
         <div class="admin-stat-box">
           <div class="label">Eşleşme Oranı</div>
           <div id="adminMatchRate" class="value">0%</div>
+        </div>
+        <div class="admin-stat-box">
+          <div class="label">Teslim Edilenler</div>
+          <div id="adminTeslimEdilenler" class="value">0</div>
         </div>
         <div class="admin-stat-box">
           <div class="label">Atanacak Cihazlar</div>
@@ -433,6 +455,12 @@
           <div id="onarimList" class="mini-list"></div>
         </div>
 
+        <div class="delivered-section">
+          <label for="teslimEdilenlerInput"><span id="teslimEdilenlerLabel">✅ Teslim Edilenler - Adet: 0</span></label>
+          <textarea id="teslimEdilenlerInput" placeholder="Teslim edilen barkodlar..."></textarea>
+          <div id="teslimEdilenlerList" class="mini-list"></div>
+        </div>
+
         <div class="special-right-section">
           <label for="disServisInput"><span id="disServisLabel">🔨 Dış Servis - Adet: 0</span></label>
           <textarea id="disServisInput" placeholder="Dış servise gönderilecek barkodlar..."></textarea>
@@ -502,7 +530,8 @@
       disServis: document.getElementById("disServisInput"),
       satisa: document.getElementById("satisaInput"),
       sahiniden: document.getElementById("sahinidenInput"),
-      mediaMarkt: document.getElementById("mediaMarktInput")
+      mediaMarkt: document.getElementById("mediaMarktInput"),
+      teslimEdilenler: document.getElementById("teslimEdilenlerInput")
     };
 
     const labels = {
@@ -519,7 +548,8 @@
       disServis: document.getElementById("disServisLabel"),
       satisa: document.getElementById("satisaLabel"),
       sahiniden: document.getElementById("sahinidenLabel"),
-      mediaMarkt: document.getElementById("mediaMarktLabel")
+      mediaMarkt: document.getElementById("mediaMarktLabel"),
+      teslimEdilenler: document.getElementById("teslimEdilenlerLabel")
     };
 
     const miniLists = {
@@ -536,7 +566,8 @@
       disServis: document.getElementById("disServisList"),
       satisa: document.getElementById("satisaList"),
       sahiniden: document.getElementById("sahinidenList"),
-      mediaMarkt: document.getElementById("mediaMarktList")
+      mediaMarkt: document.getElementById("mediaMarktList"),
+      teslimEdilenler: document.getElementById("teslimEdilenlerList")
     };
 
     const searchResult = document.getElementById("searchResult");
@@ -556,7 +587,8 @@
       disServis: new Set(),
       satisa: new Set(),
       sahiniden: new Set(),
-      mediaMarkt: new Set()
+      mediaMarkt: new Set(),
+      teslimEdilenler: new Set()
     };
     const codeTimestamps = { 
       atanacak: {}, 
@@ -572,7 +604,8 @@
       disServis: {},
       satisa: {},
       sahiniden: {},
-      mediaMarkt: {}
+      mediaMarkt: {},
+      teslimEdilenler: {}
     };
     const codeUsers = {
       atanacak: {},
@@ -588,7 +621,8 @@
       disServis: {},
       satisa: {},
       sahiniden: {},
-      mediaMarkt: {}
+      mediaMarkt: {},
+      teslimEdilenler: {}
     };
 
     let currentUserRole = null;
@@ -710,6 +744,18 @@
         inputs.onarim.style.cursor = 'not-allowed';
         inputs.onarim.placeholder = '🔒 Sadece Yusuf düzenleyebilir - Görüntüleme modu';
       }
+
+      if (currentUserName === 'admin' || currentUserName === 'mehmet') {
+        inputs.teslimEdilenler.disabled = false;
+        inputs.teslimEdilenler.style.opacity = '1';
+        inputs.teslimEdilenler.style.cursor = 'text';
+        inputs.teslimEdilenler.placeholder = 'Teslim edilen barkodları girin...';
+      } else {
+        inputs.teslimEdilenler.disabled = true;
+        inputs.teslimEdilenler.style.opacity = '0.6';
+        inputs.teslimEdilenler.style.cursor = 'not-allowed';
+        inputs.teslimEdilenler.placeholder = '🔒 Sadece Admin ve Mehmet düzenleyebilir - Görüntüleme modu';
+      }
       
       if (currentUserRole === 'viewer') {
         normalUsers.forEach(name => {
@@ -751,7 +797,7 @@
     }
 
     function removeFromOtherLists(code, exceptList) {
-      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
       
       allLists.forEach(name => {
         if (name !== exceptList && userCodes[name].has(code)) {
@@ -782,7 +828,8 @@
         disServis: "🔨 Dış Servis",
         satisa: "💰 Satışa Gidecek",
         sahiniden: "🏪 sahibinden",
-        mediaMarkt: "🛒 Media Markt"
+        mediaMarkt: "🛒 Media Markt",
+        teslimEdilenler: "✅ Teslim Edilenler"
       };
       
       if (labels[name]) {
@@ -798,6 +845,10 @@
       if (name === 'onarim' && currentUserName !== 'yusuf') {
         return;
       }
+
+      if (name === 'teslimEdilenler' && currentUserName !== 'admin' && currentUserName !== 'mehmet') {
+        return;
+      }
       
       isUpdating = true;
 
@@ -809,7 +860,7 @@
 
       const timestamp = getTimestamp();
       
-      const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+      const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
       
       if (specialLists.includes(name)) {
         codes.forEach(code => {
@@ -831,6 +882,12 @@
               codeUsers.onarim[code] = currentUserName;
               userCodes.onarim.add(code);
               allCodes.add(code);
+            } else if (name === 'teslimEdilenler') {
+              db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+              codeTimestamps[name][code] = timestamp;
+              codeUsers[name][code] = currentUserName;
+              userCodes[name].add(code);
+              // Teslim edilenler allCodes'a eklenmeyecek
             } else {
               db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
               codeTimestamps[name][code] = timestamp;
@@ -888,12 +945,12 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt"];
+        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
         
         allLists.forEach(name => {
           if (userCodes[name].has(query)) {
             let status = "";
-            const specialListsWithUser = ['phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+            const specialListsWithUser = ['phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
             
             if (name === 'atanacak' || name === 'parcaBekliyor') {
               status = "⏰ Bekliyor";
@@ -904,7 +961,8 @@
                 disServis: '🔨 Dış Servis',
                 satisa: '💰 Satışa Gidecek',
                 sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt'
+                mediaMarkt: '🛒 Media Markt',
+                teslimEdilenler: '✅ Teslim Edildi'
               };
               status = `${labelMap[name]}'te - ${codeUsers[name][query] || ''}`;
             } else {
@@ -919,6 +977,7 @@
                                name === 'satisa' ? 'Satışa Gidecek' :
                                name === 'sahiniden' ? 'Sahibinden' :
                                name === 'mediaMarkt' ? 'Media Markt' :
+                               name === 'teslimEdilenler' ? 'Teslim Edilenler' :
                                name.charAt(0).toUpperCase() + name.slice(1);
             foundIn.push(`<strong>${displayName}</strong>: ${status}`);
           }
@@ -952,7 +1011,7 @@
             });
           });
 
-          ["phonecheck", "onarimTamamlandi", "atanacak", "parcaBekliyor", "disServis", "satisa", "sahiniden", "mediaMarkt"].forEach(name => {
+          ["phonecheck", "onarimTamamlandi", "atanacak", "parcaBekliyor", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"].forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
                 db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
@@ -981,7 +1040,8 @@
           disServis: "disservis",
           satisa: "satisa",
           sahiniden: "sahiniden",
-          mediaMarkt: "mediamarkt"
+          mediaMarkt: "mediamarkt",
+          teslimEdilenler: "teslim"
         };
         
         if (specialClasses[name]) {
@@ -994,7 +1054,7 @@
         const user = codeUsers[name][code] || "";
         let codeDisplay = code;
         
-        const listsWithUser = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+        const listsWithUser = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
         if (listsWithUser.includes(name) && user) {
           codeDisplay = `${code} - ${user}`;
         }
@@ -1011,7 +1071,7 @@
     }
 
     function renderList() {
-      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt"].forEach(name => renderMiniList(name));
+      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"].forEach(name => renderMiniList(name));
       
       if (currentUserRole === 'admin') {
         updateAdminStats();
@@ -1033,6 +1093,7 @@
       document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
       document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
       document.getElementById('adminMatchRate').textContent = matchRate + '%';
+      document.getElementById('adminTeslimEdilenler').textContent = userCodes.teslimEdilenler.size;
       document.getElementById('adminAtanacak').textContent = userCodes.atanacak.size;
       document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor.size;
       document.getElementById('adminPhonecheck').textContent = userCodes.phonecheck.size;
@@ -1053,7 +1114,7 @@
     }
 
     function loadData() {
-      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt"];
+      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
       let loadedCount = 0;
       const totalLists = lists.length + 1;
       
@@ -1086,12 +1147,16 @@
               codeTimestamps[localName][code] = ts;
               codeUsers[localName][code] = user;
               userCodes[localName].add(code);
-              allCodes.add(code);
+              if (localName !== 'teslimEdilenler') {
+                allCodes.add(code);
+              }
             } else {
               codeTimestamps[localName][code] = val;
               codeUsers[localName][code] = null;
               userCodes[localName].add(code);
-              allCodes.add(code);
+              if (localName !== 'teslimEdilenler') {
+                allCodes.add(code);
+              }
             }
           });
 
