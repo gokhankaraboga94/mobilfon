@@ -1019,7 +1019,14 @@
     }
 
     function updateAdminStats() {
-      const totalBarcodes = allCodes.size;
+     const totalCodesWithoutOnarim = new Set();
+      const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+      
+      listsToCount.forEach(name => {
+        userCodes[name].forEach(code => totalCodesWithoutOnarim.add(code));
+      });
+      
+      const totalBarcodes = totalCodesWithoutOnarim.size;
       const matchedBarcodes = scannedCodes.size;
       const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
       
