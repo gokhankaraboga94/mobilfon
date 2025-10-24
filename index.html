@@ -738,18 +738,37 @@
 
       const timestamp = getTimestamp();
       
-      if (name === 'phonecheck' || name === 'parcaBekliyor' || name === 'atanacak') {
-        // PhoneCheck, Parça Bekliyor ve Atanacak için özel işlem - sadece ekleme yapıyoruz
+      if (name === 'phonecheck' || name === 'parcaBekliyor' || name === 'atanacak' || name === 'onarim') {
+        // PhoneCheck, Parça Bekliyor, Atanacak ve Onarım Tamamlandı için özel işlem - sadece ekleme yapıyoruz
         codes.forEach(code => {
           // Diğer listelerden kaldır
           removeFromOtherLists(code, name);
           
-          // Yeni kodu ekle
-          db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-          codeTimestamps[name][code] = timestamp;
-          codeUsers[name][code] = currentUserName;
-          userCodes[name].add(code);
-          allCodes.add(code);
+          // Onarım Tamamlandı için phonecheck'ten de kaldır
+          if (name === 'onarim') {
+            if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
+              db.ref(`servis/phonecheck/${code}`).remove();
+              userCodes.phonecheck.delete(code);
+              delete codeTimestamps.phonecheck[code];
+              delete codeUsers.phonecheck[code];
+              updateLabelAndCount('phonecheck');
+              renderMiniList('phonecheck');
+            }
+            
+            // Onarım Tamamlandı için özel database path
+            db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
+            codeTimestamps.onarim[code] = timestamp;
+            codeUsers.onarim[code] = currentUserName;
+            userCodes.onarim.add(code);
+            allCodes.add(code);
+          } else {
+            // Diğer özel listeler için
+            db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+            codeTimestamps[name][code] = timestamp;
+            codeUsers[name][code] = currentUserName;
+            userCodes[name].add(code);
+            allCodes.add(code);
+          }
         });
         
         updateLabelAndCount(name);
@@ -764,8 +783,7 @@
       
       oldCodes.forEach(code => {
         if (!newCodes.has(code)) {
-          const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
-          db.ref(`servis/${dbPath}/${code}`).remove();
+          db.ref(`servis/${name}/${code}`).remove();
           allCodes.delete(code);
         }
       });
@@ -773,31 +791,12 @@
       userCodes[name].clear();
 
       codes.forEach(code => {
-        if (name === 'onarim') {
-          if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
-            db.ref(`servis/phonecheck/${code}`).remove();
-            userCodes.phonecheck.delete(code);
-            delete codeTimestamps.phonecheck[code];
-            delete codeUsers.phonecheck[code];
-            updateLabelAndCount('phonecheck');
-            renderMiniList('phonecheck');
-          } else {
-            db.ref(`servis/phonecheck/${code}`).remove();
-          }
-
-          db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
-          codeTimestamps.onarim[code] = timestamp;
-          codeUsers.onarim[code] = currentUserName;
-          userCodes.onarim.add(code);
-          allCodes.add(code);
-        } else {
-          removeFromOtherLists(code, name);
-          db.ref(`servis/${name}/${code}`).set(timestamp);
-          codeTimestamps[name][code] = timestamp;
-          codeUsers[name][code] = null;
-          userCodes[name].add(code);
-          allCodes.add(code);
-        }
+        removeFromOtherLists(code, name);
+        db.ref(`servis/${name}/${code}`).set(timestamp);
+        codeTimestamps[name][code] = timestamp;
+        codeUsers[name][code] = null;
+        userCodes[name].add(code);
+        allCodes.add(code);
       });
 
       updateLabelAndCount(name);
