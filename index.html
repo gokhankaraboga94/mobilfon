@@ -536,6 +536,7 @@
           document.getElementById('adminPanel').style.display = 'none';
         }
         
+        clearAllInputs();
         loadData();
         applyPermissions();
       } else {
@@ -599,17 +600,36 @@
       }, 5000);
     }
 
+    function clearAllInputs() {
+      Object.values(inputs).forEach(input => {
+        input.value = '';
+      });
+      
+      Object.keys(userCodes).forEach(key => {
+        userCodes[key].clear();
+      });
+      
+      Object.keys(codeTimestamps).forEach(key => {
+        codeTimestamps[key] = {};
+      });
+      
+      Object.keys(codeUsers).forEach(key => {
+        codeUsers[key] = {};
+      });
+      
+      scannedCodes.clear();
+      allCodes.clear();
+    }
+
     function applyPermissions() {
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
       const specialLists = ['atanacak', 'parcaBekliyor'];
       
-      // PhoneCheck her zaman aktif (tüm kullanıcılar için)
       inputs.phonecheck.disabled = false;
       inputs.phonecheck.style.opacity = '1';
       inputs.phonecheck.style.cursor = 'text';
       inputs.phonecheck.placeholder = 'PhoneCheck\'e transfer edilecek barkodlar...';
 
-      // Onarım Tamamlandı sadece yusuf için düzenlenebilir
       if (currentUserName === 'yusuf') {
         inputs.onarim.disabled = false;
         inputs.onarim.style.opacity = '1';
@@ -704,7 +724,6 @@
     function saveCodes(name, value) {
       if (isUpdating) return;
       
-      // Onarım Tamamlandı için sadece yusuf yetkili
       if (name === 'onarim' && currentUserName !== 'yusuf') {
         return;
       }
@@ -934,7 +953,7 @@
           const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
           const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
 
-          inputs[localName].value = keys.map(code => {
+          keys.forEach(code => {
             const val = data[code];
             if (typeof val === 'object') {
               const user = val.user || '';
@@ -943,15 +962,13 @@
               codeUsers[localName][code] = user;
               userCodes[localName].add(code);
               allCodes.add(code);
-              return user ? `${code} - ${user}` : code;
             } else {
               codeTimestamps[localName][code] = val;
               codeUsers[localName][code] = null;
               userCodes[localName].add(code);
               allCodes.add(code);
-              return code;
             }
-          }).join("\n");
+          });
 
           updateLabelAndCount(localName);
 
