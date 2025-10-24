@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Barkod Doğrulama Sistemi</title>
-   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
@@ -157,6 +157,21 @@
       font-weight: bold;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
+    .special-right-section {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .special-right-section label {
+      color: #fff;
+      font-size: 0.95em;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
     textarea {
       width: 100%;
       height: 150px;
@@ -168,7 +183,7 @@
       color: #333;
       resize: none;
     }
-    .right-section textarea {
+    .right-section textarea, .special-right-section textarea {
       height: 100px;
       font-size: 13px;
     }
@@ -180,7 +195,7 @@
       flex-direction: column;
       gap: 5px;
     }
-    .right-section .mini-list {
+    .right-section .mini-list, .special-right-section .mini-list {
       max-height: 200px;
     }
     .mini-item {
@@ -213,6 +228,10 @@
     .mini-item.waiting { background-color: #12adf3; }
     .mini-item.phonecheck { background-color: #9b59b6; }
     .mini-item.onarim { background-color: #16a085; }
+    .mini-item.disservis { background-color: #e67e22; }
+    .mini-item.satisa { background-color: #27ae60; }
+    .mini-item.sahiniden { background-color: #8e44ad; }
+    .mini-item.mediamarkt { background-color: #c0392b; }
     .status { font-size: 20px; }
     .status::before { content: '⏳'; }
     .matched .status::before { content: '✅'; }
@@ -220,6 +239,10 @@
     .waiting .status::before { content: '⏰'; }
     .phonecheck .status::before { content: '📱'; }
     .onarim .status::before { content: '🔧'; }
+    .disservis .status::before { content: '🔨'; }
+    .satisa .status::before { content: '💰'; }
+    .sahiniden .status::before { content: '🏪'; }
+    .mediamarkt .status::before { content: '🛒'; }
     
     #adminPanel {
       display: none;
@@ -255,8 +278,8 @@
     
     @media (max-width: 1200px) {
       .main-layout { flex-direction: column; }
-      .right-side { width: 100%; flex-direction: row; }
-      .right-section { flex: 1; }
+      .right-side { width: 100%; flex-direction: row; flex-wrap: wrap; }
+      .right-section, .special-right-section { flex: 1; min-width: 250px; }
     }
     @media (max-width: 768px) {
       .container { flex-direction: column; }
@@ -308,12 +331,28 @@
           <div id="adminParcaBekliyor" class="value">0</div>
         </div>
         <div class="admin-stat-box">
-          <div class="label">PhoneCheck Cihazları</div>
+          <div class="label">PhoneCheck</div>
           <div id="adminPhonecheck" class="value">0</div>
         </div>
         <div class="admin-stat-box">
           <div class="label">Onarım Tamamlandı</div>
           <div id="adminOnarim" class="value">0</div>
+        </div>
+        <div class="admin-stat-box">
+          <div class="label">Dış Servis</div>
+          <div id="adminDisServis" class="value">0</div>
+        </div>
+        <div class="admin-stat-box">
+          <div class="label">Satışa Gidecek</div>
+          <div id="adminSatisa" class="value">0</div>
+        </div>
+        <div class="admin-stat-box">
+          <div class="label">sahiniden</div>
+          <div id="adminSahiniden" class="value">0</div>
+        </div>
+        <div class="admin-stat-box">
+          <div class="label">Media Markt</div>
+          <div id="adminMediaMarkt" class="value">0</div>
         </div>
       </div>
     </div>
@@ -393,6 +432,30 @@
           <textarea id="onarimInput" placeholder="Onarımı tamamlanan cihazlar..."></textarea>
           <div id="onarimList" class="mini-list"></div>
         </div>
+
+        <div class="special-right-section">
+          <label for="disServisInput"><span id="disServisLabel">🔨 Dış Servis - Adet: 0</span></label>
+          <textarea id="disServisInput" placeholder="Dış servise gönderilecek barkodlar..."></textarea>
+          <div id="disServisList" class="mini-list"></div>
+        </div>
+
+        <div class="special-right-section">
+          <label for="satisaInput"><span id="satisaLabel">💰 Satışa Gidecek - Adet: 0</span></label>
+          <textarea id="satisaInput" placeholder="Satışa gidecek barkodlar..."></textarea>
+          <div id="satisaList" class="mini-list"></div>
+        </div>
+
+        <div class="special-right-section">
+          <label for="sahinidenInput"><span id="sahinidenLabel">🏪 Sahibinden - Adet: 0</span></label>
+          <textarea id="sahinidenInput" placeholder="Sahibinden gelen barkodlar..."></textarea>
+          <div id="sahinidenList" class="mini-list"></div>
+        </div>
+
+        <div class="special-right-section">
+          <label for="mediaMarktInput"><span id="mediaMarktLabel">🛒 Media Markt - Adet: 0</span></label>
+          <textarea id="mediaMarktInput" placeholder="Media Markt barkodları..."></textarea>
+          <div id="mediaMarktList" class="mini-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -435,7 +498,11 @@
       mehmet: document.getElementById("mehmetInput"),
       scanner: document.getElementById("scannerInput"),
       search: document.getElementById("searchInput"),
-      onarim: document.getElementById("onarimInput")
+      onarim: document.getElementById("onarimInput"),
+      disServis: document.getElementById("disServisInput"),
+      satisa: document.getElementById("satisaInput"),
+      sahiniden: document.getElementById("sahinidenInput"),
+      mediaMarkt: document.getElementById("mediaMarktInput")
     };
 
     const labels = {
@@ -448,7 +515,11 @@
       samet: document.getElementById("sametLabel"),
       ismail: document.getElementById("ismailLabel"),
       mehmet: document.getElementById("mehmetLabel"),
-      onarim: document.getElementById("onarimLabel")
+      onarim: document.getElementById("onarimLabel"),
+      disServis: document.getElementById("disServisLabel"),
+      satisa: document.getElementById("satisaLabel"),
+      sahiniden: document.getElementById("sahinidenLabel"),
+      mediaMarkt: document.getElementById("mediaMarktLabel")
     };
 
     const miniLists = {
@@ -461,7 +532,11 @@
       samet: document.getElementById("sametList"),
       ismail: document.getElementById("ismailList"),
       mehmet: document.getElementById("mehmetList"),
-      onarim: document.getElementById("onarimList")
+      onarim: document.getElementById("onarimList"),
+      disServis: document.getElementById("disServisList"),
+      satisa: document.getElementById("satisaList"),
+      sahiniden: document.getElementById("sahinidenList"),
+      mediaMarkt: document.getElementById("mediaMarktList")
     };
 
     const searchResult = document.getElementById("searchResult");
@@ -477,7 +552,11 @@
       samet: new Set(), 
       ismail: new Set(), 
       mehmet: new Set(),
-      onarim: new Set()
+      onarim: new Set(),
+      disServis: new Set(),
+      satisa: new Set(),
+      sahiniden: new Set(),
+      mediaMarkt: new Set()
     };
     const codeTimestamps = { 
       atanacak: {}, 
@@ -489,7 +568,11 @@
       samet: {}, 
       ismail: {}, 
       mehmet: {},
-      onarim: {}
+      onarim: {},
+      disServis: {},
+      satisa: {},
+      sahiniden: {},
+      mediaMarkt: {}
     };
     const codeUsers = {
       atanacak: {},
@@ -501,7 +584,11 @@
       samet: {},
       ismail: {},
       mehmet: {},
-      onarim: {}
+      onarim: {},
+      disServis: {},
+      satisa: {},
+      sahiniden: {},
+      mediaMarkt: {}
     };
 
     let currentUserRole = null;
@@ -604,16 +691,13 @@
 
     function applyPermissions() {
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet'];
+      const specialInputs = ['phonecheck', 'parcaBekliyor', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
-      inputs.phonecheck.disabled = false;
-      inputs.phonecheck.style.opacity = '1';
-      inputs.phonecheck.style.cursor = 'text';
-      inputs.phonecheck.placeholder = 'PhoneCheck\'e transfer edilecek barkodlar...';
-      
-      inputs.parcaBekliyor.disabled = false;
-      inputs.parcaBekliyor.style.opacity = '1';
-      inputs.parcaBekliyor.style.cursor = 'text';
-      inputs.parcaBekliyor.placeholder = 'Parça bekleyen cihazları girin...';
+      specialInputs.forEach(name => {
+        inputs[name].disabled = false;
+        inputs[name].style.opacity = '1';
+        inputs[name].style.cursor = 'text';
+      });
 
       if (currentUserName === 'yusuf') {
         inputs.onarim.disabled = false;
@@ -667,7 +751,7 @@
     }
 
     function removeFromOtherLists(code, exceptList) {
-      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet', 'onarim'];
+      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
       allLists.forEach(name => {
         if (name !== exceptList && userCodes[name].has(code)) {
@@ -694,7 +778,11 @@
         samet: "🧑‍🔧 Samet'in Cihazları",
         ismail: "🧑‍🔧 İsmail'in Cihazları",
         mehmet: "🧑‍🔧 Mehmet'in Cihazları",
-        onarim: "🔧 Onarım Tamamlandı"
+        onarim: "🔧 Onarım Tamamlandı",
+        disServis: "🔨 Dış Servis",
+        satisa: "💰 Satışa Gidecek",
+        sahiniden: "🏪 sahibinden",
+        mediaMarkt: "🛒 Media Markt"
       };
       
       if (labels[name]) {
@@ -721,7 +809,9 @@
 
       const timestamp = getTimestamp();
       
-      if (name === 'phonecheck' || name === 'parcaBekliyor' || name === 'atanacak' || name === 'onarim') {
+      const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+      
+      if (specialLists.includes(name)) {
         codes.forEach(code => {
           if (!userCodes[name].has(code)) {
             removeFromOtherLists(code, name);
@@ -777,7 +867,7 @@
     Object.entries(inputs).forEach(([name, textarea]) => {
       textarea.addEventListener("input", () => {
         if (name === "scanner" || name === "search") return;
-        saveCodes(name === 'onarim' ? 'onarim' : name, textarea.value);
+        saveCodes(name, textarea.value);
       });
     });
 
@@ -798,24 +888,37 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim"];
+        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt"];
         
         allLists.forEach(name => {
           if (userCodes[name].has(query)) {
             let status = "";
+            const specialListsWithUser = ['phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+            
             if (name === 'atanacak' || name === 'parcaBekliyor') {
               status = "⏰ Bekliyor";
-            } else if (name === 'phonecheck') {
-              status = `📱 PhoneCheck'te - ${codeUsers.phonecheck[query] || ''}`;
-            } else if (name === 'onarim') {
-              status = `🔧 Onarım Tamamlandı - ${codeUsers.onarim[query] || ''}`;
+            } else if (specialListsWithUser.includes(name)) {
+              const labelMap = {
+                phonecheck: '📱 PhoneCheck',
+                onarim: '🔧 Onarım Tamamlandı',
+                disServis: '🔨 Dış Servis',
+                satisa: '💰 Satışa Gidecek',
+                sahiniden: '🏪 Sahibinden',
+                mediaMarkt: '🛒 Media Markt'
+              };
+              status = `${labelMap[name]}'te - ${codeUsers[name][query] || ''}`;
             } else {
               status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
             }
+            
             const displayName = name === 'atanacak' ? 'Atanacak Cihazlar' : 
                                name === 'parcaBekliyor' ? 'Parça Bekliyor' :
                                name === 'phonecheck' ? 'PhoneCheck' :
                                name === 'onarim' ? 'Onarım Tamamlandı' :
+                               name === 'disServis' ? 'Dış Servis' :
+                               name === 'satisa' ? 'Satışa Gidecek' :
+                               name === 'sahiniden' ? 'Sahibinden' :
+                               name === 'mediaMarkt' ? 'Media Markt' :
                                name.charAt(0).toUpperCase() + name.slice(1);
             foundIn.push(`<strong>${displayName}</strong>: ${status}`);
           }
@@ -849,7 +952,7 @@
             });
           });
 
-          ["phonecheck", "onarimTamamlandi", "atanacak", "parcaBekliyor"].forEach(name => {
+          ["phonecheck", "onarimTamamlandi", "atanacak", "parcaBekliyor", "disServis", "satisa", "sahiniden", "mediaMarkt"].forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
                 db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
@@ -870,14 +973,19 @@
         const div = document.createElement("div");
         div.className = "mini-item";
         
-        if (name === 'atanacak') {
-          div.classList.add("waiting");
-        } else if (name === 'parcaBekliyor') {
-          div.classList.add("waiting");
-        } else if (name === 'phonecheck') {
-          div.classList.add("phonecheck");
-        } else if (name === 'onarim') {
-          div.classList.add("onarim");
+        const specialClasses = {
+          atanacak: "waiting",
+          parcaBekliyor: "waiting",
+          phonecheck: "phonecheck",
+          onarim: "onarim",
+          disServis: "disservis",
+          satisa: "satisa",
+          sahiniden: "sahiniden",
+          mediaMarkt: "mediamarkt"
+        };
+        
+        if (specialClasses[name]) {
+          div.classList.add(specialClasses[name]);
         } else {
           div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
         }
@@ -885,7 +993,9 @@
         const timestamp = codeTimestamps[name][code] || "Tarih yok";
         const user = codeUsers[name][code] || "";
         let codeDisplay = code;
-        if ((name === 'phonecheck' || name === 'parcaBekliyor' || name === 'atanacak' || name === 'onarim') && user) {
+        
+        const listsWithUser = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+        if (listsWithUser.includes(name) && user) {
           codeDisplay = `${code} - ${user}`;
         }
 
@@ -901,7 +1011,7 @@
     }
 
     function renderList() {
-      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim"].forEach(name => renderMiniList(name));
+      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt"].forEach(name => renderMiniList(name));
       
       if (currentUserRole === 'admin') {
         updateAdminStats();
@@ -920,6 +1030,10 @@
       document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor.size;
       document.getElementById('adminPhonecheck').textContent = userCodes.phonecheck.size;
       document.getElementById('adminOnarim').textContent = userCodes.onarim.size;
+      document.getElementById('adminDisServis').textContent = userCodes.disServis.size;
+      document.getElementById('adminSatisa').textContent = userCodes.satisa.size;
+      document.getElementById('adminSahiniden').textContent = userCodes.sahiniden.size;
+      document.getElementById('adminMediaMarkt').textContent = userCodes.mediaMarkt.size;
     }
 
     function syncTextareaWithData(name) {
@@ -932,7 +1046,7 @@
     }
 
     function loadData() {
-      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarimTamamlandi"];
+      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt"];
       let loadedCount = 0;
       const totalLists = lists.length + 1;
       
