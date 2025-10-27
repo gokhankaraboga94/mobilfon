@@ -645,6 +645,13 @@
           userName.style.padding = '5px 15px';
           userName.style.borderRadius = '5px';
           document.getElementById('adminPanel').style.display = 'block';
+          } else if (name === 'samil' || name === 'ibrahim') {
+          currentUserRole = 'admin-viewer';
+          userName.textContent = `📊 ${name.charAt(0).toUpperCase() + name.slice(1)} (Admin Görüntüleme)`;
+          userName.style.background = 'linear-gradient(135deg, #f39c12, #e74c3c)';
+          userName.style.padding = '5px 15px';
+          userName.style.borderRadius = '5px';
+          document.getElementById('adminPanel').style.display = 'block';
         } else if (name === 'enes') {
           currentUserRole = 'editor';
           userName.textContent = `✏️ ${name.charAt(0).toUpperCase() + name.slice(1)}`;
