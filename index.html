@@ -1338,7 +1338,7 @@ const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
 function setupSectionToggle(sectionElement, listId, labelId) {
     const list = document.getElementById(listId);
     const label = document.getElementById(labelId);
-    const textarea = list ? list.previousElementSibling : null; // Textarea, list'in bir önceki kardeş elementi
+    const textarea = list ? list.previousElementSibling : null;
 
     if (sectionElement && list && textarea && label) {
         // Listeyi ve textarea'yı başlangıçta gizlemek için (CSS'i ezerek)
@@ -1353,7 +1353,6 @@ function setupSectionToggle(sectionElement, listId, labelId) {
 
         // Bölüm (section) elementine tıklama olay dinleyicisini ekle
         sectionElement.addEventListener('click', (event) => {
-            // Tıklamanın sadece section elemanına (veya alt elemanlarına) ait olduğundan emin olun
             // Eğer input/textarea gibi etkileşimli bir elemana tıklandıysa toggle'ı çalıştırmayız
             if (event.target.tagName === 'TEXTAREA' || event.target.tagName === 'INPUT') {
                 return;
@@ -1370,44 +1369,68 @@ function setupSectionToggle(sectionElement, listId, labelId) {
                 label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)'); // Durum bilgisini güncelle
             }
         });
-    } else {
-        console.warn(`Toggle kurulumu başarısız: ID ${listId} için element bulunamadı.`);
     }
 }
 
-// Tüm teknisyen ve özel listeler için toggle işlevini çağır
-document.addEventListener('DOMContentLoaded', () => {
-    // Tüm listeleri tanımlayın: { labelID: listID, containerSelector: '.section' veya '.right-section' }
-    const listConfigurations = [
-        { labelId: 'gokhanLabel', listId: 'gokhanList' },
-        { labelId: 'yusufLabel', listId: 'yusufList' },
-        { labelId: 'enesLabel', listId: 'enesList' },
-        { labelId: 'sametLabel', listId: 'sametList' },
-        { labelId: 'teknisyen1Label', listId: 'teknisyen1List' },
-        { labelId: 'teknisyen2Label', listId: 'teknisyen2List' },
-        { labelId: 'enginLabel', listId: 'enginList' },
-        { labelId: 'ismailLabel', listId: 'ismailList' },
-        { labelId: 'mehmetLabel', listId: 'mehmetList' },
+// YENİ FONKSİYON 2: SADECE ETİKETE TIKLANDIĞINDA (Sağ Sütun Listeleri)
+function setupLabelToggle(labelId, listId) {
+    const label = document.getElementById(labelId);
+    const list = document.getElementById(listId);
+    const textarea = list ? list.previousElementSibling : null;
+
+    if (label && list && textarea) {
+        // Listeyi ve textarea'yı başlangıçta gizlemek için (CSS'i ezerek)
+        list.style.display = 'none';
+        textarea.style.display = 'none';
+
+        label.style.cursor = 'pointer'; // Tıklanabilir olduğunu göstermek için imleç
         
-        // Sağ sütun listeleri
-        { labelId: 'atanacakLabel', listId: 'atanacakList' },
-        { labelId: 'parcaBekliyorLabel', listId: 'parcaBekliyorList' },
-        { labelId: 'phonecheckLabel', listId: 'phonecheckList' },
-        { labelId: 'onarimLabel', listId: 'onarimList' },
-        { labelId: 'disServisLabel', listId: 'disServisList' },
-        { labelId: 'satisaLabel', listId: 'satisaList' },
-        { labelId: 'sahinidenLabel', listId: 'sahinidenList' },
-        { labelId: 'mediaMarktLabel', listId: 'mediaMarktList' },
-        { labelId: 'teslimEdilenlerLabel', listId: 'teslimEdilenlerList' }
+        // Etiketin başlangıçtaki içeriğine gizlilik bilgisini ekle
+        // Bu etiketlerin içine <span> olduğu için tıklama olayını etiket (label) alır.
+        label.textContent += ' (Gizli)';
+
+        label.addEventListener('click', () => {
+            // List ve textarea'nın mevcut durumunu kontrol et ve tersine çevir
+            if (list.style.display === 'none') {
+                list.style.display = 'flex'; // Göster
+                textarea.style.display = 'block'; // Göster (textarea için 'block' uygun)
+                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)'); // Durum bilgisini güncelle
+            } else {
+                list.style.display = 'none'; // Gizle
+                textarea.style.display = 'none'; // Gizle
+                label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)'); // Durum bilgisini güncelle
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. BÖLÜM TIKLAMASIYLA AÇILACAK LİSTELER (Teknisyenler)
+    const sectionToggleLists = [
+        'gokhan', 'yusuf', 'enes', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'
     ];
 
-    listConfigurations.forEach(config => {
-        const listElement = document.getElementById(config.listId);
+    sectionToggleLists.forEach(name => {
+        const listId = `${name}List`;
+        const labelId = `${name}Label`;
+        const listElement = document.getElementById(listId);
+        
         if (listElement) {
-            // listElement'in ebeveynini bul: .section, .right-section, .special-right-section veya .delivered-section
-            const sectionElement = listElement.closest('.section, .right-section, .special-right-section, .delivered-section');
-            setupSectionToggle(sectionElement, config.listId, config.labelId);
+            // Teknisyen listeleri için ebeveyn .section'ı bul
+            const sectionElement = listElement.closest('.section');
+            setupSectionToggle(sectionElement, listId, labelId);
         }
+    });
+
+    // 2. ETİKET TIKLAMASIYLA AÇILACAK LİSTELER (Sağ Sütun / Özel Durumlar)
+    const labelToggleLists = [
+        'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
+    ];
+    
+    labelToggleLists.forEach(name => {
+        const listId = `${name}List`;
+        const labelId = `${name}Label`;
+        setupLabelToggle(labelId, listId);
     });
 });
     
