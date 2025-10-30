@@ -124,14 +124,28 @@
       flex-wrap: wrap;
       width: 100%;
     }
-    .section {
-      flex: 1 1 30%;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-width: 280px;
-       background: linear-gradient(135deg, #667eea, #764ba2);
-    }
+ .section {
+    flex: 1 1 30%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 300px;
+    padding: 30px; 
+    
+    /* Serin Açık Mavi ve Gümüş Grisi Gradyan */
+    background: linear-gradient(135deg, #cfd8dc 0%, #b0bec5 100%);
+    color: #263238; /* Koyu gri ile metin okunaklılığı */
+    
+    border-radius: 18px;
+    
+    /* Güçlü kalınlık hissi veren gölgelendirme */
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.3), /* Derin dış gölge */
+        inset 0 0 15px rgba(255, 255, 255, 0.8), /* Parlak iç aydınlatma */
+        -5px -5px 15px #f5f5f5; /* Neumorphism esintisi */
+    
+    transition: all 0.4s ease;
+}
     .special-section {
       background: linear-gradient(135deg, #667eea, #764ba2);
       padding: 20px;
@@ -333,10 +347,7 @@
           <div class="label">Toplam Barkod</div>
           <div id="adminTotalBarcodes" class="value">0</div>
         </div>
-        <div class="admin-stat-box">
-          <div class="label">Eşleşen Barkod</div>
-          <div id="adminMatchedBarcodes" class="value">0</div>
-        </div>
+     
         <div class="admin-stat-box">
           <div class="label">Eşleşme Oranı</div>
           <div id="adminMatchRate" class="value">0%</div>
@@ -370,13 +381,15 @@
           <div id="adminSatisa" class="value">0</div>
         </div>
         <div class="admin-stat-box">
-          <div class="label">sahiniden</div>
+          <div class="label">Sahibinden</div>
           <div id="adminSahiniden" class="value">0</div>
         </div>
         <div class="admin-stat-box">
           <div class="label">Media Markt</div>
           <div id="adminMediaMarkt" class="value">0</div>
         </div>
+
+        
       </div>
     </div>
 
@@ -479,12 +492,7 @@
           <div id="onarimList" class="mini-list"></div>
         </div>
 
-        <div class="delivered-section">
-          <label for="teslimEdilenlerInput"><span id="teslimEdilenlerLabel">✅ Teslim Edilenler - Adet: 0</span></label>
-          <textarea id="teslimEdilenlerInput" placeholder="Teslim edilen barkodlar..."></textarea>
-          <div id="teslimEdilenlerList" class="mini-list"></div>
-        </div>
-
+   
         <div class="special-right-section">
           <label for="disServisInput"><span id="disServisLabel">🔨 Dış Servis - Adet: 0</span></label>
           <textarea id="disServisInput" placeholder="Dış servise gönderilecek barkodlar..."></textarea>
@@ -508,6 +516,13 @@
           <textarea id="mediaMarktInput" placeholder="Media Markt barkodları..."></textarea>
           <div id="mediaMarktList" class="mini-list"></div>
         </div>
+
+             <div class="delivered-section">
+          <label for="teslimEdilenlerInput"><span id="teslimEdilenlerLabel">✅ Teslim Edilenler - Adet: 0</span></label>
+          <textarea id="teslimEdilenlerInput" placeholder="Teslim edilen barkodlar..."></textarea>
+          <div id="teslimEdilenlerList" class="mini-list"></div>
+        </div>
+
       </div>
     </div>
   </div>
