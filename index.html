@@ -386,21 +386,41 @@
             <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
             <div id="gokhanList" class="mini-list"></div>
           </div>
-          <div class="section">
-            <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
-            <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
-            <div id="enesList" class="mini-list"></div>
-          </div>
+          
           <div class="section">
             <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları - Adet: 0</span></label>
             <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
             <div id="yusufList" class="mini-list"></div>
           </div>
+
+           <div class="section">
+            <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları - Adet: 0</span></label>
+            <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
+            <div id="ismailList" class="mini-list"></div>
+          </div>
+          
+          <div class="section">
+            <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
+            <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
+            <div id="enesList" class="mini-list"></div>
+          </div>
+          
           <div class="section">
             <label for="sametInput"><span id="sametLabel">🧑‍🔧 Samet'in Cihazları - Adet: 0</span></label>
             <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
             <div id="sametList" class="mini-list"></div>
           </div>
+             <div class="section">
+            <label for="teknisyen1Input"><span id="teknisyen1Label">🧑‍🔧 teknisyen1'in Cihazları - Adet: 0</span></label>
+            <textarea id="teknisyen1Input" placeholder="teknisyen1'in barkodlarını buraya yapıştır..."></textarea>
+            <div id="teknisyen1List" class="mini-list"></div>
+          </div>
+                  <div class="section">
+            <label for="teknisyen2Input"><span id="teknisyen2Label">🧑‍🔧 teknisyen2'in Cihazları - Adet: 0</span></label>
+            <textarea id="teknisyen2Input" placeholder="teknisyen2'in barkodlarını buraya yapıştır..."></textarea>
+            <div id="teknisyen2List" class="mini-list"></div>
+          </div>
+          
             <div class="section">
             <label for="enginInput"><span id="enginLabel">🧑‍🔧 Engin'in Cihazları - Adet: 0</span></label>
             <textarea id="enginInput" placeholder="engin'in barkodlarını buraya yapıştır..."></textarea>
@@ -526,6 +546,8 @@
       enes: document.getElementById("enesInput"),
       yusuf: document.getElementById("yusufInput"),
       samet: document.getElementById("sametInput"),
+      teknisyen1: document.getElementById("teknisyen1Input"),
+      teknisyen2: document.getElementById("teknisyen2Input"),
       engin: document.getElementById("enginInput"),
       ismail: document.getElementById("ismailInput"),
       mehmet: document.getElementById("mehmetInput"),
@@ -547,6 +569,8 @@
       enes: document.getElementById("enesLabel"),
       yusuf: document.getElementById("yusufLabel"),
       samet: document.getElementById("sametLabel"),
+     teknisyen1: document.getElementById("teknisyen1Label"),
+       teknisyen2: document.getElementById("teknisyen2Label"),
       engin: document.getElementById("enginLabel"),
       ismail: document.getElementById("ismailLabel"),
       mehmet: document.getElementById("mehmetLabel"),
@@ -566,6 +590,8 @@
       enes: document.getElementById("enesList"),
       yusuf: document.getElementById("yusufList"),
       samet: document.getElementById("sametList"),
+      teknisyen1: document.getElementById("teknisyen1List"),
+         teknisyen2: document.getElementById("teknisyen2List"),
       engin: document.getElementById("enginList"),
       ismail: document.getElementById("ismailList"),
       mehmet: document.getElementById("mehmetList"),
@@ -588,6 +614,8 @@
       enes: new Set(), 
       yusuf: new Set(), 
       samet: new Set(), 
+      teknisyen1: new Set(), 
+    teknisyen2: new Set(), 
       engin: new Set(), 
       ismail: new Set(), 
       mehmet: new Set(),
@@ -606,6 +634,8 @@
       enes: {}, 
       yusuf: {}, 
       samet: {}, 
+      teknisyen1: {}, 
+      teknisyen2: {}, 
       engin: {}, 
       ismail: {}, 
       mehmet: {},
@@ -624,6 +654,8 @@
       enes: {},
       yusuf: {},
       samet: {},
+      teknisyen1: {},
+       teknisyen2: {},
       engin: {},
       ismail: {},
       mehmet: {},
@@ -745,12 +777,12 @@
     }
 
     function applyPermissions() {
-      const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'engin', 'mehmet'];
+      const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'ismail', 'engin', 'mehmet'];
       const specialInputs = ['phonecheck', 'parcaBekliyor', 'atanacak', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
       if (currentUserRole === 'semi-admin') {
         // Semi-admin: Tüm textarea'ları disabled yap ama veriler görünsün
-        const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+        const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
         
         allInputNames.forEach(name => {
           inputs[name].disabled = true;
@@ -845,7 +877,7 @@
     }
 
     function removeFromOtherLists(code, exceptList) {
-      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
       
       allLists.forEach(name => {
         if (name !== exceptList && userCodes[name].has(code)) {
@@ -870,6 +902,8 @@
         enes: "🧑‍🔧 Enes'in Cihazları",
         yusuf: "🧑‍🔧 Yusuf'un Cihazları",
         samet: "🧑‍🔧 Samet'in Cihazları",
+        teknisyen1: "🧑‍🔧 teknisyen1'in Cihazları",
+        teknisyen2: "🧑‍🔧 teknisyen2'in Cihazları",
         engin: "🧑‍🔧 Engin'in Cihazları",
         ismail: "🧑‍🔧 İsmail'in Cihazları",
         mehmet: "🧑‍🔧 Mehmet'in Cihazları",
@@ -999,7 +1033,7 @@
 
         searchResult.style.display = "block";
         const foundIn = [];
-        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
+        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
         
         allLists.forEach(name => {
           if (userCodes[name].has(query)) {
@@ -1063,7 +1097,7 @@
           const timestamp = getTimestamp();
           db.ref(`servis/eslesenler/${code}`).set(timestamp);
 
-          ["gokhan", "enes", "yusuf", "engin", "samet", "ismail", "mehmet"].forEach(name => {
+          ["gokhan", "enes", "yusuf", "engin", "samet", "teknisyen1", "teknisyen2", "ismail", "mehmet"].forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
                 db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
@@ -1131,7 +1165,7 @@
     }
 
     function renderList() {
-      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"].forEach(name => renderMiniList(name));
+      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"].forEach(name => renderMiniList(name));
       
       if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
         updateAdminStats();
@@ -1140,7 +1174,7 @@
 
     function updateAdminStats() {
       const totalCodesWithoutOnarim = new Set();
-      const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+      const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', "teknisyen1", "teknisyen2", 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
       listsToCount.forEach(name => {
         userCodes[name].forEach(code => totalCodesWithoutOnarim.add(code));
@@ -1174,7 +1208,7 @@
     }
 
     function loadData() {
-      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
+      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
       let loadedCount = 0;
       const totalLists = lists.length + 1;
       
@@ -1194,7 +1228,7 @@
               
               // Semi-admin için tüm textarea'ları doldur
               if (currentUserRole === 'semi-admin') {
-                const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+                const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
                 allInputNames.forEach(n => syncTextareaWithData(n));
               }
               
@@ -1240,7 +1274,7 @@
             
             // Semi-admin için tüm textarea'ları doldur
             if (currentUserRole === 'semi-admin') {
-              const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+              const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
               allInputNames.forEach(n => syncTextareaWithData(n));
             }
             
@@ -1261,7 +1295,7 @@
           
           // Semi-admin için tüm textarea'ları doldur
           if (currentUserRole === 'semi-admin') {
-            const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+            const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
             allInputNames.forEach(n => syncTextareaWithData(n));
           }
           
