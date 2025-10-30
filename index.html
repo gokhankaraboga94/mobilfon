@@ -209,6 +209,7 @@
       display: flex;
       flex-direction: column;
       gap: 5px;
+      display: none; /* Varsayılan olarak gizle */
     }
     .right-section .mini-list, .special-right-section .mini-list, .delivered-section .mini-list {
       max-height: 200px;
@@ -382,9 +383,11 @@
       <div class="left-side">
         <div class="container">
           <div class="section">
-            <label for="gokhanInput"><span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span></label>
-            <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
-            <div id="gokhanList" class="mini-list"></div>
+<label for="gokhanInput">
+  <span id="gokhanLabel" style="cursor: pointer;">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span>
+  </label>
+<textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
+<div id="gokhanList" class="mini-list"></div>
           </div>
           
           <div class="section">
@@ -393,11 +396,7 @@
             <div id="yusufList" class="mini-list"></div>
           </div>
 
-           <div class="section">
-            <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları - Adet: 0</span></label>
-            <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
-            <div id="ismailList" class="mini-list"></div>
-          </div>
+     
           
           <div class="section">
             <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
@@ -1207,107 +1206,174 @@
       }
     }
 
-    function loadData() {
-      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
-      let loadedCount = 0;
-      const totalLists = lists.length + 1;
+  function loadData() {
+      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
+      let loadedCount = 0;
+      const totalLists = lists.length + 1;
       
-      lists.forEach(name => {
-        db.ref(`servis/${name}`).once("value", snap => {
-          const data = snap.val();
-          const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
+     lists.forEach(name => {
+        db.ref(`servis/${name}`).once("value", snap => {
+          const data = snap.val();
+          const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
+        
+   userCodes[localName].clear();
+          codeTimestamps[localName] = {};
+          codeUsers[localName] = {};
           
-          userCodes[localName].clear();
-          codeTimestamps[localName] = {};
-          codeUsers[localName] = {};
-          
-          if (!data) {
-            loadedCount++;
-            if (loadedCount === totalLists) {
-              dataLoaded = true;
-              
-              // Semi-admin için tüm textarea'ları doldur
-              if (currentUserRole === 'semi-admin') {
-                const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-                allInputNames.forEach(n => syncTextareaWithData(n));
-              }
-              
-              renderList();
-            }
-            updateLabelAndCount(localName);
-            return;
-          }
+        if (!data) {
+            loadedCount++;
+            if (loadedCount === totalLists) {
+              dataLoaded = true;
+              
+              // SADECE Semi-admin için textarea'ları doldur
+              if (currentUserRole === 'semi-admin') {
+                const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+                allInputNames.forEach(n => syncTextareaWithData(n));
+              }
+              
+              renderList();
+            }
+            updateLabelAndCount(localName);
+            return;
+          }
+const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
 
-          const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
+          keys.forEach(code => {
+            const val = data[code];
+            if (typeof val === 'object') {
+              const user = val.user || '';
+              const ts = val.ts || '';
+              codeTimestamps[localName][code] = ts;
+              codeUsers[localName][code] = user;
+              userCodes[localName].add(code);
+              if (localName !== 'teslimEdilenler') {
+            allCodes.add(code);
+              }
+            } else {
+              codeTimestamps[localName][code] = val;
+              codeUsers[localName][code] = null;
+              userCodes[localName].add(code);
+              if (localName !== 'teslimEdilenler') {
+                allCodes.add(code);
+              }
+            }
+          });
 
-          keys.forEach(code => {
-            const val = data[code];
-            if (typeof val === 'object') {
-              const user = val.user || '';
-              const ts = val.ts || '';
-              codeTimestamps[localName][code] = ts;
-              codeUsers[localName][code] = user;
-              userCodes[localName].add(code);
-              if (localName !== 'teslimEdilenler') {
-                allCodes.add(code);
-              }
-            } else {
-              codeTimestamps[localName][code] = val;
-              codeUsers[localName][code] = null;
-              userCodes[localName].add(code);
-              if (localName !== 'teslimEdilenler') {
-                allCodes.add(code);
-              }
-            }
-          });
 
-          updateLabelAndCount(localName);
-          syncTextareaWithData(localName);
+          updateLabelAndCount(localName);
+          // syncTextareaWithData(localName); <-- Bu satır SİLİNDİ
 
-          if (data.eslesenler) {
-            Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
-          }
+          if (data.eslesenler) {
+            Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
+          }
 
-          loadedCount++;
-          if (loadedCount === totalLists) {
-            dataLoaded = true;
-            
-            // Semi-admin için tüm textarea'ları doldur
-            if (currentUserRole === 'semi-admin') {
-              const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-              allInputNames.forEach(n => syncTextareaWithData(n));
-            }
-            
-            renderList();
-          }
-        });
-      });
+          loadedCount++;
+          if (loadedCount === totalLists) {
+            dataLoaded = true;
+            
+            // SADECE Semi-admin için textarea'ları doldur
+            if (currentUserRole === 'semi-admin') {
+              const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+              allInputNames.forEach(n => syncTextareaWithData(n));
+            }
+            
+            renderList();
+          }
+        });
+      });
 
       db.ref("servis/eslesenler").once("value", snap => {
-        const data = snap.val();
-        if (data) {
-          scannedCodes.clear();
-          Object.keys(data).forEach(code => scannedCodes.add(code));
-        }
-        loadedCount++;
-        if (loadedCount === totalLists) {
-          dataLoaded = true;
-          
-          // Semi-admin için tüm textarea'ları doldur
-          if (currentUserRole === 'semi-admin') {
-            const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-            allInputNames.forEach(n => syncTextareaWithData(n));
-          }
-          
-          renderList();
-        }
-      });
-    }
+        const data = snap.val();
+        if (data) {
+          scannedCodes.clear();
+          Object.keys(data).forEach(code => scannedCodes.add(code));
+        }
+        loadedCount++;
+        if (loadedCount === totalLists) {
+          dataLoaded = true;
+          
+          // SADECE Semi-admin için textarea'ları doldur
+          if (currentUserRole === 'semi-admin') {
+            const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+            allInputNames.forEach(n => syncTextareaWithData(n));
+          }
+          
+          renderList();
+        }
+      });
+    }
 
     // 4 dakikada bir otomatik sayfa yenileme
     setInterval(function() {
       location.reload();
     }, 4 * 60 * 1000); // 4 dakika = 4 * 60 saniye * 1000 milisaniye
+
+
+
+
+
+function setupMiniListToggle(labelId, listId) {
+  const label = document.getElementById(labelId);
+  const list = document.getElementById(listId);
+  const textarea = list.previousElementSibling; // Textarea'yı da gizle/göster
+
+  if (label && list && textarea) {
+    // Listeyi ve textarea'yı başlangıçta gizlemek için (CSS'i ezerek)
+    list.style.display = 'none';
+    textarea.style.display = 'none';
+
+    label.style.cursor = 'pointer'; // Tıklanabilir olduğunu göstermek için imleç
+    
+    // Label'a tıklama olay dinleyicisini ekle
+    label.addEventListener('click', () => {
+      // List ve textarea'nın mevcut durumunu kontrol et ve tersine çevir
+      if (list.style.display === 'none') {
+        list.style.display = 'flex'; // Göster
+        textarea.style.display = 'block'; // Göster (textarea için 'block' uygun)
+        label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)'); // Durum bilgisini güncelle
+      } else {
+        list.style.display = 'none'; // Gizle
+        textarea.style.display = 'none'; // Gizle
+        label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)'); // Durum bilgisini güncelle
+      }
+    });
+    
+    // Etiketin başlangıçtaki içeriğine gizlilik bilgisini ekle
+    label.textContent += ' (Gizli)';
+  }
+}
+
+// Tüm teknisyen ve özel listeler için toggle işlevini çağır
+// **Burayı mevcut JavaScript kodunuzdaki 'loadData()' fonksiyon çağrısından SONRA ekleyin.**
+document.addEventListener('DOMContentLoaded', () => {
+    // Tüm listeleri tanımlayın: { labelID: listID }
+    const allLists = {
+        'gokhanLabel': 'gokhanList',
+        'yusufLabel': 'yusufList',
+        'ismailLabel': 'ismailList',
+        'enesLabel': 'enesList',
+        'sametLabel': 'sametList',
+        'teknisyen1Label': 'teknisyen1List',
+        'teknisyen2Label': 'teknisyen2List',
+        'enginLabel': 'enginList',
+        'mehmetLabel': 'mehmetList',
+        // Sağ sütun listeleri
+        'atanacakLabel': 'atanacakList',
+        'parcaBekliyorLabel': 'parcaBekliyorList',
+        'phonecheckLabel': 'phonecheckList',
+        'onarimLabel': 'onarimList',
+        'disServisLabel': 'disServisList',
+        'satisaLabel': 'satisaList',
+        'sahinidenLabel': 'sahinidenList',
+        'mediaMarktLabel': 'mediaMarktList',
+        'teslimEdilenlerLabel': 'teslimEdilenlerList'
+    };
+
+    // Tüm listeler için gizle/göster işlevini ayarla
+    Object.keys(allLists).forEach(labelId => {
+        setupMiniListToggle(labelId, allLists[labelId]);
+    });
+});
     
   </script>
 </body>
