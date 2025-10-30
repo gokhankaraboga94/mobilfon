@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -656,16 +655,20 @@
           userName.style.padding = '5px 15px';
           userName.style.borderRadius = '5px';
           document.getElementById('adminPanel').style.display = 'block';
-          } else if (name === 'samil' || name === 'ibrahim') {
-          currentUserRole = 'admin-viewer';
-          userName.textContent = `📊 ${name.charAt(0).toUpperCase() + name.slice(1)} (Admin Görüntüleme)`;
-          userName.style.background = 'linear-gradient(135deg, #f39c12, #e74c3c)';
+        } else if (name === 'samil' || name === 'ibrahim') {
+          currentUserRole = 'semi-admin';
+         userName.innerHTML = `👔 ${name.charAt(0).toUpperCase() + name.slice(1)} <br>Admin<br>(Okuma✅ / Yazma❌)`;
+
+        
+
+          userName.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
           userName.style.padding = '5px 15px';
           userName.style.borderRadius = '5px';
           document.getElementById('adminPanel').style.display = 'block';
         } else if (name === 'enes') {
           currentUserRole = 'editor';
-          userName.textContent = `✏️ ${name.charAt(0).toUpperCase() + name.slice(1)}`;
+          userName.textContent = `✏️ ${name.charAt(0).toUpperCase()
+            + name.slice(1)}`;
           userName.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
           userName.style.padding = '5px 15px';
           userName.style.borderRadius = '5px';
@@ -743,8 +746,35 @@
 
     function applyPermissions() {
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'engin', 'mehmet'];
-      const specialInputs = ['phonecheck', 'parcaBekliyor', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+      const specialInputs = ['phonecheck', 'parcaBekliyor', 'atanacak', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
+      if (currentUserRole === 'semi-admin') {
+        // Semi-admin: Tüm textarea'ları disabled yap ama veriler görünsün
+        const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+        
+        allInputNames.forEach(name => {
+          inputs[name].disabled = true;
+          inputs[name].style.opacity = '0.7';
+          inputs[name].style.cursor = 'not-allowed';
+          inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+        });
+        
+        // Scanner'ı da disable et
+        inputs.scanner.disabled = true;
+        inputs.scanner.style.opacity = '0.6';
+        inputs.scanner.style.cursor = 'not-allowed';
+        inputs.scanner.placeholder = '🔒 Barkod okutma yetkiniz yok';
+        
+        // Arama aktif
+        inputs.search.disabled = false;
+        inputs.search.style.opacity = '1';
+        inputs.search.style.cursor = 'text';
+        inputs.search.placeholder = 'Aramak istediğiniz barkodu girin...';
+        
+        return;
+      }
+      
+      // Diğer roller için mevcut mantık
       specialInputs.forEach(name => {
         inputs[name].disabled = false;
         inputs[name].style.opacity = '1';
@@ -860,6 +890,11 @@
 
     function saveCodes(name, value) {
       if (isUpdating || !dataLoaded) return;
+      
+      // Semi-admin hiçbir şey kaydedemez
+      if (currentUserRole === 'semi-admin') {
+        return;
+      }
       
       if (name === 'onarim' && currentUserName !== 'yusuf') {
         return;
@@ -1012,6 +1047,12 @@
 
     let scannerTimeout;
     inputs.scanner.addEventListener("input", e => {
+      // Semi-admin scanner kullanamaz
+      if (currentUserRole === 'semi-admin') {
+        e.target.value = '';
+        return;
+      }
+      
       clearTimeout(scannerTimeout);
       scannerTimeout = setTimeout(() => {
         const raw = e.target.value.trim();
@@ -1092,13 +1133,13 @@
     function renderList() {
       ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"].forEach(name => renderMiniList(name));
       
-      if (currentUserRole === 'admin') {
+      if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
         updateAdminStats();
       }
     }
 
     function updateAdminStats() {
-     const totalCodesWithoutOnarim = new Set();
+      const totalCodesWithoutOnarim = new Set();
       const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
       listsToCount.forEach(name => {
@@ -1150,6 +1191,13 @@
             loadedCount++;
             if (loadedCount === totalLists) {
               dataLoaded = true;
+              
+              // Semi-admin için tüm textarea'ları doldur
+              if (currentUserRole === 'semi-admin') {
+                const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+                allInputNames.forEach(n => syncTextareaWithData(n));
+              }
+              
               renderList();
             }
             updateLabelAndCount(localName);
@@ -1189,6 +1237,13 @@
           loadedCount++;
           if (loadedCount === totalLists) {
             dataLoaded = true;
+            
+            // Semi-admin için tüm textarea'ları doldur
+            if (currentUserRole === 'semi-admin') {
+              const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+              allInputNames.forEach(n => syncTextareaWithData(n));
+            }
+            
             renderList();
           }
         });
@@ -1203,26 +1258,23 @@
         loadedCount++;
         if (loadedCount === totalLists) {
           dataLoaded = true;
+          
+          // Semi-admin için tüm textarea'ları doldur
+          if (currentUserRole === 'semi-admin') {
+            const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+            allInputNames.forEach(n => syncTextareaWithData(n));
+          }
+          
           renderList();
         }
       });
     }
 
-
     // 4 dakikada bir otomatik sayfa yenileme
-setInterval(function() {
-  location.reload();
-}, 4 * 60 * 1000); // 4 dakika = 4 * 60 saniye * 1000 milisaniye
+    setInterval(function() {
+      location.reload();
+    }, 4 * 60 * 1000); // 4 dakika = 4 * 60 saniye * 1000 milisaniye
     
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
