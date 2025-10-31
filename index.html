@@ -106,7 +106,7 @@
       padding: 30px;
       border-radius: 15px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-      max-width: 500px;
+      max-width: 600px;
       width: 90%;
       max-height: 80vh;
       overflow-y: auto;
@@ -189,6 +189,49 @@
     
     .modal-button.danger:hover {
       background: #c0392b;
+    }
+    
+    /* Teknisyen İzinleri İçin */
+    .permissions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin: 15px 0;
+      padding: 15px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .permission-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 6px;
+    }
+    
+    .permission-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .permission-item label {
+      cursor: pointer;
+      font-size: 14px;
+      user-select: none;
+      flex: 1;
+    }
+    
+    .permission-type-select {
+      padding: 4px;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.9);
+      font-size: 12px;
     }
     
     /* ========================================
@@ -1014,11 +1057,19 @@
       <h2>➕ Yeni Kullanıcı Ekle</h2>
       <input type="email" id="newUserEmail" class="modal-input" placeholder="E-posta adresi (örn: ahmet@servis.com)">
       <input type="password" id="newUserPassword" class="modal-input" placeholder="Şifre (min. 6 karakter)">
-      <select id="newUserRole" class="modal-input">
+      <select id="newUserRole" class="modal-input" onchange="handleRoleChange()">
         <option value="viewer">👁️ Görüntüleyici (Viewer)</option>
         <option value="editor">✏️ Düzenleyici (Editor)</option>
         <option value="semi-admin">👔 Yarı Admin (Semi-Admin)</option>
+        <option value="technician">🔧 Teknisyen (Technician)</option>
       </select>
+      
+      <!-- Teknisyen İzinleri -->
+      <div id="technicianPermissions" style="display: none;">
+        <h3 style="margin: 15px 0 10px 0; font-size: 16px;">🔑 Teknisyen İzinleri</h3>
+        <div class="permissions-grid" id="permissionsGrid"></div>
+      </div>
+      
       <div class="modal-buttons">
         <button class="modal-button secondary" onclick="closeAddUserModal()">İptal</button>
         <button class="modal-button primary" onclick="addNewUser()">Kullanıcı Ekle</button>
@@ -1149,7 +1200,7 @@
 
     <div class="main-layout">
       <div class="left-side">
-        <div class="container">
+        <div class="container" id="techniciansContainer">
           <div class="section" data-section="gokhan">
             <label for="gokhanInput">
               <span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span>
@@ -1364,7 +1415,7 @@
     }
 
     const firebaseConfig = {
-        apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
+         apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
       storageBucket: "cokluhaber-dc6ff.appspot.com",
@@ -1521,6 +1572,7 @@
 
     let currentUserRole = null;
     let currentUserName = null;
+    let currentUserPermissions = null;
     let isUpdating = false;
     let dataLoaded = false;
     let editingBarcode = null;
@@ -1550,6 +1602,76 @@
     }
 
     // ========================================
+    // TEKNISYEN PERMISSION HELPERS
+    // ========================================
+    const ALL_SECTIONS = [
+      { id: 'atanacak', name: '📋 Atanacak' },
+      { id: 'parcaBekliyor', name: '⚙️ Parça Bekliyor' },
+      { id: 'phonecheck', name: '📱 PhoneCheck' },
+      { id: 'gokhan', name: '🧑‍🔧 Gökhan' },
+      { id: 'enes', name: '🧑‍🔧 Enes' },
+      { id: 'yusuf', name: '🧑‍🔧 Yusuf' },
+      { id: 'samet', name: '🧑‍🔧 Samet' },
+      { id: 'teknisyen1', name: '🧑‍🔧 Teknisyen1' },
+      { id: 'teknisyen2', name: '🧑‍🔧 Teknisyen2' },
+      { id: 'engin', name: '🧑‍🔧 Engin' },
+      { id: 'ismail', name: '🧑‍🔧 İsmail' },
+      { id: 'mehmet', name: '🧑‍🔧 Mehmet' },
+      { id: 'onarim', name: '🔧 Onarım Tamamlandı' },
+      { id: 'disServis', name: '🔨 Dış Servis' },
+      { id: 'satisa', name: '💰 Satışa Gidecek' },
+      { id: 'sahiniden', name: '🏪 Sahibinden' },
+      { id: 'mediaMarkt', name: '🛒 Media Markt' },
+      { id: 'teslimEdilenler', name: '✅ Teslim Edilenler' }
+    ];
+
+    function handleRoleChange() {
+      const role = document.getElementById('newUserRole').value;
+      const permissionsDiv = document.getElementById('technicianPermissions');
+      
+      if (role === 'technician') {
+        permissionsDiv.style.display = 'block';
+        renderPermissionsGrid();
+      } else {
+        permissionsDiv.style.display = 'none';
+      }
+    }
+
+    function renderPermissionsGrid() {
+      const grid = document.getElementById('permissionsGrid');
+      grid.innerHTML = '';
+      
+      ALL_SECTIONS.forEach(section => {
+        const item = document.createElement('div');
+        item.className = 'permission-item';
+        item.innerHTML = `
+          <input type="checkbox" id="perm_${section.id}" value="${section.id}">
+          <label for="perm_${section.id}">${section.name}</label>
+          <select class="permission-type-select" id="permType_${section.id}">
+            <option value="view">👁️ Görüntüle</option>
+            <option value="edit">✏️ Düzenle</option>
+          </select>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    function collectTechnicianPermissions() {
+      const permissions = {};
+      
+      ALL_SECTIONS.forEach(section => {
+        const checkbox = document.getElementById(`perm_${section.id}`);
+        const select = document.getElementById(`permType_${section.id}`);
+        
+        if (checkbox && checkbox.checked) {
+          permissions[section.id] = select ? select.value : 'view';
+        }
+      });
+      
+      return permissions;
+    }
+
+    // ========================================
     // USER MANAGEMENT FUNCTIONS
     // ========================================
     function openAddUserModal() {
@@ -1557,6 +1679,7 @@
       document.getElementById('newUserEmail').value = '';
       document.getElementById('newUserPassword').value = '';
       document.getElementById('newUserRole').value = 'viewer';
+      document.getElementById('technicianPermissions').style.display = 'none';
     }
 
     function closeAddUserModal() {
@@ -1578,6 +1701,21 @@
         return;
       }
 
+      let permissions = null;
+      let technicianName = null;
+      
+      if (role === 'technician') {
+        permissions = collectTechnicianPermissions();
+        
+        if (Object.keys(permissions).length === 0) {
+          showToast('Lütfen en az bir izin seçin!', 'error');
+          return;
+        }
+        
+        // Email'den teknisyen adını al
+        technicianName = email.split('@')[0];
+      }
+
       try {
         // Geçici bir ikinci Firebase app instance oluştur
         const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary-' + Date.now());
@@ -1592,25 +1730,35 @@
         // İkinci app'i sil
         await secondaryApp.delete();
         
-        // Admin olarak ana app'den kullanıcı bilgilerini database'e kaydet
-        // Önce mevcut kullanıcının UID'sini al
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          showToast('Oturum hatası! Lütfen tekrar giriş yapın.', 'error');
-          return;
-        }
-        
-        // Kullanıcı bilgilerini kaydet
-        await db.ref(`users/${newUid}`).set({
+        const userData = {
           email: email,
           role: role,
           createdAt: Date.now(),
           createdBy: currentUserName
-        });
+        };
         
-        showToast(`Kullanıcı başarıyla eklendi: ${email}`, 'success');
+        if (role === 'technician') {
+          userData.permissions = permissions;
+          userData.technicianName = technicianName;
+          
+          // Teknisyen için kendi section'ını oluştur
+          await db.ref(`servis/${technicianName}`).set({
+            adet: 0,
+            createdAt: Date.now()
+          });
+        }
+        
+        // Kullanıcı bilgilerini kaydet
+        await db.ref(`users/${newUid}`).set(userData);
+        
+        showToast(`Kullanıcı başarıyla eklendi: ${email}${role === 'technician' ? ' (Teknisyen alanı oluşturuldu)' : ''}`, 'success');
         closeAddUserModal();
         loadUsers();
+        
+        // Sayfayı yenile (teknisyen section'ları yüklensin)
+        if (role === 'technician') {
+          setTimeout(() => location.reload(), 1500);
+        }
       } catch (error) {
         console.error('Kullanıcı ekleme hatası:', error);
         let message = 'Kullanıcı eklenirken hata oluştu!';
@@ -1621,8 +1769,6 @@
           message = 'Geçersiz email adresi!';
         } else if (error.code === 'auth/weak-password') {
           message = 'Şifre çok zayıf!';
-        } else if (error.message && error.message.includes('PERMISSION_DENIED')) {
-          message = 'İzin hatası! Firebase Database kurallarını kontrol edin.\n\nFirebase Console → Database → Rules bölümünden "users" noduna yazma izni verin.';
         }
         
         showToast(message, 'error');
@@ -1635,14 +1781,25 @@
       }
       
       try {
+        // Kullanıcı bilgilerini al
+        const userSnapshot = await db.ref(`users/${uid}`).once('value');
+        const userData = userSnapshot.val();
+        
+        // Teknisyen ise section'ını da sil
+        if (userData && userData.role === 'technician' && userData.technicianName) {
+          await db.ref(`servis/${userData.technicianName}`).remove();
+        }
+        
         // Kullanıcı bilgilerini database'den sil
         await db.ref(`users/${uid}`).remove();
         
         showToast(`Kullanıcı silindi: ${email}`, 'success');
         loadUsers();
         
-        // Not: Gerçek üretimde kullanıcı auth kaydını da silmek için backend gerekir
-        showToast('Not: Kullanıcının giriş erişimi için admin console üzerinden de silme gerekebilir', 'warning');
+        // Teknisyen ise sayfayı yenile
+        if (userData && userData.role === 'technician') {
+          setTimeout(() => location.reload(), 1500);
+        }
       } catch (error) {
         console.error('Kullanıcı silme hatası:', error);
         showToast('Kullanıcı silinirken hata oluştu!', 'error');
@@ -1663,28 +1820,52 @@
           return;
         }
         
+        // Admin kullanıcısının kaydını kontrol et ve yoksa oluştur
+        const currentUser = auth.currentUser;
+        if (currentUser && currentUser.email === 'admin@servis.com') {
+          const adminSnapshot = await db.ref(`users/${currentUser.uid}`).once('value');
+          if (!adminSnapshot.exists()) {
+            await db.ref(`users/${currentUser.uid}`).set({
+              email: 'admin@servis.com',
+              role: 'admin',
+              createdAt: Date.now(),
+              createdBy: 'System'
+            });
+          }
+        }
+        
         Object.entries(users).forEach(([uid, userData]) => {
           const roleIcons = {
             viewer: '👁️',
             editor: '✏️',
             'semi-admin': '👔',
-            admin: '👑'
+            admin: '👑',
+            technician: '🔧'
           };
           
           const roleNames = {
             viewer: 'Görüntüleyici',
             editor: 'Düzenleyici',
             'semi-admin': 'Yarı Admin',
-            admin: 'Admin'
+            admin: 'Admin',
+            technician: 'Teknisyen'
           };
           
           const userCard = document.createElement('div');
           userCard.className = 'user-card';
+          
+          let permissionsInfo = '';
+          if (userData.role === 'technician' && userData.permissions) {
+            const permCount = Object.keys(userData.permissions).length;
+            permissionsInfo = `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 5px;">${permCount} alan izni</div>`;
+          }
+          
           userCard.innerHTML = `
             <div class="user-card-header">
               <span class="user-email">${userData.email}</span>
             </div>
             <div class="user-role">${roleIcons[userData.role] || '👤'} ${roleNames[userData.role] || userData.role}</div>
+            ${permissionsInfo}
             <div class="user-actions">
               ${userData.email !== 'admin@servis.com' ? `<button class="user-action-btn delete" onclick="deleteUser('${uid}', '${userData.email}')">🗑️ Sil</button>` : '<span style="font-size: 11px; color: rgba(255,255,255,0.5);">Korumalı</span>'}
             </div>
@@ -1695,6 +1876,79 @@
         console.error('Kullanıcılar yüklenirken hata:', error);
         showToast('Kullanıcılar yüklenirken hata oluştu!', 'error');
       }
+    }
+
+    // ========================================
+    // DYNAMIC TECHNICIAN SECTIONS
+    // ========================================
+    async function loadTechnicianSections() {
+      try {
+        const snapshot = await db.ref('users').once('value');
+        const users = snapshot.val();
+        
+        if (!users) return;
+        
+        const technicians = Object.entries(users)
+          .filter(([uid, userData]) => userData.role === 'technician')
+          .map(([uid, userData]) => userData.technicianName)
+          .filter(name => name);
+        
+        const container = document.getElementById('techniciansContainer');
+        
+        technicians.forEach(techName => {
+          // Eğer bu teknisyen için section yoksa oluştur
+          if (!document.querySelector(`[data-section="${techName}"]`)) {
+            createTechnicianSection(techName, container);
+          }
+        });
+      } catch (error) {
+        console.error('Teknisyen bölümleri yüklenirken hata:', error);
+      }
+    }
+
+    function createTechnicianSection(techName, container) {
+      const section = document.createElement('div');
+      section.className = 'section';
+      section.setAttribute('data-section', techName);
+      
+      const capitalizedName = techName.charAt(0).toUpperCase() + techName.slice(1);
+      
+      section.innerHTML = `
+        <label for="${techName}Input">
+          <span id="${techName}Label">🧑‍🔧 ${capitalizedName}'ın Cihazları - Adet: 0</span>
+        </label>
+        <textarea id="${techName}Input" placeholder="${capitalizedName}'ın barkodlarını buraya yapıştır..."></textarea>
+        <div id="${techName}List" class="mini-list"></div>
+      `;
+      
+      container.appendChild(section);
+      
+      // Global değişkenlere ekle
+      inputs[techName] = document.getElementById(`${techName}Input`);
+      labels[techName] = document.getElementById(`${techName}Label`);
+      miniLists[techName] = document.getElementById(`${techName}List`);
+      userCodes[techName] = new Set();
+      codeTimestamps[techName] = {};
+      codeUsers[techName] = {};
+      
+      // Event listener ekle
+      inputs[techName].addEventListener("input", () => {
+        if (inputs[techName].name === "scanner" || inputs[techName].name === "search") return;
+        saveCodes(techName, inputs[techName].value);
+      });
+      
+      // Toggle özelliği ekle - Hemen uygula
+      setTimeout(() => {
+        const list = document.getElementById(`${techName}List`);
+        const label = document.getElementById(`${techName}Label`);
+        const textarea = document.getElementById(`${techName}Input`);
+        const sectionElem = document.querySelector(`[data-section="${techName}"]`);
+        
+        if (list && label && textarea && sectionElem && !list.dataset.toggled) {
+          list.dataset.toggled = 'true';
+          setupSectionToggle(sectionElem, `${techName}List`, `${techName}Label`);
+        }
+      }, 100);
     }
 
     // ========================================
@@ -1799,16 +2053,50 @@
         const name = user.email.split('@')[0];
         currentUserName = name;
         
-        // Database'den kullanıcı rolünü al (varsa)
+        // Önce teknisyen section'larını yükle
+        await loadTechnicianSections();
+        
+        // Admin kullanıcısı için database kaydını kontrol et
+        if (user.email === 'admin@servis.com') {
+          const adminSnapshot = await db.ref(`users/${user.uid}`).once('value');
+          if (!adminSnapshot.exists()) {
+            await db.ref(`users/${user.uid}`).set({
+              email: 'admin@servis.com',
+              role: 'admin',
+              createdAt: Date.now(),
+              createdBy: 'System'
+            });
+          }
+        }
+        
+        // Database'den kullanıcı rolünü al
         try {
           const userSnapshot = await db.ref(`users/${user.uid}`).once('value');
           const userData = userSnapshot.val();
           
-          if (userData && userData.role) {
-            // Database'den gelen role kullan
+          // Admin email kontrolü (öncelikli)
+          if (user.email === 'admin@servis.com') {
+            currentUserRole = 'admin';
+            currentUserPermissions = null;
+          } else if (userData && userData.role) {
             currentUserRole = userData.role;
-            
-            const roleConfig = {
+            currentUserPermissions = userData.permissions || null;
+          } else {
+            // Eski sistem için geriye dönük uyumluluk
+            if (name === 'admin') {
+              currentUserRole = 'admin';
+            } else if (name === 'samil' || name === 'ibrahim') {
+              currentUserRole = 'semi-admin';
+            } else if (name === 'enes') {
+              currentUserRole = 'editor';
+            } else {
+              currentUserRole = 'viewer';
+            }
+            currentUserPermissions = null;
+          }
+          
+          // Role config
+          const roleConfig = {
               'admin': {
                 icon: '👑',
                 text: 'Admin',
@@ -1836,6 +2124,13 @@
                 gradient: 'linear-gradient(135deg, #95a5a6, #7f8c8d)',
                 showAdminPanel: false,
                 showUserManagement: false
+              },
+              'technician': {
+                icon: '🔧',
+                text: `${name.charAt(0).toUpperCase() + name.slice(1)} (Teknisyen)`,
+                gradient: 'linear-gradient(135deg, #e67e22, #d35400)',
+                showAdminPanel: false,
+                showUserManagement: false
               }
             };
             
@@ -1850,40 +2145,8 @@
             if (config.showUserManagement) {
               loadUsers();
             }
-          } else {
-            // Eski sistem (email'e göre) - geriye dönük uyumluluk
-            if (name === 'admin') {
-              currentUserRole = 'admin';
-              userName.textContent = `👑 Admin`;
-              userName.style.background = 'linear-gradient(135deg, #93fb98ff, #5796f5ff)';
-              userName.style.padding = '5px 15px';
-              userName.style.borderRadius = '5px';
-              document.getElementById('adminPanel').style.display = 'block';
-              document.getElementById('userManagement').style.display = 'block';
-              loadUsers();
-            } else if (name === 'samil' || name === 'ibrahim') {
-              currentUserRole = 'semi-admin';
-              userName.innerHTML = `👔 ${name.charAt(0).toUpperCase() + name.slice(1)} <br>Admin<br>(Okuma✅ / Yazma❌)`;
-              userName.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
-              userName.style.padding = '5px 15px';
-              userName.style.borderRadius = '5px';
-              document.getElementById('adminPanel').style.display = 'block';
-            } else if (name === 'enes') {
-              currentUserRole = 'editor';
-              userName.textContent = `✏️ ${name.charAt(0).toUpperCase() + name.slice(1)}`;
-              userName.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
-              userName.style.padding = '5px 15px';
-              userName.style.borderRadius = '5px';
-              document.getElementById('adminPanel').style.display = 'none';
-            } else {
-              currentUserRole = 'viewer';
-              userName.textContent = `👁️ ${name.charAt(0).toUpperCase() + name.slice(1)} (Görüntüleme)`;
-              document.getElementById('adminPanel').style.display = 'none';
-            }
-          }
-        } catch (error) {
+          } catch (error) {
           console.error('Kullanıcı rolü alınırken hata:', error);
-          // Hata durumunda eski sisteme geri dön
           currentUserRole = 'viewer';
           userName.textContent = `👁️ ${name.charAt(0).toUpperCase() + name.slice(1)} (Görüntüleme)`;
         }
@@ -1895,10 +2158,8 @@
         // Barkod arama bölümünü yönet
         const normalUserSearch = document.getElementById('normalUserSearch');
         if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
-          // Admin ve Semi-Admin için normal arama alanını gizle (admin panelde var)
           if (normalUserSearch) normalUserSearch.style.display = 'none';
         } else {
-          // Diğer kullanıcılar için normal arama alanını göster
           if (normalUserSearch) normalUserSearch.style.display = 'flex';
         }
         
@@ -1913,6 +2174,7 @@
         userInfo.style.display = "none";
         currentUserRole = null;
         currentUserName = null;
+        currentUserPermissions = null;
         dataLoaded = false;
       }
     });
@@ -1973,14 +2235,84 @@
       const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'ismail', 'engin', 'mehmet'];
       const specialInputs = ['phonecheck', 'parcaBekliyor', 'atanacak', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
+      // Teknisyen izinleri
+      if (currentUserRole === 'technician' && currentUserPermissions) {
+        // Tüm alanları devre dışı bırak
+        const allSections = [...normalUsers, ...specialInputs, 'onarim', 'teslimEdilenler'];
+        
+        allSections.forEach(name => {
+          if (inputs[name]) {
+            const permission = currentUserPermissions[name];
+            
+            if (!permission) {
+              // İzin yok - gizle
+              const section = document.querySelector(`[data-section="${name}"]`);
+              if (section) section.style.display = 'none';
+              
+              const rightSection = inputs[name].closest('.right-section, .special-right-section, .delivered-section');
+              if (rightSection) rightSection.style.display = 'none';
+            } else if (permission === 'view') {
+              // Sadece görüntüleme
+              inputs[name].disabled = true;
+              inputs[name].style.opacity = '0.7';
+              inputs[name].style.cursor = 'not-allowed';
+              inputs[name].placeholder = '🔒 Sadece görüntüleme izniniz var';
+            } else if (permission === 'edit') {
+              // Düzenleme izni
+              inputs[name].disabled = false;
+              inputs[name].style.opacity = '1';
+              inputs[name].style.cursor = 'text';
+            }
+          }
+        });
+        
+        // Kendi section'ını düzenleyebilir
+        if (inputs[currentUserName]) {
+          inputs[currentUserName].disabled = false;
+          inputs[currentUserName].style.opacity = '1';
+          inputs[currentUserName].style.cursor = 'text';
+        }
+        
+        // Atanacak alanı kullanamaz
+        if (inputs.atanacak) {
+          inputs.atanacak.disabled = true;
+          inputs.atanacak.style.opacity = '0.6';
+          inputs.atanacak.style.cursor = 'not-allowed';
+          inputs.atanacak.placeholder = '🔒 Teknisyenler cihaz atayamaz';
+        }
+        
+        // Barkod okuyabilir
+        inputs.scanner.disabled = false;
+        inputs.scanner.style.opacity = '1';
+        inputs.scanner.style.cursor = 'text';
+        
+        // Arama yapabilir
+        if (inputs.searchNormal) {
+          inputs.searchNormal.disabled = false;
+          inputs.searchNormal.style.opacity = '1';
+          inputs.searchNormal.style.cursor = 'text';
+        }
+        
+        return;
+      }
+      
       if (currentUserRole === 'semi-admin') {
         const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
         
+        // Teknisyen section'larını da ekle
+        Object.keys(inputs).forEach(name => {
+          if (!allInputNames.includes(name) && inputs[name] && name !== 'scanner' && name !== 'search' && name !== 'searchNormal') {
+            allInputNames.push(name);
+          }
+        });
+        
         allInputNames.forEach(name => {
-          inputs[name].disabled = true;
-          inputs[name].style.opacity = '0.7';
-          inputs[name].style.cursor = 'not-allowed';
-          inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+          if (inputs[name]) {
+            inputs[name].disabled = true;
+            inputs[name].style.opacity = '0.7';
+            inputs[name].style.cursor = 'not-allowed';
+            inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+          }
         });
         
         inputs.scanner.disabled = true;
@@ -1988,7 +2320,6 @@
         inputs.scanner.style.cursor = 'not-allowed';
         inputs.scanner.placeholder = '🔒 Barkod okutma yetkiniz yok';
         
-        // Semi-admin arama yapabilir
         if (inputs.search) {
           inputs.search.disabled = false;
           inputs.search.style.opacity = '1';
@@ -2007,9 +2338,11 @@
       }
       
       specialInputs.forEach(name => {
-        inputs[name].disabled = false;
-        inputs[name].style.opacity = '1';
-        inputs[name].style.cursor = 'text';
+        if (inputs[name]) {
+          inputs[name].disabled = false;
+          inputs[name].style.opacity = '1';
+          inputs[name].style.cursor = 'text';
+        }
       });
 
       if (currentUserName === 'yusuf') {
@@ -2038,10 +2371,12 @@
       
       if (currentUserRole === 'viewer') {
         normalUsers.forEach(name => {
-          inputs[name].disabled = true;
-          inputs[name].style.opacity = '0.6';
-          inputs[name].style.cursor = 'not-allowed';
-          inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+          if (inputs[name]) {
+            inputs[name].disabled = true;
+            inputs[name].style.opacity = '0.6';
+            inputs[name].style.cursor = 'not-allowed';
+            inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+          }
         });
         
         inputs.atanacak.disabled = true;
@@ -2049,7 +2384,6 @@
         inputs.atanacak.style.cursor = 'not-allowed';
         inputs.atanacak.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         
-        // Viewer arama yapabilir - sadece düzenleme yapamaz
         if (inputs.search) {
           inputs.search.disabled = false;
           inputs.search.style.opacity = '1';
@@ -2065,9 +2399,11 @@
         }
       } else {
         normalUsers.forEach(name => {
-          inputs[name].disabled = false;
-          inputs[name].style.opacity = '1';
-          inputs[name].style.cursor = 'text';
+          if (inputs[name]) {
+            inputs[name].disabled = false;
+            inputs[name].style.opacity = '1';
+            inputs[name].style.cursor = 'text';
+          }
         });
         
         inputs.atanacak.disabled = false;
@@ -2147,8 +2483,8 @@
         let historyHTML = '<h4>📜 Geçmiş Hareketler</h4>';
         
         historyArray.forEach((entry, index) => {
-          const fromName = listNames[entry.from] || entry.from;
-          const toName = listNames[entry.to] || entry.to;
+          const fromName = listNames[entry.from] || `🧑‍🔧 ${entry.from.charAt(0).toUpperCase() + entry.from.slice(1)}`;
+          const toName = listNames[entry.to] || `🧑‍🔧 ${entry.to.charAt(0).toUpperCase() + entry.to.slice(1)}`;
           const isCurrent = index === 0;
           
           historyHTML += `
@@ -2177,10 +2513,17 @@
     function removeFromOtherLists(code, exceptList) {
       const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
       
+      // Teknisyen listelerini de ekle
+      Object.keys(userCodes).forEach(key => {
+        if (!allLists.includes(key)) {
+          allLists.push(key);
+        }
+      });
+      
       let removedFrom = null;
       
       allLists.forEach(name => {
-        if (name !== exceptList && userCodes[name].has(code)) {
+        if (name !== exceptList && userCodes[name] && userCodes[name].has(code)) {
           removedFrom = name;
           userCodes[name].delete(code);
           delete codeTimestamps[name][code];
@@ -2196,6 +2539,8 @@
     }
 
     function updateLabelAndCount(name) {
+      if (!userCodes[name]) return;
+      
       const count = userCodes[name].size;
       const labelTexts = {
         atanacak: '📋 Atanacak',
@@ -2218,8 +2563,11 @@
         teslimEdilenler: "✅ Teslim Edilenler"
       };
       
+      // Teknisyen isimlerini de ekle
+      const labelText = labelTexts[name] || `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'ın Cihazları`;
+      
       if (labels[name]) {
-        labels[name].textContent = `${labelTexts[name]} - Adet: ${count}`;
+        labels[name].textContent = `${labelText} - Adet: ${count}`;
       }
       const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
       db.ref(`servis/${dbPath}/adet`).set(count);
@@ -2230,6 +2578,21 @@
       
       if (currentUserRole === 'semi-admin') {
         return;
+      }
+      
+      // Teknisyen izin kontrolü
+      if (currentUserRole === 'technician') {
+        // Kendi section'ı ise izin ver
+        if (name === currentUserName) {
+          // İzin var, devam et
+        } else if (currentUserPermissions && currentUserPermissions[name]) {
+          // İzinli bir alan
+          if (currentUserPermissions[name] === 'view') {
+            return; // Sadece görüntüleme izni var
+          }
+        } else {
+          return; // İzin yok
+        }
       }
       
       if (name === 'onarim' && currentUserName !== 'yusuf') {
@@ -2316,10 +2679,12 @@
     }
 
     Object.entries(inputs).forEach(([name, textarea]) => {
-      textarea.addEventListener("input", () => {
-        if (name === "scanner" || name === "search") return;
-        saveCodes(name, textarea.value);
-      });
+      if (textarea) {
+        textarea.addEventListener("input", () => {
+          if (name === "scanner" || name === "search") return;
+          saveCodes(name, textarea.value);
+        });
+      }
     });
 
     let searchTimeout;
@@ -2364,8 +2729,15 @@
         const foundIn = [];
         const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
         
+        // Teknisyen listelerini de ekle
+        Object.keys(userCodes).forEach(key => {
+          if (!allLists.includes(key)) {
+            allLists.push(key);
+          }
+        });
+        
         allLists.forEach(name => {
-          if (userCodes[name].has(query)) {
+          if (userCodes[name] && userCodes[name].has(query)) {
             let status = "";
             const specialListsWithUser = ['phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
             
@@ -2453,8 +2825,8 @@
         let historyHTML = '<h4>📜 Geçmiş Hareketler</h4>';
         
         historyArray.forEach((entry, index) => {
-          const fromName = listNames[entry.from] || entry.from;
-          const toName = listNames[entry.to] || entry.to;
+          const fromName = listNames[entry.from] || `🧑‍🔧 ${entry.from.charAt(0).toUpperCase() + entry.from.slice(1)}`;
+          const toName = listNames[entry.to] || `🧑‍🔧 ${entry.to.charAt(0).toUpperCase() + entry.to.slice(1)}`;
           const isCurrent = index === 0;
           
           historyHTML += `
@@ -2497,15 +2869,8 @@
           const timestamp = getTimestamp();
           db.ref(`servis/eslesenler/${code}`).set(timestamp);
 
-          ["gokhan", "enes", "yusuf", "engin", "samet", "teknisyen1", "teknisyen2", "ismail", "mehmet"].forEach(name => {
-            db.ref(`servis/${name}/${code}`).once("value", snap => {
-              if (snap.exists()) {
-                db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
-              }
-            });
-          });
-
-          ["phonecheck", "onarimTamamlandi", "atanacak", "parcaBekliyor", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"].forEach(name => {
+          // Tüm teknisyen listelerini de kontrol et
+          Object.keys(userCodes).forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
                 db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
@@ -2521,6 +2886,8 @@
     });
 
     function renderMiniList(name) {
+      if (!miniLists[name] || !userCodes[name]) return;
+      
       const list = miniLists[name];
       list.innerHTML = "";
       userCodes[name].forEach(code => {
@@ -2572,7 +2939,16 @@
     }
 
     function renderList() {
-      ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"].forEach(name => renderMiniList(name));
+      const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
+      
+      // Teknisyen listelerini de ekle
+      Object.keys(userCodes).forEach(key => {
+        if (!allLists.includes(key)) {
+          allLists.push(key);
+        }
+      });
+      
+      allLists.forEach(name => renderMiniList(name));
       
       if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
         updateAdminStats();
@@ -2583,8 +2959,17 @@
       const totalCodesWithoutOnarim = new Set();
       const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', "teknisyen1", "teknisyen2", 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
+      // Teknisyen listelerini de ekle
+      Object.keys(userCodes).forEach(key => {
+        if (!listsToCount.includes(key) && !['onarim', 'teslimEdilenler'].includes(key)) {
+          listsToCount.push(key);
+        }
+      });
+      
       listsToCount.forEach(name => {
-        userCodes[name].forEach(code => totalCodesWithoutOnarim.add(code));
+        if (userCodes[name]) {
+          userCodes[name].forEach(code => totalCodesWithoutOnarim.add(code));
+        }
       });
       
       const totalBarcodes = totalCodesWithoutOnarim.size;
@@ -2594,116 +2979,121 @@
       document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
       document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
       document.getElementById('adminMatchRate').textContent = matchRate + '%';
-      document.getElementById('adminTeslimEdilenler').textContent = userCodes.teslimEdilenler.size;
-      document.getElementById('adminAtanacak').textContent = userCodes.atanacak.size;
-      document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor.size;
-      document.getElementById('adminPhonecheck').textContent = userCodes.phonecheck.size;
-      document.getElementById('adminOnarim').textContent = userCodes.onarim.size;
-      document.getElementById('adminDisServis').textContent = userCodes.disServis.size;
-      document.getElementById('adminSatisa').textContent = userCodes.satisa.size;
-      document.getElementById('adminSahiniden').textContent = userCodes.sahiniden.size;
-      document.getElementById('adminMediaMarkt').textContent = userCodes.mediaMarkt.size;
+      document.getElementById('adminTeslimEdilenler').textContent = userCodes.teslimEdilenler ? userCodes.teslimEdilenler.size : 0;
+      document.getElementById('adminAtanacak').textContent = userCodes.atanacak ? userCodes.atanacak.size : 0;
+      document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor ? userCodes.parcaBekliyor.size : 0;
+      document.getElementById('adminPhonecheck').textContent = userCodes.phonecheck ? userCodes.phonecheck.size : 0;
+      document.getElementById('adminOnarim').textContent = userCodes.onarim ? userCodes.onarim.size : 0;
+      document.getElementById('adminDisServis').textContent = userCodes.disServis ? userCodes.disServis.size : 0;
+      document.getElementById('adminSatisa').textContent = userCodes.satisa ? userCodes.satisa.size : 0;
+      document.getElementById('adminSahiniden').textContent = userCodes.sahiniden ? userCodes.sahiniden.size : 0;
+      document.getElementById('adminMediaMarkt').textContent = userCodes.mediaMarkt ? userCodes.mediaMarkt.size : 0;
     }
 
     function syncTextareaWithData(name) {
-      if (!dataLoaded) return;
+      if (!dataLoaded || !inputs[name]) return;
       
-      const codes = Array.from(userCodes[name]);
+      const codes = Array.from(userCodes[name] || []);
       if (codes.length > 0) {
         inputs[name].value = codes.join('\n');
       }
     }
 
     function loadData() {
-      const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
-      let loadedCount = 0;
-      const totalLists = lists.length + 1;
-      
-      lists.forEach(name => {
-        db.ref(`servis/${name}`).once("value", snap => {
-          const data = snap.val();
-          const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
+      // Önce tüm mevcut listeleri al
+      db.ref('servis').once('value', snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
         
-          userCodes[localName].clear();
-          codeTimestamps[localName] = {};
-          codeUsers[localName] = {};
+        const allKeys = Object.keys(data).filter(k => k !== 'eslesenler' && k !== 'history');
+        
+        let loadedCount = 0;
+        const totalLists = allKeys.length + 1; // +1 for eslesenler
+        
+        allKeys.forEach(name => {
+          const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
           
-          if (!data) {
+          // Eğer bu liste için Set yoksa oluştur
+          if (!userCodes[localName]) {
+            userCodes[localName] = new Set();
+            codeTimestamps[localName] = {};
+            codeUsers[localName] = {};
+            
+            // Dinamik input oluştur (teknisyen listesi ise)
+            if (!inputs[localName] && !['eslesenler', 'history', 'adet'].includes(localName)) {
+              const container = document.getElementById('techniciansContainer');
+              if (container) {
+                createTechnicianSection(localName, container);
+              }
+            }
+          }
+          
+          db.ref(`servis/${name}`).once("value", snap => {
+            const listData = snap.val();
+            
+            userCodes[localName].clear();
+            codeTimestamps[localName] = {};
+            codeUsers[localName] = {};
+            
+            if (!listData) {
+              loadedCount++;
+              if (loadedCount === totalLists) {
+                dataLoaded = true;
+                renderList();
+              }
+              updateLabelAndCount(localName);
+              return;
+            }
+
+            const keys = Object.keys(listData).filter(k => k !== "eslesenler" && k !== "adet");
+
+            keys.forEach(code => {
+              const val = listData[code];
+              if (typeof val === 'object') {
+                const user = val.user || '';
+                const ts = val.ts || '';
+                codeTimestamps[localName][code] = ts;
+                codeUsers[localName][code] = user;
+                userCodes[localName].add(code);
+                if (localName !== 'teslimEdilenler') {
+                  allCodes.add(code);
+                }
+              } else {
+                codeTimestamps[localName][code] = val;
+                codeUsers[localName][code] = null;
+                userCodes[localName].add(code);
+                if (localName !== 'teslimEdilenler') {
+                  allCodes.add(code);
+                }
+              }
+            });
+
+            updateLabelAndCount(localName);
+
+            if (listData.eslesenler) {
+              Object.keys(listData.eslesenler).forEach(code => scannedCodes.add(code));
+            }
+
             loadedCount++;
             if (loadedCount === totalLists) {
               dataLoaded = true;
-              
-              if (currentUserRole === 'semi-admin') {
-                const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-                allInputNames.forEach(n => syncTextareaWithData(n));
-              }
-              
               renderList();
             }
-            updateLabelAndCount(localName);
-            return;
-          }
-
-          const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
-
-          keys.forEach(code => {
-            const val = data[code];
-            if (typeof val === 'object') {
-              const user = val.user || '';
-              const ts = val.ts || '';
-              codeTimestamps[localName][code] = ts;
-              codeUsers[localName][code] = user;
-              userCodes[localName].add(code);
-              if (localName !== 'teslimEdilenler') {
-                allCodes.add(code);
-              }
-            } else {
-              codeTimestamps[localName][code] = val;
-              codeUsers[localName][code] = null;
-              userCodes[localName].add(code);
-              if (localName !== 'teslimEdilenler') {
-                allCodes.add(code);
-              }
-            }
           });
+        });
 
-          updateLabelAndCount(localName);
-
-          if (data.eslesenler) {
-            Object.keys(data.eslesenler).forEach(code => scannedCodes.add(code));
+        db.ref("servis/eslesenler").once("value", snap => {
+          const data = snap.val();
+          if (data) {
+            scannedCodes.clear();
+            Object.keys(data).forEach(code => scannedCodes.add(code));
           }
-
           loadedCount++;
           if (loadedCount === totalLists) {
             dataLoaded = true;
-            
-            if (currentUserRole === 'semi-admin') {
-              const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-              allInputNames.forEach(n => syncTextareaWithData(n));
-            }
-            
             renderList();
           }
         });
-      });
-
-      db.ref("servis/eslesenler").once("value", snap => {
-        const data = snap.val();
-        if (data) {
-          scannedCodes.clear();
-          Object.keys(data).forEach(code => scannedCodes.add(code));
-        }
-        loadedCount++;
-        if (loadedCount === totalLists) {
-          dataLoaded = true;
-          
-          if (currentUserRole === 'semi-admin') {
-            const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-            allInputNames.forEach(n => syncTextareaWithData(n));
-          }
-          
-          renderList();
-        }
       });
     }
 
@@ -2712,7 +3102,10 @@
       location.reload();
     }, 4 * 60 * 1000);
 
-function setupSectionToggle(sectionElement, listId, labelId) {
+    // ========================================
+    // TOGGLE FUNCTIONS (Global scope for dynamic sections)
+    // ========================================
+    function setupSectionToggle(sectionElement, listId, labelId) {
     const list = document.getElementById(listId);
     const label = document.getElementById(labelId);
     const textarea = list ? list.previousElementSibling : null;
@@ -2741,9 +3134,9 @@ function setupSectionToggle(sectionElement, listId, labelId) {
             }
         });
     }
-}
+    }
 
-function setupLabelToggle(labelId, listId) {
+    function setupLabelToggle(labelId, listId) {
     const label = document.getElementById(labelId);
     const list = document.getElementById(listId);
     const textarea = list ? list.previousElementSibling : null;
@@ -2768,9 +3161,9 @@ function setupLabelToggle(labelId, listId) {
             }
         });
     }
-}
+    }
 
-document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
     const sectionToggleLists = [
         'gokhan', 'yusuf', 'enes', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'
     ];
@@ -2785,6 +3178,25 @@ document.addEventListener('DOMContentLoaded', () => {
             setupSectionToggle(sectionElement, listId, labelId);
         }
     });
+    
+    // Dinamik teknisyen section'larını da toggle'la
+    setTimeout(() => {
+        const allSections = document.querySelectorAll('[data-section]');
+        allSections.forEach(section => {
+            const sectionName = section.getAttribute('data-section');
+            const listId = `${sectionName}List`;
+            const labelId = `${sectionName}Label`;
+            
+            // Eğer bu section zaten toggle'lanmamışsa (yeni teknisyen section'ları için)
+            if (!sectionToggleLists.includes(sectionName)) {
+                const listElement = document.getElementById(listId);
+                if (listElement && !listElement.dataset.toggled) {
+                    listElement.dataset.toggled = 'true';
+                    setupSectionToggle(section, listId, labelId);
+                }
+            }
+        });
+    }, 1000);
 
     const labelToggleLists = [
         'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
