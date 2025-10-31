@@ -2555,7 +2555,7 @@
     // ========================================
     // TEKNİSYEN PERMISSION HELPERS
     // ========================================
-    const ALL_SECTIONS = [
+    let ALL_SECTIONS = [
       { id: 'atanacak', name: '📋 Atanacak' },
       { id: 'parcaBekliyor', name: '⚙️ Parça Bekliyor' },
       { id: 'phonecheck', name: '📱 PhoneCheck' },
@@ -2576,6 +2576,39 @@
       { id: 'teslimEdilenler', name: '✅ Teslim Edilenler' }
     ];
 
+    async function updateAllSectionsList() {
+      try {
+        // Firebase'den tüm kullanıcıları al
+        const snapshot = await db.ref('users').once('value');
+        const users = snapshot.val();
+        
+        if (!users) return;
+        
+        // Teknisyen rolündeki kullanıcıları bul
+        const technicianUsers = Object.entries(users)
+          .filter(([uid, userData]) => userData.role === 'technician' && userData.technicianName)
+          .map(([uid, userData]) => ({
+            id: userData.technicianName,
+            name: `🧑‍🔧 ${userData.technicianName.charAt(0).toUpperCase() + userData.technicianName.slice(1)}`
+          }));
+        
+        // Mevcut statik listeden teknisyen bölümlerini çıkar
+        const staticSections = ALL_SECTIONS.filter(section => 
+          !['gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'].includes(section.id)
+        );
+        
+        // Statik bölümler + dinamik teknisyenler
+        const specialSections = staticSections.filter(s => !s.id.match(/^(atanacak|parcaBekliyor|phonecheck)$/));
+        const topSections = staticSections.filter(s => s.id.match(/^(atanacak|parcaBekliyor|phonecheck)$/));
+        
+        // Yeni listeyi oluştur: Üst bölümler + Tüm teknisyenler + Diğer bölümler
+        ALL_SECTIONS = [...topSections, ...technicianUsers, ...specialSections];
+        
+      } catch (error) {
+        console.error('Teknisyen listesi güncellenirken hata:', error);
+      }
+    }
+
     function handleRoleChange() {
       const role = document.getElementById('newUserRole').value;
       const permissionsDiv = document.getElementById('technicianPermissions');
@@ -2588,7 +2621,10 @@
       }
     }
 
-    function renderPermissionsGrid() {
+    async function renderPermissionsGrid() {
+      // Önce listeyi güncelle
+      await updateAllSectionsList();
+      
       const grid = document.getElementById('permissionsGrid');
       grid.innerHTML = '';
       
@@ -3206,9 +3242,17 @@
       
       // Teknisyen izinleri
       if (currentUserRole === 'technician' && currentUserPermissions) {
-        const allSections = [...normalUsers, ...specialInputs, 'onarim', 'teslimEdilenler'];
+        // Tüm section'ları topla (dinamik teknisyenler dahil)
+        const allSectionIds = [...normalUsers, ...specialInputs, 'onarim', 'teslimEdilenler'];
         
-        allSections.forEach(name => {
+        // Dinamik olarak eklenen teknisyen section'larını da ekle
+        Object.keys(inputs).forEach(name => {
+          if (!allSectionIds.includes(name) && name !== 'scanner' && name !== 'search' && name !== 'searchNormal') {
+            allSectionIds.push(name);
+          }
+        });
+        
+        allSectionIds.forEach(name => {
           if (inputs[name]) {
             const permission = currentUserPermissions[name];
             
