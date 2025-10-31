@@ -1490,7 +1490,7 @@
   <!-- TOAST CONTAINER -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- MODAL FOR USER MANAGEMENT -->
+  <!-- MODAL FOR USER MANAGEMENT (ADD) -->
   <div class="modal-overlay" id="addUserModal">
     <div class="modal">
       <h2>➕ Yeni Kullanıcı Ekle</h2>
@@ -1513,6 +1513,34 @@
       <div class="modal-buttons">
         <button class="modal-button secondary" onclick="closeAddUserModal()">İptal</button>
         <button class="modal-button primary" onclick="addNewUser()">Kullanıcı Ekle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL FOR USER MANAGEMENT (EDIT) -->
+  <div class="modal-overlay" id="editUserModal">
+    <div class="modal">
+      <h2>✏️ Kullanıcı Düzenle</h2>
+      <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+        <strong>Email:</strong> <span id="editUserEmail"></span>
+      </div>
+      <select id="editUserRole" class="modal-input" onchange="handleEditRoleChange()">
+        <option value="viewer">👁️ Görüntüleyici (Viewer)</option>
+        <option value="editor">✏️ Düzenleyici (Editor)</option>
+        <option value="semi-admin">👔 Yarı Admin (Semi-Admin)</option>
+        <option value="technician">🔧 Teknisyen (Technician)</option>
+        <option value="warehouse">📦 Depocu (Warehouse)</option>
+      </select>
+      
+      <!-- Teknisyen İzinleri -->
+      <div id="editTechnicianPermissions" style="display: none;">
+        <h3 style="margin: 15px 0 10px 0; font-size: 16px;">🔑 Teknisyen İzinleri</h3>
+        <div class="permissions-grid" id="editPermissionsGrid"></div>
+      </div>
+      
+      <div class="modal-buttons">
+        <button class="modal-button secondary" onclick="closeEditUserModal()">İptal</button>
+        <button class="modal-button primary" onclick="saveEditedUser()">Kaydet</button>
       </div>
     </div>
   </div>
@@ -1941,7 +1969,7 @@
     }
 
     const firebaseConfig = {
-         apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
+        apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
       storageBucket: "cokluhaber-dc6ff.appspot.com",
@@ -2103,6 +2131,7 @@
     let dataLoaded = false;
     let editingBarcode = null;
     let editingList = null;
+    let editingUserId = null;
 
     // ========================================
     // TOAST NOTIFICATION SYSTEM
@@ -2659,6 +2688,145 @@
     }
 
     // ========================================
+    // USER EDIT FUNCTIONS
+    // ========================================
+    function openEditUserModal(uid, userData) {
+      editingUserId = uid;
+      document.getElementById('editUserModal').classList.add('active');
+      document.getElementById('editUserEmail').textContent = userData.email;
+      document.getElementById('editUserRole').value = userData.role || 'viewer';
+      
+      if (userData.role === 'technician' && userData.permissions) {
+        document.getElementById('editTechnicianPermissions').style.display = 'block';
+        renderEditPermissionsGrid(userData.permissions);
+      } else {
+        document.getElementById('editTechnicianPermissions').style.display = 'none';
+      }
+    }
+
+    function closeEditUserModal() {
+      document.getElementById('editUserModal').classList.remove('active');
+      editingUserId = null;
+    }
+
+    function handleEditRoleChange() {
+      const role = document.getElementById('editUserRole').value;
+      const permissionsDiv = document.getElementById('editTechnicianPermissions');
+      
+      if (role === 'technician') {
+        permissionsDiv.style.display = 'block';
+        renderEditPermissionsGrid();
+      } else {
+        permissionsDiv.style.display = 'none';
+      }
+    }
+
+    async function renderEditPermissionsGrid(existingPermissions = {}) {
+      await updateAllSectionsList();
+      
+      const grid = document.getElementById('editPermissionsGrid');
+      grid.innerHTML = '';
+      
+      ALL_SECTIONS.forEach(section => {
+        const item = document.createElement('div');
+        item.className = 'permission-item';
+        
+        const isChecked = existingPermissions[section.id] ? 'checked' : '';
+        const permType = existingPermissions[section.id] || 'view';
+        
+        item.innerHTML = `
+          <input type="checkbox" id="editPerm_${section.id}" value="${section.id}" ${isChecked}>
+          <label for="editPerm_${section.id}">${section.name}</label>
+          <select class="permission-type-select" id="editPermType_${section.id}">
+            <option value="view" ${permType === 'view' ? 'selected' : ''}>👁️ Görüntüle</option>
+            <option value="edit" ${permType === 'edit' ? 'selected' : ''}>✏️ Düzenle</option>
+          </select>
+        `;
+        grid.appendChild(item);
+      });
+    }
+
+    function collectEditTechnicianPermissions() {
+      const permissions = {};
+      
+      ALL_SECTIONS.forEach(section => {
+        const checkbox = document.getElementById(`editPerm_${section.id}`);
+        const select = document.getElementById(`editPermType_${section.id}`);
+        
+        if (checkbox && checkbox.checked) {
+          permissions[section.id] = select ? select.value : 'view';
+        }
+      });
+      
+      return permissions;
+    }
+
+    async function saveEditedUser() {
+      if (!editingUserId) return;
+      
+      const newRole = document.getElementById('editUserRole').value;
+      
+      try {
+        const userSnapshot = await db.ref(`users/${editingUserId}`).once('value');
+        const currentUserData = userSnapshot.val();
+        const oldRole = currentUserData.role;
+        const oldTechnicianName = currentUserData.technicianName;
+        
+        const updateData = {
+          role: newRole,
+          updatedAt: Date.now(),
+          updatedBy: currentUserName
+        };
+        
+        // Teknisyen izinleri
+        if (newRole === 'technician') {
+          const permissions = collectEditTechnicianPermissions();
+          
+          if (Object.keys(permissions).length === 0) {
+            showToast('Lütfen en az bir izin seçin!', 'error');
+            return;
+          }
+          
+          updateData.permissions = permissions;
+          
+          // Yeni teknisyen alanı oluştur
+          if (!currentUserData.technicianName) {
+            const technicianName = currentUserData.email.split('@')[0];
+            updateData.technicianName = technicianName;
+            
+            await db.ref(`servis/${technicianName}`).set({
+              adet: 0,
+              createdAt: Date.now()
+            });
+          }
+        } else {
+          // Teknisyen değilse izinleri ve teknisyen adını kaldır
+          updateData.permissions = null;
+          updateData.technicianName = null;
+          
+          // Eski teknisyen alanını sil
+          if (oldRole === 'technician' && oldTechnicianName) {
+            await db.ref(`servis/${oldTechnicianName}`).remove();
+          }
+        }
+        
+        await db.ref(`users/${editingUserId}`).update(updateData);
+        
+        showToast('Kullanıcı başarıyla güncellendi!', 'success');
+        closeEditUserModal();
+        loadUsers();
+        
+        // Eğer rol değiştiyse sayfayı yenile
+        if (oldRole !== newRole || (newRole === 'technician' && !currentUserData.technicianName)) {
+          setTimeout(() => location.reload(), 1500);
+        }
+      } catch (error) {
+        console.error('Kullanıcı güncellenirken hata:', error);
+        showToast('Kullanıcı güncellenirken hata oluştu!', 'error');
+      }
+    }
+
+    // ========================================
     // USER MANAGEMENT FUNCTIONS
     // ========================================
     function openAddUserModal() {
@@ -2833,6 +3001,9 @@
             permissionsInfo = `<div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 5px;">${permCount} alan izni</div>`;
           }
           
+          // JSON stringify ile userData'yı güvenli bir şekilde attribute'a ekle
+          const userDataStr = JSON.stringify(userData).replace(/"/g, '&quot;');
+          
           userCard.innerHTML = `
             <div class="user-card-header">
               <span class="user-email">${userData.email}</span>
@@ -2840,7 +3011,10 @@
             <div class="user-role">${roleIcons[userData.role] || '👤'} ${roleNames[userData.role] || userData.role}</div>
             ${permissionsInfo}
             <div class="user-actions">
-              ${userData.email !== 'admin@servis.com' && userData.email !== 'depo@mobilfon.com' ? `<button class="user-action-btn delete" onclick="deleteUser('${uid}', '${userData.email}')">🗑️ Sil</button>` : '<span style="font-size: 11px; color: rgba(255,255,255,0.5);">Korumalı</span>'}
+              ${userData.email !== 'admin@servis.com' && userData.email !== 'depo@mobilfon.com' ? `
+                <button class="user-action-btn" style="background: #3498db; color: white;" onclick='openEditUserModal("${uid}", ${userDataStr})'>✏️ Düzenle</button>
+                <button class="user-action-btn delete" onclick="deleteUser('${uid}', '${userData.email}')">🗑️ Sil</button>
+              ` : '<span style="font-size: 11px; color: rgba(255,255,255,0.5); text-align: center; width: 100%;">Korumalı Kullanıcı</span>'}
             </div>
           `;
           userList.appendChild(userCard);
