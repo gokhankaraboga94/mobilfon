@@ -2712,81 +2712,90 @@
       location.reload();
     }, 4 * 60 * 1000);
 
-    // YENİ TOGGLE SİSTEMİ - SADECE TIKLANAN LABEL AÇILIR/KAPANIR
-    function setupSectionToggle() {
-      const sectionNames = ['gokhan', 'yusuf', 'enes', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'];
-      
-      sectionNames.forEach(name => {
-        const labelElement = labels[name];
-        const listElement = miniLists[name];
-        const textareaElement = inputs[name];
-        
-        if (!labelElement || !listElement || !textareaElement) return;
-        
-        // Başlangıçta tümü kapalı
-        listElement.style.display = 'none';
-        textareaElement.style.display = 'none';
-        
-        // Label'ı tıklanabilir yap
-        labelElement.style.cursor = 'pointer';
-        labelElement.style.userSelect = 'none';
-        
-        // Click event ekle - SADECE bu label için
-        labelElement.addEventListener('click', function(event) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          
-          const isCurrentlyHidden = listElement.style.display === 'none';
-          
-          if (isCurrentlyHidden) {
-            // Aç
-            listElement.style.display = 'flex';
-            textareaElement.style.display = 'block';
-          } else {
-            // Kapat
-            listElement.style.display = 'none';
-            textareaElement.style.display = 'none';
-          }
-        });
-      });
-    }
+function setupSectionToggle(sectionElement, listId, labelId) {
+    const list = document.getElementById(listId);
+    const label = document.getElementById(labelId);
+    const textarea = list ? list.previousElementSibling : null;
 
-    // Sağ taraf label toggle'ları
-    function setupRightSideToggle() {
-      const rightNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-      
-      rightNames.forEach(name => {
-        const labelElement = labels[name];
-        const listElement = miniLists[name];
-        const textareaElement = inputs[name];
+    if (sectionElement && list && textarea && label) {
+        list.style.display = 'none';
+        textarea.style.display = 'none';
+
+        sectionElement.style.cursor = 'pointer'; 
         
-        if (!labelElement || !listElement || !textareaElement) return;
-        
-        // Başlangıçta kapalı
-        listElement.style.display = 'none';
-        textareaElement.style.display = 'none';
-        
-        labelElement.style.cursor = 'pointer';
-        labelElement.style.userSelect = 'none';
-        
-        labelElement.addEventListener('click', function(event) {
-          event.preventDefault();
-          event.stopPropagation();
-          event.stopImmediatePropagation();
-          
-          const isCurrentlyHidden = listElement.style.display === 'none';
-          
-          if (isCurrentlyHidden) {
-            listElement.style.display = 'flex';
-            textareaElement.style.display = 'block';
-          } else {
-            listElement.style.display = 'none';
-            textareaElement.style.display = 'none';
-          }
+        label.textContent += ' (Gizli)';
+
+        sectionElement.addEventListener('click', (event) => {
+            if (event.target.tagName === 'TEXTAREA' || event.target.tagName === 'INPUT') {
+                return;
+            }
+
+            if (list.style.display === 'none') {
+                list.style.display = 'flex';
+                textarea.style.display = 'block';
+                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
+            } else {
+                list.style.display = 'none';
+                textarea.style.display = 'none';
+                label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)');
+            }
         });
-      });
     }
+}
+
+function setupLabelToggle(labelId, listId) {
+    const label = document.getElementById(labelId);
+    const list = document.getElementById(listId);
+    const textarea = list ? list.previousElementSibling : null;
+
+    if (label && list && textarea) {
+        list.style.display = 'none';
+        textarea.style.display = 'none';
+
+        label.style.cursor = 'pointer';
+        
+        label.textContent += ' (Gizli)';
+
+        label.addEventListener('click', () => {
+            if (list.style.display === 'none') {
+                list.style.display = 'flex';
+                textarea.style.display = 'block';
+                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
+            } else {
+                list.style.display = 'none';
+                textarea.style.display = 'none';
+                label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)');
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const sectionToggleLists = [
+        'gokhan', 'yusuf', 'enes', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'
+    ];
+
+    sectionToggleLists.forEach(name => {
+        const listId = `${name}List`;
+        const labelId = `${name}Label`;
+        const listElement = document.getElementById(listId);
+        
+        if (listElement) {
+            const sectionElement = listElement.closest('.section');
+            setupSectionToggle(sectionElement, listId, labelId);
+        }
+    });
+
+    const labelToggleLists = [
+        'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
+    ];
+    
+    labelToggleLists.forEach(name => {
+        const listId = `${name}List`;
+        const labelId = `${name}Label`;
+        setupLabelToggle(labelId, listId);
+    });
+});
     
   </script>
 </body>
