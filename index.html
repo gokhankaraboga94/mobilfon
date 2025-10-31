@@ -235,6 +235,382 @@
     }
     
     /* ========================================
+       PARÇA SİPARİŞ MODAL
+       ======================================== */
+    #partOrderModal .modal {
+      max-width: 700px;
+    }
+    
+    .part-order-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .part-order-form label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+      font-size: 14px;
+    }
+    
+    .part-inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      background: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 8px;
+    }
+    
+    .part-input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .part-input-group label {
+      min-width: 80px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .part-input-group input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.9);
+      color: #333;
+      font-size: 14px;
+    }
+    
+    /* ========================================
+       PARÇA SİPARİŞ LİSTESİ (TEKNİSYEN)
+       ======================================== */
+    .part-orders-section {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 20px;
+      border-radius: 15px;
+      margin-top: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .part-orders-section h3 {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+    }
+    
+    .part-order-card {
+      background: rgba(255,255,255,0.15);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      border-left: 5px solid #f39c12;
+      transition: all 0.3s ease;
+    }
+    
+    .part-order-card.ready {
+      border-left-color: #2ecc71;
+      background: rgba(46, 204, 113, 0.2);
+    }
+    
+    .part-order-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .part-order-barcode {
+      font-weight: bold;
+      font-size: 16px;
+      color: #ffd700;
+    }
+    
+    .part-order-status {
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .part-order-status.pending {
+      background: #f39c12;
+      color: #fff;
+    }
+    
+    .part-order-status.ready {
+      background: #2ecc71;
+      color: #fff;
+    }
+    
+    .part-order-model {
+      font-size: 14px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    
+    .part-order-parts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    
+    .part-tag {
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .part-tag.available {
+      background: rgba(46, 204, 113, 0.3);
+      border: 1px solid #2ecc71;
+      color: #fff;
+    }
+    
+    .part-tag.unavailable {
+      background: rgba(231, 76, 60, 0.3);
+      border: 1px solid #e74c3c;
+      color: #fff;
+    }
+    
+    .part-tag.pending {
+      background: rgba(243, 156, 18, 0.3);
+      border: 1px solid #f39c12;
+      color: #fff;
+    }
+    
+    .part-order-time {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 10px;
+      font-style: italic;
+    }
+    
+    .no-orders {
+      text-align: center;
+      padding: 30px;
+      color: rgba(255,255,255,0.7);
+      font-style: italic;
+    }
+    
+    /* ========================================
+       DEPOCU PANELİ
+       ======================================== */
+    .warehouse-panel {
+      width: 100%;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .warehouse-header {
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      padding: 25px;
+      border-radius: 15px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    
+    .warehouse-header h2 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    
+    .warehouse-stats {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    
+    .warehouse-stat {
+      background: rgba(255,255,255,0.2);
+      padding: 15px 25px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .warehouse-stat-label {
+      font-size: 13px;
+      opacity: 0.9;
+      margin-bottom: 5px;
+    }
+    
+    .warehouse-stat-value {
+      font-size: 28px;
+      font-weight: bold;
+    }
+    
+    .warehouse-orders {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    
+    .warehouse-order-card {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      border-left: 5px solid #f39c12;
+    }
+    
+    .warehouse-order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid rgba(255,255,255,0.2);
+    }
+    
+    .warehouse-order-barcode {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+    
+    .warehouse-order-tech {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .warehouse-order-model {
+      font-size: 15px;
+      margin-bottom: 15px;
+      color: #fff;
+      font-weight: 500;
+    }
+    
+    .warehouse-parts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .warehouse-part-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+    }
+    
+    .warehouse-part-checkbox {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+    
+    .warehouse-part-name {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .warehouse-part-buttons {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .warehouse-part-btn {
+      padding: 5px 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 600;
+    }
+    
+    .warehouse-part-btn.available {
+      background: #2ecc71;
+      color: white;
+    }
+    
+    .warehouse-part-btn.unavailable {
+      background: #e74c3c;
+      color: white;
+    }
+    
+    .warehouse-part-btn:hover {
+      transform: scale(1.05);
+    }
+    
+    .warehouse-order-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 2px solid rgba(255,255,255,0.2);
+    }
+    
+    .warehouse-action-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .warehouse-action-btn.ready {
+      background: #2ecc71;
+      color: white;
+    }
+    
+    .warehouse-action-btn.ready:hover {
+      background: #27ae60;
+      transform: translateY(-2px);
+    }
+    
+    .warehouse-action-btn.cancel {
+      background: #e74c3c;
+      color: white;
+    }
+    
+    .warehouse-action-btn.cancel:hover {
+      background: #c0392b;
+    }
+    
+    .warehouse-order-time {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      margin-top: 10px;
+      text-align: right;
+      font-style: italic;
+    }
+    
+    .no-warehouse-orders {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      color: rgba(255,255,255,0.7);
+      font-size: 18px;
+      font-style: italic;
+    }
+    
+    /* ========================================
        MOBILFON DATA DISPLAY
        ======================================== */
     .mobilfon-data {
@@ -335,6 +711,41 @@
       border-radius: 6px;
       color: #fff;
       font-size: 13px;
+    }
+    
+    /* Parça Bilgisi Gösterimi (Arama Ekranında) */
+    .part-info-display {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(52, 152, 219, 0.2);
+      border: 2px solid #3498db;
+      border-radius: 10px;
+    }
+    
+    .part-info-display h4 {
+      color: #3498db;
+      margin-bottom: 10px;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .part-info-history {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .part-info-item {
+      background: rgba(255,255,255,0.15);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    
+    .part-info-item strong {
+      color: #ffd700;
     }
     
     /* ========================================
@@ -1028,12 +1439,39 @@
       color: #95a5a6;
     }
     
+    /* Parça Sipariş Butonu */
+    .part-order-button {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+      border: none;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(243, 156, 18, 0.5);
+      transition: all 0.3s ease;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .part-order-button:hover {
+      transform: scale(1.1) rotate(10deg);
+      box-shadow: 0 8px 25px rgba(243, 156, 18, 0.7);
+    }
+    
     @media (max-width: 1200px) {
       .main-layout { flex-direction: column; }
       .right-side { width: 100%; flex-direction: row; flex-wrap: wrap; }
       .right-section, .special-right-section, .delivered-section { flex: 1; min-width: 250px; }
       .container { display: grid; grid-template-columns: repeat(2, 1fr); }
       .section { min-width: unset; }
+      .warehouse-orders { grid-template-columns: 1fr; }
     }
     
     @media (max-width: 768px) {
@@ -1044,6 +1482,7 @@
       .right-side { flex-direction: column; }
       .login-box { padding: 40px 30px; }
       .toast { min-width: 250px; }
+      .part-order-button { bottom: 20px; right: 20px; width: 55px; height: 55px; font-size: 24px; }
     }
   </style>
 </head>
@@ -1062,6 +1501,7 @@
         <option value="editor">✏️ Düzenleyici (Editor)</option>
         <option value="semi-admin">👔 Yarı Admin (Semi-Admin)</option>
         <option value="technician">🔧 Teknisyen (Technician)</option>
+        <option value="warehouse">📦 Depocu (Warehouse)</option>
       </select>
       
       <!-- Teknisyen İzinleri -->
@@ -1085,6 +1525,51 @@
       <div class="modal-buttons">
         <button class="modal-button secondary" onclick="closeEditBarcodeModal()">İptal</button>
         <button class="modal-button primary" onclick="saveEditedBarcode()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL FOR PART ORDER (TECHNICIAN) -->
+  <div class="modal-overlay" id="partOrderModal">
+    <div class="modal">
+      <h2>🔧 Parça Sipariş Et</h2>
+      <div class="part-order-form">
+        <div>
+          <label>15 Haneli Barkod:</label>
+          <input type="text" id="partOrderBarcode" class="modal-input" placeholder="Örn: 123456789012345" maxlength="15">
+        </div>
+        
+        <div>
+          <label>Cihaz Modeli:</label>
+          <input type="text" id="partOrderModel" class="modal-input" placeholder="Örn: iPhone 13 Pro">
+        </div>
+        
+        <div>
+          <label>İstenilen Parçalar (1-4 adet):</label>
+          <div class="part-inputs-grid">
+            <div class="part-input-group">
+              <label>Parça 1:</label>
+              <input type="text" id="partOrderPart1" placeholder="Örn: Batarya">
+            </div>
+            <div class="part-input-group">
+              <label>Parça 2:</label>
+              <input type="text" id="partOrderPart2" placeholder="Opsiyonel">
+            </div>
+            <div class="part-input-group">
+              <label>Parça 3:</label>
+              <input type="text" id="partOrderPart3" placeholder="Opsiyonel">
+            </div>
+            <div class="part-input-group">
+              <label>Parça 4:</label>
+              <input type="text" id="partOrderPart4" placeholder="Opsiyonel">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-buttons">
+        <button class="modal-button secondary" onclick="closePartOrderModal()">İptal</button>
+        <button class="modal-button primary" onclick="submitPartOrder()">İstek Gönder</button>
       </div>
     </div>
   </div>
@@ -1194,11 +1679,38 @@
         <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px; background: rgba(255,255,255,0.9); color: #333;"></textarea>
         <div id="searchResult" style="margin-top: 10px; padding: 10px; background: rgba(10, 78, 180, 0.493); border-radius: 8px; min-height: 40px; display: none; color: #fff;"></div>
         <div id="mobilfonDataAdmin" style="display: none;"></div>
+        <div id="partInfoAdmin" style="display: none;"></div>
         <div id="historyLog" class="history-log" style="display: none; background: rgba(255,255,255,0.1); margin-top: 10px;"></div>
       </div>
     </div>
 
-    <div class="main-layout">
+    <!-- WAREHOUSE PANEL (DEPOCU) -->
+    <div id="warehousePanel" class="warehouse-panel" style="display: none;">
+      <div class="warehouse-header">
+        <h2>📦 Depo Parça Yönetim Paneli</h2>
+        <p style="opacity: 0.9; margin-top: 5px;">Bekleyen Parça İsteklerini Yönetin</p>
+        <div class="warehouse-stats">
+          <div class="warehouse-stat">
+            <div class="warehouse-stat-label">Bekleyen İstekler</div>
+            <div class="warehouse-stat-value" id="warehousePendingCount">0</div>
+          </div>
+          <div class="warehouse-stat">
+            <div class="warehouse-stat-label">Hazır Olanlar</div>
+            <div class="warehouse-stat-value" id="warehouseReadyCount">0</div>
+          </div>
+          <div class="warehouse-stat">
+            <div class="warehouse-stat-label">Toplam İstekler</div>
+            <div class="warehouse-stat-value" id="warehouseTotalCount">0</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="warehouse-orders" id="warehouseOrders">
+        <!-- Orders will be loaded here -->
+      </div>
+    </div>
+
+    <div class="main-layout" id="mainLayout">
       <div class="left-side">
         <div class="container" id="techniciansContainer">
           <div class="section" data-section="gokhan">
@@ -1264,7 +1776,16 @@
             <textarea id="searchInputNormal" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
             <div id="searchResultNormal" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
             <div id="mobilfonDataNormal" style="display: none;"></div>
+            <div id="partInfoNormal" style="display: none;"></div>
             <div id="historyLogNormal" class="history-log" style="display: none; background: #ac34db;"></div>
+          </div>
+        </div>
+
+        <!-- TEKNİSYEN PARÇA SİPARİŞLERİ BÖLÜMÜ -->
+        <div id="technicianPartOrders" class="part-orders-section" style="display: none;">
+          <h3>🔧 Parça İsteklerim</h3>
+          <div id="technicianOrdersList">
+            <!-- Orders will be loaded here -->
           </div>
         </div>
 
@@ -1332,6 +1853,11 @@
         </div>
       </div>
     </div>
+    
+    <!-- PARÇA SİPARİŞ BUTONU (TEKNİSYENLER İÇİN) -->
+    <button id="partOrderButton" class="part-order-button" style="display: none;" onclick="openPartOrderModal()">
+      🔧
+    </button>
   </div>
 
   <script>
@@ -1602,7 +2128,309 @@
     }
 
     // ========================================
-    // TEKNISYEN PERMISSION HELPERS
+    // PARÇA SİPARİŞ SİSTEMİ
+    // ========================================
+    function openPartOrderModal() {
+      document.getElementById('partOrderModal').classList.add('active');
+      // Clear form
+      document.getElementById('partOrderBarcode').value = '';
+      document.getElementById('partOrderModel').value = '';
+      document.getElementById('partOrderPart1').value = '';
+      document.getElementById('partOrderPart2').value = '';
+      document.getElementById('partOrderPart3').value = '';
+      document.getElementById('partOrderPart4').value = '';
+    }
+
+    function closePartOrderModal() {
+      document.getElementById('partOrderModal').classList.remove('active');
+    }
+
+    async function submitPartOrder() {
+      const barcode = document.getElementById('partOrderBarcode').value.trim();
+      const model = document.getElementById('partOrderModel').value.trim();
+      const part1 = document.getElementById('partOrderPart1').value.trim();
+      const part2 = document.getElementById('partOrderPart2').value.trim();
+      const part3 = document.getElementById('partOrderPart3').value.trim();
+      const part4 = document.getElementById('partOrderPart4').value.trim();
+      
+      if (!barcode || barcode.length !== 15 || !/^\d+$/.test(barcode)) {
+        showToast('Geçerli bir 15 haneli barkod giriniz!', 'error');
+        return;
+      }
+      
+      if (!model) {
+        showToast('Cihaz modelini giriniz!', 'error');
+        return;
+      }
+      
+      if (!part1) {
+        showToast('En az 1 parça girmelisiniz!', 'error');
+        return;
+      }
+      
+      const parts = [];
+      if (part1) parts.push({ name: part1, status: 'pending' });
+      if (part2) parts.push({ name: part2, status: 'pending' });
+      if (part3) parts.push({ name: part3, status: 'pending' });
+      if (part4) parts.push({ name: part4, status: 'pending' });
+      
+      const orderData = {
+        barcode: barcode,
+        model: model,
+        parts: parts,
+        technician: currentUserName,
+        status: 'pending',
+        timestamp: Date.now(),
+        timestampReadable: getTimestamp()
+      };
+      
+      try {
+        await db.ref(`partOrders/${barcode}`).set(orderData);
+        showToast('Parça siparişi başarıyla gönderildi!', 'success');
+        closePartOrderModal();
+        
+        // Teknisyen sipariş listesini güncelle
+        if (currentUserRole === 'technician') {
+          loadTechnicianPartOrders();
+        }
+      } catch (error) {
+        console.error('Parça siparişi gönderilirken hata:', error);
+        showToast('Parça siparişi gönderilirken hata oluştu!', 'error');
+      }
+    }
+
+    async function loadTechnicianPartOrders() {
+      if (currentUserRole !== 'technician') return;
+      
+      try {
+        const snapshot = await db.ref('partOrders').once('value');
+        const orders = snapshot.val();
+        const ordersList = document.getElementById('technicianOrdersList');
+        
+        if (!orders) {
+          ordersList.innerHTML = '<div class="no-orders">Henüz parça siparişi bulunmuyor.</div>';
+          return;
+        }
+        
+        const myOrders = Object.entries(orders)
+          .filter(([_, order]) => order.technician === currentUserName)
+          .sort(([_, a], [__, b]) => b.timestamp - a.timestamp);
+        
+        if (myOrders.length === 0) {
+          ordersList.innerHTML = '<div class="no-orders">Henüz parça siparişi bulunmuyor.</div>';
+          return;
+        }
+        
+        ordersList.innerHTML = '';
+        
+        myOrders.forEach(([barcode, order]) => {
+          const isReady = order.status === 'ready';
+          const card = document.createElement('div');
+          card.className = `part-order-card ${isReady ? 'ready' : ''}`;
+          
+          let partsHTML = '<div class="part-order-parts">';
+          order.parts.forEach(part => {
+            const partClass = part.status === 'available' ? 'available' : 
+                             part.status === 'unavailable' ? 'unavailable' : 'pending';
+            const icon = part.status === 'available' ? '✅' : 
+                        part.status === 'unavailable' ? '❌' : '⏳';
+            partsHTML += `<div class="part-tag ${partClass}">${icon} ${part.name}</div>`;
+          });
+          partsHTML += '</div>';
+          
+          card.innerHTML = `
+            <div class="part-order-card-header">
+              <div class="part-order-barcode">${barcode}</div>
+              <div class="part-order-status ${isReady ? 'ready' : 'pending'}">
+                ${isReady ? '✅ Hazır' : '⏳ Bekliyor'}
+              </div>
+            </div>
+            <div class="part-order-model">📱 ${order.model}</div>
+            ${partsHTML}
+            <div class="part-order-time">📅 ${order.timestampReadable}</div>
+          `;
+          
+          ordersList.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Parça siparişleri yüklenirken hata:', error);
+      }
+    }
+
+    async function loadWarehouseOrders() {
+      if (currentUserRole !== 'warehouse') return;
+      
+      try {
+        const snapshot = await db.ref('partOrders').once('value');
+        const orders = snapshot.val();
+        const ordersContainer = document.getElementById('warehouseOrders');
+        
+        if (!orders) {
+          ordersContainer.innerHTML = '<div class="no-warehouse-orders">Henüz parça siparişi bulunmuyor.</div>';
+          updateWarehouseStats(0, 0);
+          return;
+        }
+        
+        const ordersArray = Object.entries(orders).sort(([_, a], [__, b]) => b.timestamp - a.timestamp);
+        
+        ordersContainer.innerHTML = '';
+        let pendingCount = 0;
+        let readyCount = 0;
+        
+        ordersArray.forEach(([barcode, order]) => {
+          const isPending = order.status === 'pending';
+          if (isPending) pendingCount++;
+          else readyCount++;
+          
+          const card = document.createElement('div');
+          card.className = 'warehouse-order-card';
+          card.style.borderLeftColor = isPending ? '#f39c12' : '#2ecc71';
+          
+          let partsHTML = '<div class="warehouse-parts-list">';
+          order.parts.forEach((part, index) => {
+            const partStatus = part.status || 'pending';
+            partsHTML += `
+              <div class="warehouse-part-item">
+                <span class="warehouse-part-name">${part.name}</span>
+                <div class="warehouse-part-buttons">
+                  <button class="warehouse-part-btn available" 
+                          onclick="updatePartStatus('${barcode}', ${index}, 'available')"
+                          ${partStatus === 'available' ? 'disabled style="opacity: 0.5"' : ''}>
+                    ✅ Var
+                  </button>
+                  <button class="warehouse-part-btn unavailable" 
+                          onclick="updatePartStatus('${barcode}', ${index}, 'unavailable')"
+                          ${partStatus === 'unavailable' ? 'disabled style="opacity: 0.5"' : ''}>
+                    ❌ Yok
+                  </button>
+                </div>
+              </div>
+            `;
+          });
+          partsHTML += '</div>';
+          
+          card.innerHTML = `
+            <div class="warehouse-order-header">
+              <div class="warehouse-order-barcode">${barcode}</div>
+              <div class="warehouse-order-tech">👤 ${order.technician}</div>
+            </div>
+            <div class="warehouse-order-model">📱 ${order.model}</div>
+            ${partsHTML}
+            <div class="warehouse-order-actions">
+              <button class="warehouse-action-btn ready" onclick="markOrderReady('${barcode}')">
+                ✅ Hazır
+              </button>
+              <button class="warehouse-action-btn cancel" onclick="cancelOrder('${barcode}')">
+                🗑️ İptal
+              </button>
+            </div>
+            <div class="warehouse-order-time">📅 ${order.timestampReadable}</div>
+          `;
+          
+          ordersContainer.appendChild(card);
+        });
+        
+        updateWarehouseStats(pendingCount, readyCount);
+      } catch (error) {
+        console.error('Depo siparişleri yüklenirken hata:', error);
+      }
+    }
+
+    function updateWarehouseStats(pending, ready) {
+      document.getElementById('warehousePendingCount').textContent = pending;
+      document.getElementById('warehouseReadyCount').textContent = ready;
+      document.getElementById('warehouseTotalCount').textContent = pending + ready;
+    }
+
+    async function updatePartStatus(barcode, partIndex, status) {
+      try {
+        await db.ref(`partOrders/${barcode}/parts/${partIndex}/status`).set(status);
+        showToast(`Parça durumu güncellendi: ${status === 'available' ? 'Stokta var' : 'Stokta yok'}`, 'info');
+        loadWarehouseOrders();
+      } catch (error) {
+        console.error('Parça durumu güncellenirken hata:', error);
+        showToast('Parça durumu güncellenirken hata oluştu!', 'error');
+      }
+    }
+
+    async function markOrderReady(barcode) {
+      try {
+        const snapshot = await db.ref(`partOrders/${barcode}`).once('value');
+        const order = snapshot.val();
+        
+        // Tüm parçaların durumunu kontrol et
+        const allChecked = order.parts.every(part => part.status === 'available' || part.status === 'unavailable');
+        
+        if (!allChecked) {
+          showToast('Lütfen tüm parçaları kontrol edin!', 'warning');
+          return;
+        }
+        
+        await db.ref(`partOrders/${barcode}/status`).set('ready');
+        showToast('Sipariş hazır olarak işaretlendi!', 'success');
+        loadWarehouseOrders();
+      } catch (error) {
+        console.error('Sipariş hazır olarak işaretlenirken hata:', error);
+        showToast('Sipariş işaretlenirken hata oluştu!', 'error');
+      }
+    }
+
+    async function cancelOrder(barcode) {
+      if (!confirm('Bu siparişi iptal etmek istediğinizden emin misiniz?')) {
+        return;
+      }
+      
+      try {
+        await db.ref(`partOrders/${barcode}`).remove();
+        showToast('Sipariş iptal edildi!', 'success');
+        loadWarehouseOrders();
+      } catch (error) {
+        console.error('Sipariş iptal edilirken hata:', error);
+        showToast('Sipariş iptal edilirken hata oluştu!', 'error');
+      }
+    }
+
+    // Parça bilgilerini gösterme fonksiyonu
+    async function displayPartInfo(barcode, containerElementId) {
+      try {
+        const snapshot = await db.ref(`partOrders/${barcode}`).once('value');
+        const order = snapshot.val();
+        const container = document.getElementById(containerElementId);
+        
+        if (!order) {
+          container.style.display = 'none';
+          return;
+        }
+        
+        let html = '<div class="part-info-display">';
+        html += '<h4>🔧 Parça Sipariş Bilgileri</h4>';
+        html += '<div class="part-info-history">';
+        
+        html += `<div class="part-info-item"><strong>Model:</strong> ${order.model}</div>`;
+        html += `<div class="part-info-item"><strong>Teknisyen:</strong> ${order.technician}</div>`;
+        html += `<div class="part-info-item"><strong>Durum:</strong> ${order.status === 'ready' ? '✅ Hazır' : '⏳ Bekliyor'}</div>`;
+        
+        html += '<div class="part-info-item"><strong>İstenilen Parçalar:</strong><br>';
+        order.parts.forEach(part => {
+          const icon = part.status === 'available' ? '✅' : 
+                      part.status === 'unavailable' ? '❌' : '⏳';
+          html += `${icon} ${part.name}<br>`;
+        });
+        html += '</div>';
+        
+        html += `<div class="part-info-item"><strong>Sipariş Tarihi:</strong> ${order.timestampReadable}</div>`;
+        
+        html += '</div></div>';
+        
+        container.innerHTML = html;
+        container.style.display = 'block';
+      } catch (error) {
+        console.error('Parça bilgileri yüklenirken hata:', error);
+      }
+    }
+
+    // ========================================
+    // TEKNİSYEN PERMISSION HELPERS
     // ========================================
     const ALL_SECTIONS = [
       { id: 'atanacak', name: '📋 Atanacak' },
@@ -1712,22 +2540,14 @@
           return;
         }
         
-        // Email'den teknisyen adını al
         technicianName = email.split('@')[0];
       }
 
       try {
-        // Geçici bir ikinci Firebase app instance oluştur
         const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary-' + Date.now());
-        
-        // Yeni kullanıcıyı oluştur
         const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
         const newUid = userCredential.user.uid;
-        
-        // İkinci app'den çıkış yap
         await secondaryApp.auth().signOut();
-        
-        // İkinci app'i sil
         await secondaryApp.delete();
         
         const userData = {
@@ -1741,21 +2561,18 @@
           userData.permissions = permissions;
           userData.technicianName = technicianName;
           
-          // Teknisyen için kendi section'ını oluştur
           await db.ref(`servis/${technicianName}`).set({
             adet: 0,
             createdAt: Date.now()
           });
         }
         
-        // Kullanıcı bilgilerini kaydet
         await db.ref(`users/${newUid}`).set(userData);
         
         showToast(`Kullanıcı başarıyla eklendi: ${email}${role === 'technician' ? ' (Teknisyen alanı oluşturuldu)' : ''}`, 'success');
         closeAddUserModal();
         loadUsers();
         
-        // Sayfayı yenile (teknisyen section'ları yüklensin)
         if (role === 'technician') {
           setTimeout(() => location.reload(), 1500);
         }
@@ -1781,22 +2598,18 @@
       }
       
       try {
-        // Kullanıcı bilgilerini al
         const userSnapshot = await db.ref(`users/${uid}`).once('value');
         const userData = userSnapshot.val();
         
-        // Teknisyen ise section'ını da sil
         if (userData && userData.role === 'technician' && userData.technicianName) {
           await db.ref(`servis/${userData.technicianName}`).remove();
         }
         
-        // Kullanıcı bilgilerini database'den sil
         await db.ref(`users/${uid}`).remove();
         
         showToast(`Kullanıcı silindi: ${email}`, 'success');
         loadUsers();
         
-        // Teknisyen ise sayfayı yenile
         if (userData && userData.role === 'technician') {
           setTimeout(() => location.reload(), 1500);
         }
@@ -1820,7 +2633,6 @@
           return;
         }
         
-        // Admin kullanıcısının kaydını kontrol et ve yoksa oluştur
         const currentUser = auth.currentUser;
         if (currentUser && currentUser.email === 'admin@servis.com') {
           const adminSnapshot = await db.ref(`users/${currentUser.uid}`).once('value');
@@ -1840,7 +2652,8 @@
             editor: '✏️',
             'semi-admin': '👔',
             admin: '👑',
-            technician: '🔧'
+            technician: '🔧',
+            warehouse: '📦'
           };
           
           const roleNames = {
@@ -1848,7 +2661,8 @@
             editor: 'Düzenleyici',
             'semi-admin': 'Yarı Admin',
             admin: 'Admin',
-            technician: 'Teknisyen'
+            technician: 'Teknisyen',
+            warehouse: 'Depocu'
           };
           
           const userCard = document.createElement('div');
@@ -1867,7 +2681,7 @@
             <div class="user-role">${roleIcons[userData.role] || '👤'} ${roleNames[userData.role] || userData.role}</div>
             ${permissionsInfo}
             <div class="user-actions">
-              ${userData.email !== 'admin@servis.com' ? `<button class="user-action-btn delete" onclick="deleteUser('${uid}', '${userData.email}')">🗑️ Sil</button>` : '<span style="font-size: 11px; color: rgba(255,255,255,0.5);">Korumalı</span>'}
+              ${userData.email !== 'admin@servis.com' && userData.email !== 'depo@mobilfon.com' ? `<button class="user-action-btn delete" onclick="deleteUser('${uid}', '${userData.email}')">🗑️ Sil</button>` : '<span style="font-size: 11px; color: rgba(255,255,255,0.5);">Korumalı</span>'}
             </div>
           `;
           userList.appendChild(userCard);
@@ -1896,7 +2710,6 @@
         const container = document.getElementById('techniciansContainer');
         
         technicians.forEach(techName => {
-          // Eğer bu teknisyen için section yoksa oluştur
           if (!document.querySelector(`[data-section="${techName}"]`)) {
             createTechnicianSection(techName, container);
           }
@@ -1923,7 +2736,6 @@
       
       container.appendChild(section);
       
-      // Global değişkenlere ekle
       inputs[techName] = document.getElementById(`${techName}Input`);
       labels[techName] = document.getElementById(`${techName}Label`);
       miniLists[techName] = document.getElementById(`${techName}List`);
@@ -1931,13 +2743,11 @@
       codeTimestamps[techName] = {};
       codeUsers[techName] = {};
       
-      // Event listener ekle
       inputs[techName].addEventListener("input", () => {
         if (inputs[techName].name === "scanner" || inputs[techName].name === "search") return;
         saveCodes(techName, inputs[techName].value);
       });
       
-      // Toggle özelliği ekle - Hemen uygula
       setTimeout(() => {
         const list = document.getElementById(`${techName}List`);
         const label = document.getElementById(`${techName}Label`);
@@ -1985,19 +2795,14 @@
         const dbPath = editingList === 'onarim' ? 'onarimTamamlandi' : editingList;
         const timestamp = getTimestamp();
         
-        // Eski barkodu sil
         await db.ref(`servis/${dbPath}/${editingBarcode}`).remove();
-        
-        // Yeni barkodu ekle
         await db.ref(`servis/${dbPath}/${newCode}`).set({
           ts: timestamp,
           user: currentUserName
         });
         
-        // Geçmiş kaydı ekle
         saveBarcodeHistory(newCode, editingList, editingList, `${currentUserName} (Düzenleme: ${editingBarcode})`);
         
-        // Local state'i güncelle
         userCodes[editingList].delete(editingBarcode);
         userCodes[editingList].add(newCode);
         delete codeTimestamps[editingList][editingBarcode];
@@ -2022,13 +2827,9 @@
       try {
         const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
         
-        // Database'den sil
         await db.ref(`servis/${dbPath}/${code}`).remove();
-        
-        // Geçmiş kaydı ekle
         saveBarcodeHistory(code, listName, 'SİLİNDİ', `${currentUserName} (Silme)`);
         
-        // Local state'den sil
         userCodes[listName].delete(code);
         delete codeTimestamps[listName][code];
         delete codeUsers[listName][code];
@@ -2053,10 +2854,8 @@
         const name = user.email.split('@')[0];
         currentUserName = name;
         
-        // Önce teknisyen section'larını yükle
         await loadTechnicianSections();
         
-        // Admin kullanıcısı için database kaydını kontrol et
         if (user.email === 'admin@servis.com') {
           const adminSnapshot = await db.ref(`users/${user.uid}`).once('value');
           if (!adminSnapshot.exists()) {
@@ -2069,20 +2868,33 @@
           }
         }
         
-        // Database'den kullanıcı rolünü al
+        // Depocu kontrolü
+        if (user.email === 'depo@mobilfon.com') {
+          const depocuSnapshot = await db.ref(`users/${user.uid}`).once('value');
+          if (!depocuSnapshot.exists()) {
+            await db.ref(`users/${user.uid}`).set({
+              email: 'depo@mobilfon.com',
+              role: 'warehouse',
+              createdAt: Date.now(),
+              createdBy: 'System'
+            });
+          }
+        }
+        
         try {
           const userSnapshot = await db.ref(`users/${user.uid}`).once('value');
           const userData = userSnapshot.val();
           
-          // Admin email kontrolü (öncelikli)
           if (user.email === 'admin@servis.com') {
             currentUserRole = 'admin';
+            currentUserPermissions = null;
+          } else if (user.email === 'depo@mobilfon.com') {
+            currentUserRole = 'warehouse';
             currentUserPermissions = null;
           } else if (userData && userData.role) {
             currentUserRole = userData.role;
             currentUserPermissions = userData.permissions || null;
           } else {
-            // Eski sistem için geriye dönük uyumluluk
             if (name === 'admin') {
               currentUserRole = 'admin';
             } else if (name === 'samil' || name === 'ibrahim') {
@@ -2095,7 +2907,30 @@
             currentUserPermissions = null;
           }
           
-          // Role config
+          // DEPOCU PANELİ AYARLARI
+          if (currentUserRole === 'warehouse') {
+            document.getElementById('warehousePanel').style.display = 'block';
+            document.getElementById('mainLayout').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('userManagement').style.display = 'none';
+            
+            userName.innerHTML = '📦 Depocu';
+            userName.style.background = 'linear-gradient(135deg, #2ecc71, #27ae60)';
+            userName.style.padding = '5px 15px';
+            userName.style.borderRadius = '5px';
+            
+            loadWarehouseOrders();
+            
+            // Depocu için real-time listener
+            db.ref('partOrders').on('value', () => {
+              loadWarehouseOrders();
+            });
+            
+            dataLoaded = true;
+            return;
+          }
+          
+          // Role config (depocu hariç)
           const roleConfig = {
               'admin': {
                 icon: '👑',
@@ -2145,6 +2980,18 @@
             if (config.showUserManagement) {
               loadUsers();
             }
+            
+            // Teknisyen için parça sipariş özellikleri
+            if (currentUserRole === 'technician') {
+              document.getElementById('partOrderButton').style.display = 'flex';
+              document.getElementById('technicianPartOrders').style.display = 'block';
+              loadTechnicianPartOrders();
+              
+              // Real-time listener for technician orders
+              db.ref('partOrders').on('value', () => {
+                loadTechnicianPartOrders();
+              });
+            }
           } catch (error) {
           console.error('Kullanıcı rolü alınırken hata:', error);
           currentUserRole = 'viewer';
@@ -2155,7 +3002,6 @@
         loadData();
         applyPermissions();
         
-        // Barkod arama bölümünü yönet
         const normalUserSearch = document.getElementById('normalUserSearch');
         if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
           if (normalUserSearch) normalUserSearch.style.display = 'none';
@@ -2163,7 +3009,6 @@
           if (normalUserSearch) normalUserSearch.style.display = 'flex';
         }
         
-        // Toggle sistemini başlat
         setTimeout(() => {
           setupSectionToggle();
           setupRightSideToggle();
@@ -2237,7 +3082,6 @@
       
       // Teknisyen izinleri
       if (currentUserRole === 'technician' && currentUserPermissions) {
-        // Tüm alanları devre dışı bırak
         const allSections = [...normalUsers, ...specialInputs, 'onarim', 'teslimEdilenler'];
         
         allSections.forEach(name => {
@@ -2245,20 +3089,17 @@
             const permission = currentUserPermissions[name];
             
             if (!permission) {
-              // İzin yok - gizle
               const section = document.querySelector(`[data-section="${name}"]`);
               if (section) section.style.display = 'none';
               
               const rightSection = inputs[name].closest('.right-section, .special-right-section, .delivered-section');
               if (rightSection) rightSection.style.display = 'none';
             } else if (permission === 'view') {
-              // Sadece görüntüleme
               inputs[name].disabled = true;
               inputs[name].style.opacity = '0.7';
               inputs[name].style.cursor = 'not-allowed';
               inputs[name].placeholder = '🔒 Sadece görüntüleme izniniz var';
             } else if (permission === 'edit') {
-              // Düzenleme izni
               inputs[name].disabled = false;
               inputs[name].style.opacity = '1';
               inputs[name].style.cursor = 'text';
@@ -2266,14 +3107,12 @@
           }
         });
         
-        // Kendi section'ını düzenleyebilir
         if (inputs[currentUserName]) {
           inputs[currentUserName].disabled = false;
           inputs[currentUserName].style.opacity = '1';
           inputs[currentUserName].style.cursor = 'text';
         }
         
-        // Atanacak alanı kullanamaz
         if (inputs.atanacak) {
           inputs.atanacak.disabled = true;
           inputs.atanacak.style.opacity = '0.6';
@@ -2281,12 +3120,10 @@
           inputs.atanacak.placeholder = '🔒 Teknisyenler cihaz atayamaz';
         }
         
-        // Barkod okuyabilir
         inputs.scanner.disabled = false;
         inputs.scanner.style.opacity = '1';
         inputs.scanner.style.cursor = 'text';
         
-        // Arama yapabilir
         if (inputs.searchNormal) {
           inputs.searchNormal.disabled = false;
           inputs.searchNormal.style.opacity = '1';
@@ -2299,7 +3136,6 @@
       if (currentUserRole === 'semi-admin') {
         const allInputNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
         
-        // Teknisyen section'larını da ekle
         Object.keys(inputs).forEach(name => {
           if (!allInputNames.includes(name) && inputs[name] && name !== 'scanner' && name !== 'search' && name !== 'searchNormal') {
             allInputNames.push(name);
@@ -2513,7 +3349,6 @@
     function removeFromOtherLists(code, exceptList) {
       const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
       
-      // Teknisyen listelerini de ekle
       Object.keys(userCodes).forEach(key => {
         if (!allLists.includes(key)) {
           allLists.push(key);
@@ -2563,7 +3398,6 @@
         teslimEdilenler: "✅ Teslim Edilenler"
       };
       
-      // Teknisyen isimlerini de ekle
       const labelText = labelTexts[name] || `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'ın Cihazları`;
       
       if (labels[name]) {
@@ -2580,18 +3414,15 @@
         return;
       }
       
-      // Teknisyen izin kontrolü
       if (currentUserRole === 'technician') {
-        // Kendi section'ı ise izin ver
         if (name === currentUserName) {
           // İzin var, devam et
         } else if (currentUserPermissions && currentUserPermissions[name]) {
-          // İzinli bir alan
           if (currentUserPermissions[name] === 'view') {
-            return; // Sadece görüntüleme izni var
+            return;
           }
         } else {
-          return; // İzin yok
+          return;
         }
       }
       
@@ -2689,47 +3520,47 @@
 
     let searchTimeout;
     
-    // Admin panelindeki search input
     if (inputs.search) {
       inputs.search.addEventListener("input", e => {
-        performSearch(e.target.value, 'searchResult', 'historyLog', 'mobilfonDataAdmin');
+        performSearch(e.target.value, 'searchResult', 'historyLog', 'mobilfonDataAdmin', 'partInfoAdmin');
       });
     }
 
-    // Normal kullanıcı arama alanı için event listener
     if (inputs.searchNormal) {
       inputs.searchNormal.addEventListener("input", e => {
-        performSearch(e.target.value, 'searchResultNormal', 'historyLogNormal', 'mobilfonDataNormal');
+        performSearch(e.target.value, 'searchResultNormal', 'historyLogNormal', 'mobilfonDataNormal', 'partInfoNormal');
       });
     }
 
-    function performSearch(value, resultElementId, historyElementId, mobilfonElementId) {
+    function performSearch(value, resultElementId, historyElementId, mobilfonElementId, partInfoElementId) {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
         const query = value.trim().slice(0, 15);
         const searchResult = document.getElementById(resultElementId);
         const historyLog = document.getElementById(historyElementId);
         const mobilfonData = document.getElementById(mobilfonElementId);
+        const partInfo = document.getElementById(partInfoElementId);
         
         if (query.length === 0) {
           searchResult.style.display = "none";
           historyLog.style.display = "none";
           if (mobilfonData) mobilfonData.style.display = "none";
+          if (partInfo) partInfo.style.display = "none";
           return;
         }
 
-        // Eğer 15 haneli bir barkod ise Mobilfon'dan veri çek
         if (query.length === 15 && /^\d{15}$/.test(query)) {
           fetchMobilfonData(query, mobilfonElementId);
+          displayPartInfo(query, partInfoElementId);
         } else {
           if (mobilfonData) mobilfonData.style.display = "none";
+          if (partInfo) partInfo.style.display = "none";
         }
 
         searchResult.style.display = "block";
         const foundIn = [];
         const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
         
-        // Teknisyen listelerini de ekle
         Object.keys(userCodes).forEach(key => {
           if (!allLists.includes(key)) {
             allLists.push(key);
@@ -2869,7 +3700,6 @@
           const timestamp = getTimestamp();
           db.ref(`servis/eslesenler/${code}`).set(timestamp);
 
-          // Tüm teknisyen listelerini de kontrol et
           Object.keys(userCodes).forEach(name => {
             db.ref(`servis/${name}/${code}`).once("value", snap => {
               if (snap.exists()) {
@@ -2941,7 +3771,6 @@
     function renderList() {
       const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
       
-      // Teknisyen listelerini de ekle
       Object.keys(userCodes).forEach(key => {
         if (!allLists.includes(key)) {
           allLists.push(key);
@@ -2959,7 +3788,6 @@
       const totalCodesWithoutOnarim = new Set();
       const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', "teknisyen1", "teknisyen2", 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
       
-      // Teknisyen listelerini de ekle
       Object.keys(userCodes).forEach(key => {
         if (!listsToCount.includes(key) && !['onarim', 'teslimEdilenler'].includes(key)) {
           listsToCount.push(key);
@@ -3000,7 +3828,6 @@
     }
 
     function loadData() {
-      // Önce tüm mevcut listeleri al
       db.ref('servis').once('value', snapshot => {
         const data = snapshot.val();
         if (!data) return;
@@ -3008,18 +3835,16 @@
         const allKeys = Object.keys(data).filter(k => k !== 'eslesenler' && k !== 'history');
         
         let loadedCount = 0;
-        const totalLists = allKeys.length + 1; // +1 for eslesenler
+        const totalLists = allKeys.length + 1;
         
         allKeys.forEach(name => {
           const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
           
-          // Eğer bu liste için Set yoksa oluştur
           if (!userCodes[localName]) {
             userCodes[localName] = new Set();
             codeTimestamps[localName] = {};
             codeUsers[localName] = {};
             
-            // Dinamik input oluştur (teknisyen listesi ise)
             if (!inputs[localName] && !['eslesenler', 'history', 'adet'].includes(localName)) {
               const container = document.getElementById('techniciansContainer');
               if (container) {
@@ -3103,7 +3928,7 @@
     }, 4 * 60 * 1000);
 
     // ========================================
-    // TOGGLE FUNCTIONS (Global scope for dynamic sections)
+    // TOGGLE FUNCTIONS
     // ========================================
     function setupSectionToggle(sectionElement, listId, labelId) {
     const list = document.getElementById(listId);
@@ -3179,7 +4004,6 @@
         }
     });
     
-    // Dinamik teknisyen section'larını da toggle'la
     setTimeout(() => {
         const allSections = document.querySelectorAll('[data-section]');
         allSections.forEach(section => {
@@ -3187,7 +4011,6 @@
             const listId = `${sectionName}List`;
             const labelId = `${sectionName}Label`;
             
-            // Eğer bu section zaten toggle'lanmamışsa (yeni teknisyen section'ları için)
             if (!sectionToggleLists.includes(sectionName)) {
                 const listElement = document.getElementById(listId);
                 if (listElement && !listElement.dataset.toggled) {
