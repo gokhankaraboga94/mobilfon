@@ -1941,7 +1941,7 @@
     }
 
     const firebaseConfig = {
-         apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
+            apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
       storageBucket: "cokluhaber-dc6ff.appspot.com",
@@ -2223,38 +2223,109 @@
         
         ordersList.innerHTML = '';
         
-        myOrders.forEach(([barcode, order]) => {
-          const isReady = order.status === 'ready';
-          const card = document.createElement('div');
-          card.className = `part-order-card ${isReady ? 'ready' : ''}`;
-          
-          let partsHTML = '<div class="part-order-parts">';
-          order.parts.forEach(part => {
-            const partClass = part.status === 'available' ? 'available' : 
-                             part.status === 'unavailable' ? 'unavailable' : 'pending';
-            const icon = part.status === 'available' ? '✅' : 
-                        part.status === 'unavailable' ? '❌' : '⏳';
-            partsHTML += `<div class="part-tag ${partClass}">${icon} ${part.name}</div>`;
-          });
-          partsHTML += '</div>';
-          
-          card.innerHTML = `
-            <div class="part-order-card-header">
-              <div class="part-order-barcode">${barcode}</div>
-              <div class="part-order-status ${isReady ? 'ready' : 'pending'}">
-                ${isReady ? '✅ Hazır' : '⏳ Bekliyor'}
-              </div>
-            </div>
-            <div class="part-order-model">📱 ${order.model}</div>
-            ${partsHTML}
-            <div class="part-order-time">📅 ${order.timestampReadable}</div>
-          `;
-          
+        // Son 3 istek - her zaman görünür
+        const recentOrders = myOrders.slice(0, 3);
+        const olderOrders = myOrders.slice(3);
+        
+        // Son 3 isteği göster
+        recentOrders.forEach(([barcode, order]) => {
+          const card = createTechnicianOrderCard(barcode, order);
           ordersList.appendChild(card);
         });
+        
+        // Eski istekler varsa açılır-kapanır bölüm oluştur
+        if (olderOrders.length > 0) {
+          const toggleSection = document.createElement('div');
+          toggleSection.style.marginTop = '15px';
+          toggleSection.style.borderTop = '2px solid rgba(255,255,255,0.2)';
+          toggleSection.style.paddingTop = '15px';
+          
+          const toggleButton = document.createElement('button');
+          toggleButton.style.width = '100%';
+          toggleButton.style.padding = '12px';
+          toggleButton.style.background = 'rgba(255,255,255,0.1)';
+          toggleButton.style.border = '2px solid rgba(255,255,255,0.3)';
+          toggleButton.style.borderRadius = '8px';
+          toggleButton.style.color = '#fff';
+          toggleButton.style.fontSize = '15px';
+          toggleButton.style.fontWeight = '600';
+          toggleButton.style.cursor = 'pointer';
+          toggleButton.style.transition = 'all 0.3s ease';
+          toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) - Göster ▼`;
+          
+          const olderOrdersContainer = document.createElement('div');
+          olderOrdersContainer.style.display = 'none';
+          olderOrdersContainer.style.marginTop = '10px';
+          olderOrdersContainer.style.animation = 'slideDown 0.3s ease';
+          
+          olderOrders.forEach(([barcode, order]) => {
+            const card = createTechnicianOrderCard(barcode, order);
+            card.style.opacity = '0.85';
+            olderOrdersContainer.appendChild(card);
+          });
+          
+          toggleButton.addEventListener('click', () => {
+            if (olderOrdersContainer.style.display === 'none') {
+              olderOrdersContainer.style.display = 'block';
+              toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) - Gizle ▲`;
+              toggleButton.style.background = 'rgba(255,255,255,0.2)';
+            } else {
+              olderOrdersContainer.style.display = 'none';
+              toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) - Göster ▼`;
+              toggleButton.style.background = 'rgba(255,255,255,0.1)';
+            }
+          });
+          
+          toggleButton.addEventListener('mouseenter', () => {
+            toggleButton.style.background = 'rgba(255,255,255,0.2)';
+            toggleButton.style.transform = 'translateY(-2px)';
+          });
+          
+          toggleButton.addEventListener('mouseleave', () => {
+            if (olderOrdersContainer.style.display === 'none') {
+              toggleButton.style.background = 'rgba(255,255,255,0.1)';
+            }
+            toggleButton.style.transform = 'translateY(0)';
+          });
+          
+          toggleSection.appendChild(toggleButton);
+          toggleSection.appendChild(olderOrdersContainer);
+          ordersList.appendChild(toggleSection);
+        }
       } catch (error) {
         console.error('Parça siparişleri yüklenirken hata:', error);
       }
+    }
+    
+    function createTechnicianOrderCard(barcode, order) {
+      const isReady = order.status === 'ready';
+      const card = document.createElement('div');
+      card.className = `part-order-card ${isReady ? 'ready' : ''}`;
+      card.style.marginBottom = '12px';
+      
+      let partsHTML = '<div class="part-order-parts">';
+      order.parts.forEach(part => {
+        const partClass = part.status === 'available' ? 'available' : 
+                         part.status === 'unavailable' ? 'unavailable' : 'pending';
+        const icon = part.status === 'available' ? '✅' : 
+                    part.status === 'unavailable' ? '❌' : '⏳';
+        partsHTML += `<div class="part-tag ${partClass}">${icon} ${part.name}</div>`;
+      });
+      partsHTML += '</div>';
+      
+      card.innerHTML = `
+        <div class="part-order-card-header">
+          <div class="part-order-barcode">${barcode}</div>
+          <div class="part-order-status ${isReady ? 'ready' : 'pending'}">
+            ${isReady ? '✅ Hazır' : '⏳ Bekliyor'}
+          </div>
+        </div>
+        <div class="part-order-model">📱 ${order.model}</div>
+        ${partsHTML}
+        <div class="part-order-time">📅 ${order.timestampReadable}</div>
+      `;
+      
+      return card;
     }
 
     async function loadWarehouseOrders() {
@@ -2273,67 +2344,115 @@
         
         const ordersArray = Object.entries(orders).sort(([_, a], [__, b]) => b.timestamp - a.timestamp);
         
-        ordersContainer.innerHTML = '';
-        let pendingCount = 0;
-        let readyCount = 0;
+        // Bekleyen ve hazır siparişleri ayır
+        const pendingOrders = ordersArray.filter(([_, order]) => order.status === 'pending');
+        const readyOrders = ordersArray.filter(([_, order]) => order.status === 'ready');
         
-        ordersArray.forEach(([barcode, order]) => {
-          const isPending = order.status === 'pending';
-          if (isPending) pendingCount++;
-          else readyCount++;
-          
-          const card = document.createElement('div');
-          card.className = 'warehouse-order-card';
-          card.style.borderLeftColor = isPending ? '#f39c12' : '#2ecc71';
-          
-          let partsHTML = '<div class="warehouse-parts-list">';
-          order.parts.forEach((part, index) => {
-            const partStatus = part.status || 'pending';
-            partsHTML += `
-              <div class="warehouse-part-item">
-                <span class="warehouse-part-name">${part.name}</span>
-                <div class="warehouse-part-buttons">
-                  <button class="warehouse-part-btn available" 
-                          onclick="updatePartStatus('${barcode}', ${index}, 'available')"
-                          ${partStatus === 'available' ? 'disabled style="opacity: 0.5"' : ''}>
-                    ✅ Var
-                  </button>
-                  <button class="warehouse-part-btn unavailable" 
-                          onclick="updatePartStatus('${barcode}', ${index}, 'unavailable')"
-                          ${partStatus === 'unavailable' ? 'disabled style="opacity: 0.5"' : ''}>
-                    ❌ Yok
-                  </button>
-                </div>
-              </div>
-            `;
-          });
-          partsHTML += '</div>';
-          
-          card.innerHTML = `
-            <div class="warehouse-order-header">
-              <div class="warehouse-order-barcode">${barcode}</div>
-              <div class="warehouse-order-tech">👤 ${order.technician}</div>
-            </div>
-            <div class="warehouse-order-model">📱 ${order.model}</div>
-            ${partsHTML}
-            <div class="warehouse-order-actions">
-              <button class="warehouse-action-btn ready" onclick="markOrderReady('${barcode}')">
-                ✅ Hazır
-              </button>
-              <button class="warehouse-action-btn cancel" onclick="cancelOrder('${barcode}')">
-                🗑️ İptal
-              </button>
-            </div>
-            <div class="warehouse-order-time">📅 ${order.timestampReadable}</div>
-          `;
-          
+        ordersContainer.innerHTML = '';
+        
+        // Bekleyen siparişler başlık
+        if (pendingOrders.length > 0) {
+          const pendingHeader = document.createElement('div');
+          pendingHeader.style.gridColumn = '1 / -1';
+          pendingHeader.style.padding = '15px 20px';
+          pendingHeader.style.background = 'rgba(243, 156, 18, 0.2)';
+          pendingHeader.style.borderRadius = '10px';
+          pendingHeader.style.marginBottom = '15px';
+          pendingHeader.innerHTML = '<h3 style="margin: 0; font-size: 20px;">⏳ Bekleyen İstekler</h3>';
+          ordersContainer.appendChild(pendingHeader);
+        }
+        
+        // Bekleyen siparişleri göster
+        pendingOrders.forEach(([barcode, order]) => {
+          const card = createWarehouseOrderCard(barcode, order, true);
           ordersContainer.appendChild(card);
         });
         
-        updateWarehouseStats(pendingCount, readyCount);
+        // Hazır siparişler başlık
+        if (readyOrders.length > 0) {
+          const readyHeader = document.createElement('div');
+          readyHeader.style.gridColumn = '1 / -1';
+          readyHeader.style.padding = '15px 20px';
+          readyHeader.style.background = 'rgba(46, 204, 113, 0.2)';
+          readyHeader.style.borderRadius = '10px';
+          readyHeader.style.margin = pendingOrders.length > 0 ? '25px 0 15px 0' : '0 0 15px 0';
+          readyHeader.innerHTML = '<h3 style="margin: 0; font-size: 20px;">✅ Hazır Siparişler</h3>';
+          ordersContainer.appendChild(readyHeader);
+        }
+        
+        // Hazır siparişleri göster
+        readyOrders.forEach(([barcode, order]) => {
+          const card = createWarehouseOrderCard(barcode, order, false);
+          ordersContainer.appendChild(card);
+        });
+        
+        if (pendingOrders.length === 0 && readyOrders.length === 0) {
+          ordersContainer.innerHTML = '<div class="no-warehouse-orders">Henüz parça siparişi bulunmuyor.</div>';
+        }
+        
+        updateWarehouseStats(pendingOrders.length, readyOrders.length);
       } catch (error) {
         console.error('Depo siparişleri yüklenirken hata:', error);
       }
+    }
+    
+    function createWarehouseOrderCard(barcode, order, isPending) {
+      const card = document.createElement('div');
+      card.className = 'warehouse-order-card';
+      card.style.borderLeftColor = isPending ? '#f39c12' : '#2ecc71';
+      if (!isPending) {
+        card.style.opacity = '0.8';
+        card.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6))';
+      }
+      
+      let partsHTML = '<div class="warehouse-parts-list">';
+      order.parts.forEach((part, index) => {
+        const partStatus = part.status || 'pending';
+        partsHTML += `
+          <div class="warehouse-part-item">
+            <span class="warehouse-part-name">${part.name}</span>
+            <div class="warehouse-part-buttons">
+              <button class="warehouse-part-btn available" 
+                      onclick="updatePartStatus('${barcode}', ${index}, 'available')"
+                      ${partStatus === 'available' || !isPending ? 'disabled style="opacity: 0.5"' : ''}>
+                ✅ Var
+              </button>
+              <button class="warehouse-part-btn unavailable" 
+                      onclick="updatePartStatus('${barcode}', ${index}, 'unavailable')"
+                      ${partStatus === 'unavailable' || !isPending ? 'disabled style="opacity: 0.5"' : ''}>
+                ❌ Yok
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      partsHTML += '</div>';
+      
+      card.innerHTML = `
+        <div class="warehouse-order-header">
+          <div class="warehouse-order-barcode">${barcode}</div>
+          <div class="warehouse-order-tech">👤 ${order.technician}</div>
+        </div>
+        <div class="warehouse-order-model">📱 ${order.model}</div>
+        ${partsHTML}
+        <div class="warehouse-order-actions">
+          ${isPending ? `
+            <button class="warehouse-action-btn ready" onclick="markOrderReady('${barcode}')">
+              ✅ Hazır
+            </button>
+          ` : `
+            <button class="warehouse-action-btn ready" disabled style="opacity: 0.5; cursor: not-allowed;">
+              ✅ Tamamlandı
+            </button>
+          `}
+          <button class="warehouse-action-btn cancel" onclick="cancelOrder('${barcode}')">
+            🗑️ İptal
+          </button>
+        </div>
+        <div class="warehouse-order-time">📅 ${order.timestampReadable}</div>
+      `;
+      
+      return card;
     }
 
     function updateWarehouseStats(pending, ready) {
@@ -2982,7 +3101,8 @@
             }
             
             // Teknisyen için parça sipariş özellikleri
-            if (currentUserRole === 'technician') {
+            const technicianUsers = ['technician', 'samet', 'yusuf', 'ismail', 'gokhan', 'engin', 'mehmet'];
+            if (currentUserRole === 'technician' || technicianUsers.includes(name)) {
               document.getElementById('partOrderButton').style.display = 'flex';
               document.getElementById('technicianPartOrders').style.display = 'block';
               loadTechnicianPartOrders();
