@@ -2,14 +2,16 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teknik Servis Cihaz Takip Sistemi</title>
-   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 30px;
       background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
@@ -17,62 +19,497 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-height: 100vh;
     }
+    
     h1 { font-size: 2.5em; margin-bottom: 20px; text-shadow: 1px 1px 3px #000; }
     
-    .login-container {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      padding: 40px;
-      border-radius: 15px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    /* ========================================
+       TOAST NOTIFICATION SYSTEM
+       ======================================== */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .toast {
+      background: #fff;
+      color: #333;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 300px;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    .toast.success { border-left: 4px solid #2ecc71; }
+    .toast.error { border-left: 4px solid #e74c3c; }
+    .toast.info { border-left: 4px solid #3498db; }
+    .toast.warning { border-left: 4px solid #f39c12; }
+    
+    .toast-icon {
+      font-size: 24px;
+    }
+    
+    .toast.success .toast-icon::before { content: '✅'; }
+    .toast.error .toast-icon::before { content: '❌'; }
+    .toast.info .toast-icon::before { content: 'ℹ️'; }
+    .toast.warning .toast-icon::before { content: '⚠️'; }
+    
+    /* ========================================
+       MODAL SYSTEM
+       ======================================== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
       width: 100%;
-      max-width: 400px;
-      margin-top: 100px;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.3s ease;
     }
-    .login-container h2 {
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .modal-overlay.active {
+      display: flex;
+    }
+    
+    .modal {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: modalSlideIn 0.3s ease;
+    }
+    
+    @keyframes modalSlideIn {
+      from {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .modal h2 {
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    
+    .modal-input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      font-size: 15px;
+      background: rgba(255,255,255,0.9);
+      color: #333;
+    }
+    
+    .modal-input:focus {
+      outline: none;
+      border-color: #fff;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+    }
+    
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .modal-button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .modal-button.primary {
+      background: #2ecc71;
+      color: white;
+    }
+    
+    .modal-button.primary:hover {
+      background: #27ae60;
+      transform: translateY(-2px);
+    }
+    
+    .modal-button.secondary {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+    
+    .modal-button.secondary:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    .modal-button.danger {
+      background: #e74c3c;
+      color: white;
+    }
+    
+    .modal-button.danger:hover {
+      background: #c0392b;
+    }
+    
+    /* ========================================
+       USER MANAGEMENT
+       ======================================== */
+    .user-management {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    
+    .user-management h2 {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .user-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .user-card {
+      background: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .user-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .user-email {
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    .user-role {
+      font-size: 12px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .user-actions {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .user-action-btn {
+      flex: 1;
+      padding: 6px;
+      border: none;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .user-action-btn.delete {
+      background: #e74c3c;
+      color: white;
+    }
+    
+    .user-action-btn.delete:hover {
+      background: #c0392b;
+    }
+    
+    .add-user-btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #2ecc71;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+    
+    .add-user-btn:hover {
+      background: #27ae60;
+      transform: translateY(-2px);
+    }
+    
+    /* ========================================
+       ITEM ACTIONS (Edit/Delete buttons)
+       ======================================== */
+    .mini-item-actions {
+      display: flex;
+      gap: 5px;
+      margin-top: 5px;
+    }
+    
+    .item-action-btn {
+      padding: 4px 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 600;
+    }
+    
+    .item-action-btn.edit {
+      background: #3498db;
+      color: white;
+    }
+    
+    .item-action-btn.edit:hover {
+      background: #2980b9;
+    }
+    
+    .item-action-btn.delete {
+      background: #e74c3c;
+      color: white;
+    }
+    
+    .item-action-btn.delete:hover {
+      background: #c0392b;
+    }
+    
+    /* ========================================
+       PROFESYONEL LOGIN EKRANI
+       ======================================== */
+    .login-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      z-index: 9999;
+      overflow: hidden;
+    }
+    
+    .login-container::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(45deg, transparent 48%, rgba(255,255,255,0.05) 50%, transparent 52%),
+        linear-gradient(-45deg, transparent 48%, rgba(255,255,255,0.05) 50%, transparent 52%);
+      background-size: 40px 40px;
+      animation: gridMove 20s linear infinite;
+      opacity: 0.3;
+    }
+    
+    @keyframes gridMove {
+      0% { background-position: 0 0; }
+      100% { background-position: 40px 40px; }
+    }
+    
+    .login-box {
+      position: relative;
+      background: rgba(255, 255, 255, 0.98);
+      padding: 50px 45px;
+      border-radius: 20px;
+      box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.3),
+        0 0 1px rgba(255, 255, 255, 0.5) inset;
+      width: 100%;
+      max-width: 420px;
+      animation: boxFadeIn 0.5s ease-out;
+      z-index: 2;
+    }
+    
+    @keyframes boxFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .login-header {
       text-align: center;
-      margin-bottom: 30px;
-      font-size: 2em;
+      margin-bottom: 35px;
     }
+    
+    .login-icon {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 35px;
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.35);
+    }
+    
+    .login-header h2 {
+      color: #1a202c;
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    
+    .login-header p {
+      color: #718096;
+      font-size: 14px;
+      font-weight: 400;
+    }
+    
     .login-form {
       display: flex;
       flex-direction: column;
       gap: 20px;
     }
-    .login-input {
-      padding: 15px;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      background: rgba(255, 255, 255, 0.9);
-      color: #333;
+    
+    .input-group {
+      position: relative;
     }
+    
+    .input-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: #667eea;
+      z-index: 1;
+    }
+    
+    .login-input {
+      width: 100%;
+      padding: 16px 18px 16px 52px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 15px;
+      background: #fff;
+      color: #1a202c;
+      transition: all 0.3s ease;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    
+    .login-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .login-input::placeholder {
+      color: #a0aec0;
+    }
+    
     .login-button {
-      padding: 15px;
+      padding: 16px;
       border: none;
-      border-radius: 8px;
-      font-size: 18px;
-      font-weight: bold;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
       background: linear-gradient(135deg, #667eea, #764ba2);
       color: white;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      margin-top: 5px;
     }
+    
     .login-button:hover {
-      transform: scale(1.05);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
     }
+    
+    .login-button:active {
+      transform: translateY(0);
+    }
+    
     .login-button:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
+      transform: none;
     }
+    
     .error-message {
-      background: #e74c3c;
-      padding: 10px;
-      border-radius: 8px;
+      background: #fee;
+      border: 1px solid #fcc;
+      color: #c33;
+      padding: 12px 18px;
+      border-radius: 10px;
       text-align: center;
       display: none;
+      font-size: 14px;
+      font-weight: 500;
     }
+    
+    .login-footer {
+      text-align: center;
+      margin-top: 25px;
+      color: #718096;
+      font-size: 12px;
+    }
+    
+    /* ========================================
+       MEVCUT STILLER (Ana Uygulama)
+       ======================================== */
     .user-info {
       position: fixed;
       top: 20px;
@@ -86,6 +523,7 @@
       gap: 15px;
       z-index: 1000;
     }
+    
     .logout-button {
       padding: 8px 15px;
       border: none;
@@ -100,63 +538,65 @@
       display: none;
       width: 100%;
     }
+    
     .main-layout {
       display: flex;
       gap: 20px;
       width: 100%;
       max-width: 1600px;
     }
+    
     .left-side {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 20px;
     }
+    
     .right-side {
       width: 360px;
       display: flex;
       flex-direction: column;
       gap: 15px;
     }
+    
     .container {
       display: flex;
       gap: 20px;
       flex-wrap: wrap;
       width: 100%;
     }
- .section {
-    flex: 1 1 30%;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    min-width: 300px;
-    padding: 30px; 
     
-    /* Serin Açık Mavi ve Gümüş Grisi Gradyan */
-    background: linear-gradient(135deg, #cfd8dc 0%, #b0bec5 100%);
-    color: #fff; /* Koyu gri ile metin okunaklılığı */
+    .section {
+      flex: 1 1 30%;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-width: 300px;
+      padding: 30px;
+      background: linear-gradient(135deg, #cfd8dc 0%, #b0bec5 100%);
+      color: #263238;
+      border-radius: 18px;
+      box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.3),
+        inset 0 0 15px rgba(255, 255, 255, 0.8),
+        -5px -5px 15px #f5f5f5;
+      transition: all 0.4s ease;
+    }
     
-    border-radius: 18px;
-    
-    /* Güçlü kalınlık hissi veren gölgelendirme */
-    box-shadow: 
-        0 10px 40px rgba(0, 0, 0, 0.3), /* Derin dış gölge */
-        inset 0 0 15px rgba(255, 255, 255, 0.8), /* Parlak iç aydınlatma */
-        -5px -5px 15px #f5f5f5; /* Neumorphism esintisi */
-    
-    transition: all 0.4s ease;
-}
     .special-section {
       background: linear-gradient(135deg, #667eea, #764ba2);
       padding: 20px;
       border-radius: 15px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
+    
     .special-section label {
       color: #fff;
       font-size: 1.1em;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
+    
     .right-section {
       background: linear-gradient(135deg, #667eea, #764ba2);
       padding: 15px;
@@ -166,12 +606,14 @@
       flex-direction: column;
       gap: 8px;
     }
+    
     .right-section label {
       color: #fff;
       font-size: 0.95em;
       font-weight: bold;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
+    
     .special-right-section {
       background: linear-gradient(135deg, #667eea, #764ba2);
       padding: 15px;
@@ -181,12 +623,14 @@
       flex-direction: column;
       gap: 8px;
     }
+    
     .special-right-section label {
       color: #fff;
       font-size: 0.95em;
       font-weight: bold;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
+    
     .delivered-section {
       background: linear-gradient(135deg, #27ae60, #2ecc71);
       padding: 15px;
@@ -196,12 +640,14 @@
       flex-direction: column;
       gap: 8px;
     }
+    
     .delivered-section label {
       color: #fff;
       font-size: 0.95em;
       font-weight: bold;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
+    
     textarea {
       width: 100%;
       height: 150px;
@@ -213,22 +659,31 @@
       color: #333;
       resize: none;
     }
+    
     .right-section textarea, .special-right-section textarea, .delivered-section textarea {
       height: 100px;
       font-size: 13px;
     }
-    label { font-weight: bold; }
+    
+    label { 
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+    }
+    
     .mini-list {
       max-height: 300px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 5px;
-      display: none; /* Varsayılan olarak gizle */
+      display: none;
     }
+    
     .right-section .mini-list, .special-right-section .mini-list, .delivered-section .mini-list {
       max-height: 200px;
     }
+    
     .mini-item {
       padding: 8px;
       background: #555;
@@ -241,12 +696,14 @@
       flex-direction: column;
       gap: 5px;
     }
+    
     .mini-item-row {
       width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
+    
     .mini-item-time {
       font-size: 11px;
       color: #ddd;
@@ -254,6 +711,7 @@
       width: 100%;
       text-align: right;
     }
+    
     .mini-item.matched { background-color: #2ecc71; }
     .mini-item.unmatched { background-color: #e74c3c; }
     .mini-item.waiting { background-color: #12adf3; }
@@ -264,6 +722,7 @@
     .mini-item.sahiniden { background-color: #8e44ad; }
     .mini-item.mediamarkt { background-color: #c0392b; }
     .mini-item.teslim { background-color: #2ecc71; }
+    
     .status { font-size: 20px; }
     .status::before { content: '⏳'; }
     .matched .status::before { content: '✅'; }
@@ -281,19 +740,21 @@
       display: none;
       margin-bottom: 30px;
       padding: 20px;
-      
       background: linear-gradient(135deg, #0185f7, #03ed2a);
       border-radius: 15px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
+    
     #adminPanel h2 {
       margin: 0 0 15px 0;
     }
+    
     .admin-stats {
       display: flex;
       gap: 15px;
       flex-wrap: wrap;
     }
+    
     .admin-stat-box {
       background: rgba(255,255,255,0.2);
       padding: 15px;
@@ -301,20 +762,21 @@
       flex: 1;
       min-width: 150px;
     }
+    
     .admin-stat-box .label {
       font-size: 14px;
       opacity: 0.9;
     }
+    
     .admin-stat-box .value {
       font-size: 32px;
       font-weight: bold;
     }
     
-    /* YENİ: Log Geçmişi Stilleri */
     .history-log {
       margin-top: 15px;
       padding: 15px;
-      background: #ac34db;
+      background: rgba(255,255,255,0.1);
       border-radius: 8px;
       max-height: 400px;
       overflow-y: auto;
@@ -322,7 +784,7 @@
     
     .history-log h4 {
       margin: 0 0 10px 0;
-      color: #3498db;
+      color: #fff;
       font-size: 16px;
       display: flex;
       align-items: center;
@@ -332,14 +794,15 @@
     .history-item {
       padding: 10px;
       margin-bottom: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-left: 4px solid #3498db;
+      background: rgba(255, 255, 255, 0.15);
+      border-left: 4px solid #fff;
       border-radius: 4px;
       font-size: 13px;
-      animation: slideIn 0.3s ease;
+      animation: slideInHistory 0.3s ease;
+      color: #fff;
     }
     
-    @keyframes slideIn {
+    @keyframes slideInHistory {
       from {
         opacity: 0;
         transform: translateX(-10px);
@@ -352,12 +815,12 @@
     
     .history-item.current {
       border-left-color: #2ecc71;
-      background: rgba(46, 204, 113, 0.2);
+      background: rgba(46, 204, 113, 0.25);
     }
     
     .history-item .history-action {
       font-weight: bold;
-      color: #3498db;
+      color: #fff;
       display: block;
       margin-bottom: 5px;
     }
@@ -367,12 +830,12 @@
     }
     
     .history-item .history-user {
-      color: #e67e22;
+      color: #ffd700;
       font-weight: bold;
     }
     
     .history-item .history-time {
-      color: #95a5a6;
+      color: rgba(255,255,255,0.7);
       font-size: 11px;
       font-style: italic;
       display: block;
@@ -381,31 +844,120 @@
     
     .no-history {
       text-align: center;
-      color: #95a5a6;
+      color: rgba(255,255,255,0.7);
       font-style: italic;
       padding: 20px;
+    }
+    
+    /* Normal kullanıcı history log için eski stil */
+    #historyLogNormal {
+      background: #ac34db !important;
+    }
+    
+    #historyLogNormal h4 {
+      color: #3498db !important;
+    }
+    
+    #historyLogNormal .history-item {
+      color: #fff;
+    }
+    
+    #historyLogNormal .history-item .history-action {
+      color: #3498db;
+    }
+    
+    #historyLogNormal .history-item.current .history-action {
+      color: #2ecc71;
+    }
+    
+    #historyLogNormal .history-item .history-user {
+      color: #e67e22;
+    }
+    
+    #historyLogNormal .history-item .history-time {
+      color: #95a5a6;
+    }
+    
+    #historyLogNormal .no-history {
+      color: #95a5a6;
     }
     
     @media (max-width: 1200px) {
       .main-layout { flex-direction: column; }
       .right-side { width: 100%; flex-direction: row; flex-wrap: wrap; }
       .right-section, .special-right-section, .delivered-section { flex: 1; min-width: 250px; }
+      .container { display: grid; grid-template-columns: repeat(2, 1fr); }
+      .section { min-width: unset; }
     }
+    
     @media (max-width: 768px) {
-      .container { flex-direction: column; }
-      .section { flex: 1 1 100%; }
+      body { padding: 15px; }
+      h1 { font-size: 1.8em; }
+      .container { grid-template-columns: 1fr; }
+      .section { flex: 1 1 100%; min-width: unset; }
       .right-side { flex-direction: column; }
+      .login-box { padding: 40px 30px; }
+      .toast { min-width: 250px; }
     }
   </style>
 </head>
 <body>
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- MODAL FOR USER MANAGEMENT -->
+  <div class="modal-overlay" id="addUserModal">
+    <div class="modal">
+      <h2>➕ Yeni Kullanıcı Ekle</h2>
+      <input type="email" id="newUserEmail" class="modal-input" placeholder="E-posta adresi (örn: ahmet@servis.com)">
+      <input type="password" id="newUserPassword" class="modal-input" placeholder="Şifre (min. 6 karakter)">
+      <select id="newUserRole" class="modal-input">
+        <option value="viewer">👁️ Görüntüleyici (Viewer)</option>
+        <option value="editor">✏️ Düzenleyici (Editor)</option>
+        <option value="semi-admin">👔 Yarı Admin (Semi-Admin)</option>
+      </select>
+      <div class="modal-buttons">
+        <button class="modal-button secondary" onclick="closeAddUserModal()">İptal</button>
+        <button class="modal-button primary" onclick="addNewUser()">Kullanıcı Ekle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL FOR EDIT BARCODE -->
+  <div class="modal-overlay" id="editBarcodeModal">
+    <div class="modal">
+      <h2>✏️ Barkod Düzenle</h2>
+      <input type="text" id="editBarcodeInput" class="modal-input" placeholder="Yeni barkod (15 haneli)" maxlength="15">
+      <div class="modal-buttons">
+        <button class="modal-button secondary" onclick="closeEditBarcodeModal()">İptal</button>
+        <button class="modal-button primary" onclick="saveEditedBarcode()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFESYONEL LOGIN EKRANI -->
   <div id="loginScreen" class="login-container">
-    <h2>🔐 Giriş Yap</h2>
-    <div class="login-form">
-      <input type="email" id="emailInput" class="login-input" placeholder="Email adresi" autocomplete="email">
-      <input type="password" id="passwordInput" class="login-input" placeholder="Şifre" autocomplete="current-password">
-      <div id="errorMessage" class="error-message"></div>
-      <button id="loginButton" class="login-button">Giriş Yap</button>
+    <div class="login-box">
+      <div class="login-header">
+        <div class="login-icon">🔧</div>
+        <h2>Teknik Servis Girişi</h2>
+        <p>Cihaz Takip Sistemi</p>
+      </div>
+      <div class="login-form">
+        <div class="input-group">
+          <span class="input-icon">📧</span>
+          <input type="email" id="emailInput" class="login-input" placeholder="E-posta adresiniz" autocomplete="email">
+        </div>
+        <div class="input-group">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="passwordInput" class="login-input" placeholder="Şifreniz" autocomplete="current-password">
+        </div>
+        <div id="errorMessage" class="error-message"></div>
+        <button id="loginButton" class="login-button">Giriş Yap</button>
+      </div>
+      <div class="login-footer">
+        <p>© 2025 Teknik Servis Sistemi</p>
+      </div>
     </div>
   </div>
 
@@ -417,6 +969,18 @@
   <div id="appContainer" class="app-container">
     <h1>Teknik Servis Cihaz Takip Sistemi</h1>
     
+    <!-- USER MANAGEMENT SECTION (ADMIN ONLY) -->
+    <div id="userManagement" class="user-management" style="display: none;">
+      <h2>👥 Kullanıcı Yönetimi</h2>
+      <div class="user-list" id="userList">
+        <!-- Users will be loaded here -->
+      </div>
+      <button class="add-user-btn" onclick="openAddUserModal()">
+        <span>➕</span>
+        <span>Yeni Kullanıcı Ekle</span>
+      </button>
+    </div>
+
     <div id="adminPanel">
       <h2>👑 Admin Paneli</h2>
       <div class="admin-stats">
@@ -424,17 +988,14 @@
           <div class="label">Toplam Barkod</div>
           <div id="adminTotalBarcodes" class="value">0</div>
         </div>
-     
         <div class="admin-stat-box">
           <div class="label">Eşleşme Oranı</div>
           <div id="adminMatchRate" class="value">0%</div>
         </div>
-
-             <div class="admin-stat-box">
+        <div class="admin-stat-box">
           <div class="label">Eşleşen Barkod</div>
           <div id="adminMatchedBarcodes" class="value">0</div>
         </div>
-      
         <div class="admin-stat-box">
           <div class="label">Atanacak Cihazlar</div>
           <div id="adminAtanacak" class="value">0</div>
@@ -467,67 +1028,75 @@
           <div class="label">Media Markt</div>
           <div id="adminMediaMarkt" class="value">0</div>
         </div>
-          <div class="admin-stat-box">
+        <div class="admin-stat-box">
           <div class="label">Teslim Edilenler</div>
           <div id="adminTeslimEdilenler" class="value">0</div>
         </div>
-
-        
+      </div>
+      
+      <!-- Barkod Ara Bölümü Admin Panele Taşındı -->
+      <div style="margin-top: 25px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 12px;">
+        <label for="searchInput" style="display: block; margin-bottom: 10px; font-size: 18px; font-weight: bold;">🔍 Barkod Ara:</label>
+        <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px; background: rgba(255,255,255,0.9); color: #333;"></textarea>
+        <div id="searchResult" style="margin-top: 10px; padding: 10px; background: rgba(10, 78, 180, 0.493); border-radius: 8px; min-height: 40px; display: none; color: #fff;"></div>
+        <div id="historyLog" class="history-log" style="display: none; background: rgba(255,255,255,0.1); margin-top: 10px;"></div>
       </div>
     </div>
 
     <div class="main-layout">
       <div class="left-side">
         <div class="container">
-          <div class="section">
-<label for="gokhanInput">
-  <span id="gokhanLabel" style="cursor: pointer;">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span>
-  </label>
-<textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
-<div id="gokhanList" class="mini-list"></div>
+          <div class="section" data-section="gokhan">
+            <label for="gokhanInput">
+              <span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - Adet: 0</span>
+            </label>
+            <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
+            <div id="gokhanList" class="mini-list"></div>
           </div>
           
-          <div class="section">
+          <div class="section" data-section="yusuf">
             <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları - Adet: 0</span></label>
             <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
             <div id="yusufList" class="mini-list"></div>
           </div>
-
-     
           
-          <div class="section">
+          <div class="section" data-section="enes">
             <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - Adet: 0</span></label>
             <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
             <div id="enesList" class="mini-list"></div>
           </div>
           
-          <div class="section">
+          <div class="section" data-section="samet">
             <label for="sametInput"><span id="sametLabel">🧑‍🔧 Samet'in Cihazları - Adet: 0</span></label>
             <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
             <div id="sametList" class="mini-list"></div>
           </div>
-             <div class="section">
+          
+          <div class="section" data-section="teknisyen1">
             <label for="teknisyen1Input"><span id="teknisyen1Label">🧑‍🔧 teknisyen1'in Cihazları - Adet: 0</span></label>
             <textarea id="teknisyen1Input" placeholder="teknisyen1'in barkodlarını buraya yapıştır..."></textarea>
             <div id="teknisyen1List" class="mini-list"></div>
           </div>
-                  <div class="section">
+          
+          <div class="section" data-section="teknisyen2">
             <label for="teknisyen2Input"><span id="teknisyen2Label">🧑‍🔧 teknisyen2'in Cihazları - Adet: 0</span></label>
             <textarea id="teknisyen2Input" placeholder="teknisyen2'in barkodlarını buraya yapıştır..."></textarea>
             <div id="teknisyen2List" class="mini-list"></div>
           </div>
           
-            <div class="section">
+          <div class="section" data-section="engin">
             <label for="enginInput"><span id="enginLabel">🧑‍🔧 Engin'in Cihazları - Adet: 0</span></label>
             <textarea id="enginInput" placeholder="engin'in barkodlarını buraya yapıştır..."></textarea>
             <div id="enginList" class="mini-list"></div>
           </div>
-          <div class="section">
+          
+          <div class="section" data-section="ismail">
             <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları - Adet: 0</span></label>
             <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
             <div id="ismailList" class="mini-list"></div>
           </div>
-          <div class="section">
+          
+          <div class="section" data-section="mehmet">
             <label for="mehmetInput"><span id="mehmetLabel">🧑‍🔧 Mehmet'in Cihazları - Adet: 0</span></label>
             <textarea id="mehmetInput" placeholder="Mehmet'in barkodlarını buraya yapıştır..."></textarea>
             <div id="mehmetList" class="mini-list"></div>
@@ -535,12 +1104,11 @@
         </div>
 
         <div class="container" style="margin-top: 20px;">
-          <div class="section" style="flex: 1 1 100%;">
-            <label for="searchInput">🔍 Barkod Ara:</label>
-            <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
-            <div id="searchResult" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
-            <!-- YENİ: Geçmiş Log Alanı -->
-            <div id="historyLog" class="history-log" style="display: none;"></div>
+          <div class="section" id="normalUserSearch" style="flex: 1 1 100%; display: none;">
+            <label for="searchInputNormal">🔍 Barkod Ara:</label>
+            <textarea id="searchInputNormal" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
+            <div id="searchResultNormal" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
+            <div id="historyLogNormal" class="history-log" style="display: none; background: #ac34db;"></div>
           </div>
         </div>
 
@@ -577,7 +1145,6 @@
           <div id="onarimList" class="mini-list"></div>
         </div>
 
-   
         <div class="special-right-section">
           <label for="disServisInput"><span id="disServisLabel">🔨 Dış Servis - Adet: 0</span></label>
           <textarea id="disServisInput" placeholder="Dış servise gönderilecek barkodlar..."></textarea>
@@ -602,19 +1169,18 @@
           <div id="mediaMarktList" class="mini-list"></div>
         </div>
 
-             <div class="delivered-section">
+        <div class="delivered-section">
           <label for="teslimEdilenlerInput"><span id="teslimEdilenlerLabel">✅ Teslim Edilenler - Adet: 0</span></label>
           <textarea id="teslimEdilenlerInput" placeholder="Teslim edilen barkodlar..."></textarea>
           <div id="teslimEdilenlerList" class="mini-list"></div>
         </div>
-
       </div>
     </div>
   </div>
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
+        apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
       projectId: "cokluhaber-dc6ff",
       storageBucket: "cokluhaber-dc6ff.appspot.com",
@@ -653,6 +1219,7 @@
       mehmet: document.getElementById("mehmetInput"),
       scanner: document.getElementById("scannerInput"),
       search: document.getElementById("searchInput"),
+      searchNormal: document.getElementById("searchInputNormal"),
       onarim: document.getElementById("onarimInput"),
       disServis: document.getElementById("disServisInput"),
       satisa: document.getElementById("satisaInput"),
@@ -669,8 +1236,8 @@
       enes: document.getElementById("enesLabel"),
       yusuf: document.getElementById("yusufLabel"),
       samet: document.getElementById("sametLabel"),
-     teknisyen1: document.getElementById("teknisyen1Label"),
-       teknisyen2: document.getElementById("teknisyen2Label"),
+      teknisyen1: document.getElementById("teknisyen1Label"),
+      teknisyen2: document.getElementById("teknisyen2Label"),
       engin: document.getElementById("enginLabel"),
       ismail: document.getElementById("ismailLabel"),
       mehmet: document.getElementById("mehmetLabel"),
@@ -691,7 +1258,7 @@
       yusuf: document.getElementById("yusufList"),
       samet: document.getElementById("sametList"),
       teknisyen1: document.getElementById("teknisyen1List"),
-         teknisyen2: document.getElementById("teknisyen2List"),
+      teknisyen2: document.getElementById("teknisyen2List"),
       engin: document.getElementById("enginList"),
       ismail: document.getElementById("ismailList"),
       mehmet: document.getElementById("mehmetList"),
@@ -716,7 +1283,7 @@
       yusuf: new Set(), 
       samet: new Set(), 
       teknisyen1: new Set(), 
-    teknisyen2: new Set(), 
+      teknisyen2: new Set(), 
       engin: new Set(), 
       ismail: new Set(), 
       mehmet: new Set(),
@@ -756,7 +1323,7 @@
       yusuf: {},
       samet: {},
       teknisyen1: {},
-       teknisyen2: {},
+      teknisyen2: {},
       engin: {},
       ismail: {},
       mehmet: {},
@@ -772,8 +1339,275 @@
     let currentUserName = null;
     let isUpdating = false;
     let dataLoaded = false;
+    let editingBarcode = null;
+    let editingList = null;
 
-    auth.onAuthStateChanged(user => {
+    // ========================================
+    // TOAST NOTIFICATION SYSTEM
+    // ========================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      toast.innerHTML = `
+        <div class="toast-icon"></div>
+        <div class="toast-message">${message}</div>
+      `;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+          container.removeChild(toast);
+        }, 300);
+      }, 3000);
+    }
+
+    // ========================================
+    // USER MANAGEMENT FUNCTIONS
+    // ========================================
+    function openAddUserModal() {
+      document.getElementById('addUserModal').classList.add('active');
+      document.getElementById('newUserEmail').value = '';
+      document.getElementById('newUserPassword').value = '';
+      document.getElementById('newUserRole').value = 'viewer';
+    }
+
+    function closeAddUserModal() {
+      document.getElementById('addUserModal').classList.remove('active');
+    }
+
+    async function addNewUser() {
+      const email = document.getElementById('newUserEmail').value.trim();
+      const password = document.getElementById('newUserPassword').value;
+      const role = document.getElementById('newUserRole').value;
+      
+      if (!email || !password) {
+        showToast('Email ve şifre gereklidir!', 'error');
+        return;
+      }
+      
+      if (password.length < 6) {
+        showToast('Şifre en az 6 karakter olmalıdır!', 'error');
+        return;
+      }
+
+      try {
+        // Geçici bir ikinci Firebase app instance oluştur
+        const secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary-' + Date.now());
+        
+        // Yeni kullanıcıyı oluştur
+        const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, password);
+        const newUid = userCredential.user.uid;
+        
+        // İkinci app'den çıkış yap
+        await secondaryApp.auth().signOut();
+        
+        // İkinci app'i sil
+        await secondaryApp.delete();
+        
+        // Admin olarak ana app'den kullanıcı bilgilerini database'e kaydet
+        // Önce mevcut kullanıcının UID'sini al
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          showToast('Oturum hatası! Lütfen tekrar giriş yapın.', 'error');
+          return;
+        }
+        
+        // Kullanıcı bilgilerini kaydet
+        await db.ref(`users/${newUid}`).set({
+          email: email,
+          role: role,
+          createdAt: Date.now(),
+          createdBy: currentUserName
+        });
+        
+        showToast(`Kullanıcı başarıyla eklendi: ${email}`, 'success');
+        closeAddUserModal();
+        loadUsers();
+      } catch (error) {
+        console.error('Kullanıcı ekleme hatası:', error);
+        let message = 'Kullanıcı eklenirken hata oluştu!';
+        
+        if (error.code === 'auth/email-already-in-use') {
+          message = 'Bu email zaten kullanılıyor!';
+        } else if (error.code === 'auth/invalid-email') {
+          message = 'Geçersiz email adresi!';
+        } else if (error.code === 'auth/weak-password') {
+          message = 'Şifre çok zayıf!';
+        } else if (error.message && error.message.includes('PERMISSION_DENIED')) {
+          message = 'İzin hatası! Firebase Database kurallarını kontrol edin.\n\nFirebase Console → Database → Rules bölümünden "users" noduna yazma izni verin.';
+        }
+        
+        showToast(message, 'error');
+      }
+    }
+
+    async function deleteUser(uid, email) {
+      if (!confirm(`${email} kullanıcısını silmek istediğinizden emin misiniz?`)) {
+        return;
+      }
+      
+      try {
+        // Kullanıcı bilgilerini database'den sil
+        await db.ref(`users/${uid}`).remove();
+        
+        showToast(`Kullanıcı silindi: ${email}`, 'success');
+        loadUsers();
+        
+        // Not: Gerçek üretimde kullanıcı auth kaydını da silmek için backend gerekir
+        showToast('Not: Kullanıcının giriş erişimi için admin console üzerinden de silme gerekebilir', 'warning');
+      } catch (error) {
+        console.error('Kullanıcı silme hatası:', error);
+        showToast('Kullanıcı silinirken hata oluştu!', 'error');
+      }
+    }
+
+    async function loadUsers() {
+      if (currentUserRole !== 'admin') return;
+      
+      try {
+        const snapshot = await db.ref('users').once('value');
+        const users = snapshot.val();
+        const userList = document.getElementById('userList');
+        userList.innerHTML = '';
+        
+        if (!users) {
+          userList.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.7);">Henüz kullanıcı eklenmemiş</p>';
+          return;
+        }
+        
+        Object.entries(users).forEach(([uid, userData]) => {
+          const roleIcons = {
+            viewer: '👁️',
+            editor: '✏️',
+            'semi-admin': '👔',
+            admin: '👑'
+          };
+          
+          const roleNames = {
+            viewer: 'Görüntüleyici',
+            editor: 'Düzenleyici',
+            'semi-admin': 'Yarı Admin',
+            admin: 'Admin'
+          };
+          
+          const userCard = document.createElement('div');
+          userCard.className = 'user-card';
+          userCard.innerHTML = `
+            <div class="user-card-header">
+              <span class="user-email">${userData.email}</span>
+            </div>
+            <div class="user-role">${roleIcons[userData.role] || '👤'} ${roleNames[userData.role] || userData.role}</div>
+            <div class="user-actions">
+              ${userData.email !== 'admin@servis.com' ? `<button class="user-action-btn delete" onclick="deleteUser('${uid}', '${userData.email}')">🗑️ Sil</button>` : '<span style="font-size: 11px; color: rgba(255,255,255,0.5);">Korumalı</span>'}
+            </div>
+          `;
+          userList.appendChild(userCard);
+        });
+      } catch (error) {
+        console.error('Kullanıcılar yüklenirken hata:', error);
+        showToast('Kullanıcılar yüklenirken hata oluştu!', 'error');
+      }
+    }
+
+    // ========================================
+    // BARCODE EDIT/DELETE FUNCTIONS
+    // ========================================
+    function openEditBarcodeModal(code, listName) {
+      editingBarcode = code;
+      editingList = listName;
+      document.getElementById('editBarcodeModal').classList.add('active');
+      document.getElementById('editBarcodeInput').value = code;
+    }
+
+    function closeEditBarcodeModal() {
+      document.getElementById('editBarcodeModal').classList.remove('active');
+      editingBarcode = null;
+      editingList = null;
+    }
+
+    async function saveEditedBarcode() {
+      const newCode = document.getElementById('editBarcodeInput').value.trim();
+      
+      if (!newCode || newCode.length !== 15 || !/^\d+$/.test(newCode)) {
+        showToast('Geçerli bir 15 haneli barkod giriniz!', 'error');
+        return;
+      }
+      
+      if (newCode === editingBarcode) {
+        showToast('Barkod değiştirilmedi!', 'info');
+        closeEditBarcodeModal();
+        return;
+      }
+      
+      try {
+        const dbPath = editingList === 'onarim' ? 'onarimTamamlandi' : editingList;
+        const timestamp = getTimestamp();
+        
+        // Eski barkodu sil
+        await db.ref(`servis/${dbPath}/${editingBarcode}`).remove();
+        
+        // Yeni barkodu ekle
+        await db.ref(`servis/${dbPath}/${newCode}`).set({
+          ts: timestamp,
+          user: currentUserName
+        });
+        
+        // Geçmiş kaydı ekle
+        saveBarcodeHistory(newCode, editingList, editingList, `${currentUserName} (Düzenleme: ${editingBarcode})`);
+        
+        // Local state'i güncelle
+        userCodes[editingList].delete(editingBarcode);
+        userCodes[editingList].add(newCode);
+        delete codeTimestamps[editingList][editingBarcode];
+        delete codeUsers[editingList][editingBarcode];
+        codeTimestamps[editingList][newCode] = timestamp;
+        codeUsers[editingList][newCode] = currentUserName;
+        
+        showToast(`Barkod güncellendi: ${editingBarcode} → ${newCode}`, 'success');
+        closeEditBarcodeModal();
+        renderList();
+      } catch (error) {
+        console.error('Barkod düzenleme hatası:', error);
+        showToast('Barkod düzenlenirken hata oluştu!', 'error');
+      }
+    }
+
+    async function deleteBarcode(code, listName) {
+      if (!confirm(`${code} barkodunu silmek istediğinizden emin misiniz?`)) {
+        return;
+      }
+      
+      try {
+        const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+        
+        // Database'den sil
+        await db.ref(`servis/${dbPath}/${code}`).remove();
+        
+        // Geçmiş kaydı ekle
+        saveBarcodeHistory(code, listName, 'SİLİNDİ', `${currentUserName} (Silme)`);
+        
+        // Local state'den sil
+        userCodes[listName].delete(code);
+        delete codeTimestamps[listName][code];
+        delete codeUsers[listName][code];
+        
+        showToast(`Barkod silindi: ${code}`, 'success');
+        updateLabelAndCount(listName);
+        renderList();
+      } catch (error) {
+        console.error('Barkod silme hatası:', error);
+        showToast('Barkod silinirken hata oluştu!', 'error');
+      }
+    }
+
+    // ========================================
+    // AUTH & LOGIN
+    // ========================================
+    auth.onAuthStateChanged(async user => {
       if (user) {
         loginScreen.style.display = "none";
         appContainer.style.display = "block";
@@ -781,40 +1615,114 @@
         const name = user.email.split('@')[0];
         currentUserName = name;
         
-        if (name === 'admin') {
-          currentUserRole = 'admin';
-          userName.textContent = `👑 Admin`;
-          userName.style.background = 'linear-gradient(135deg, #93fb98ff, #5796f5ff)';
-          userName.style.padding = '5px 15px';
-          userName.style.borderRadius = '5px';
-          document.getElementById('adminPanel').style.display = 'block';
-        } else if (name === 'samil' || name === 'ibrahim') {
-          currentUserRole = 'semi-admin';
-         userName.innerHTML = `👔 ${name.charAt(0).toUpperCase() + name.slice(1)} <br>Admin<br>(Okuma✅ / Yazma❌)`;
-
-        
-
-          userName.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
-          userName.style.padding = '5px 15px';
-          userName.style.borderRadius = '5px';
-          document.getElementById('adminPanel').style.display = 'block';
-        } else if (name === 'enes') {
-          currentUserRole = 'editor';
-          userName.textContent = `✏️ ${name.charAt(0).toUpperCase()
-            + name.slice(1)}`;
-          userName.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
-          userName.style.padding = '5px 15px';
-          userName.style.borderRadius = '5px';
-          document.getElementById('adminPanel').style.display = 'none';
-        } else {
+        // Database'den kullanıcı rolünü al (varsa)
+        try {
+          const userSnapshot = await db.ref(`users/${user.uid}`).once('value');
+          const userData = userSnapshot.val();
+          
+          if (userData && userData.role) {
+            // Database'den gelen role kullan
+            currentUserRole = userData.role;
+            
+            const roleConfig = {
+              'admin': {
+                icon: '👑',
+                text: 'Admin',
+                gradient: 'linear-gradient(135deg, #93fb98ff, #5796f5ff)',
+                showAdminPanel: true,
+                showUserManagement: true
+              },
+              'semi-admin': {
+                icon: '👔',
+                text: `${name.charAt(0).toUpperCase() + name.slice(1)}<br>Admin<br>(Okuma✅ / Yazma❌)`,
+                gradient: 'linear-gradient(135deg, #f39c12, #e67e22)',
+                showAdminPanel: true,
+                showUserManagement: false
+              },
+              'editor': {
+                icon: '✏️',
+                text: name.charAt(0).toUpperCase() + name.slice(1),
+                gradient: 'linear-gradient(135deg, #667eea, #764ba2)',
+                showAdminPanel: false,
+                showUserManagement: false
+              },
+              'viewer': {
+                icon: '👁️',
+                text: `${name.charAt(0).toUpperCase() + name.slice(1)} (Görüntüleme)`,
+                gradient: 'linear-gradient(135deg, #95a5a6, #7f8c8d)',
+                showAdminPanel: false,
+                showUserManagement: false
+              }
+            };
+            
+            const config = roleConfig[currentUserRole] || roleConfig['viewer'];
+            userName.innerHTML = `${config.icon} ${config.text}`;
+            userName.style.background = config.gradient;
+            userName.style.padding = '5px 15px';
+            userName.style.borderRadius = '5px';
+            document.getElementById('adminPanel').style.display = config.showAdminPanel ? 'block' : 'none';
+            document.getElementById('userManagement').style.display = config.showUserManagement ? 'block' : 'none';
+            
+            if (config.showUserManagement) {
+              loadUsers();
+            }
+          } else {
+            // Eski sistem (email'e göre) - geriye dönük uyumluluk
+            if (name === 'admin') {
+              currentUserRole = 'admin';
+              userName.textContent = `👑 Admin`;
+              userName.style.background = 'linear-gradient(135deg, #93fb98ff, #5796f5ff)';
+              userName.style.padding = '5px 15px';
+              userName.style.borderRadius = '5px';
+              document.getElementById('adminPanel').style.display = 'block';
+              document.getElementById('userManagement').style.display = 'block';
+              loadUsers();
+            } else if (name === 'samil' || name === 'ibrahim') {
+              currentUserRole = 'semi-admin';
+              userName.innerHTML = `👔 ${name.charAt(0).toUpperCase() + name.slice(1)} <br>Admin<br>(Okuma✅ / Yazma❌)`;
+              userName.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+              userName.style.padding = '5px 15px';
+              userName.style.borderRadius = '5px';
+              document.getElementById('adminPanel').style.display = 'block';
+            } else if (name === 'enes') {
+              currentUserRole = 'editor';
+              userName.textContent = `✏️ ${name.charAt(0).toUpperCase() + name.slice(1)}`;
+              userName.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+              userName.style.padding = '5px 15px';
+              userName.style.borderRadius = '5px';
+              document.getElementById('adminPanel').style.display = 'none';
+            } else {
+              currentUserRole = 'viewer';
+              userName.textContent = `👁️ ${name.charAt(0).toUpperCase() + name.slice(1)} (Görüntüleme)`;
+              document.getElementById('adminPanel').style.display = 'none';
+            }
+          }
+        } catch (error) {
+          console.error('Kullanıcı rolü alınırken hata:', error);
+          // Hata durumunda eski sisteme geri dön
           currentUserRole = 'viewer';
           userName.textContent = `👁️ ${name.charAt(0).toUpperCase() + name.slice(1)} (Görüntüleme)`;
-          document.getElementById('adminPanel').style.display = 'none';
         }
         
         dataLoaded = false;
         loadData();
         applyPermissions();
+        
+        // Barkod arama bölümünü yönet
+        const normalUserSearch = document.getElementById('normalUserSearch');
+        if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+          // Admin ve Semi-Admin için normal arama alanını gizle (admin panelde var)
+          if (normalUserSearch) normalUserSearch.style.display = 'none';
+        } else {
+          // Diğer kullanıcılar için normal arama alanını göster
+          if (normalUserSearch) normalUserSearch.style.display = 'flex';
+        }
+        
+        // Toggle sistemini başlat
+        setTimeout(() => {
+          setupSectionToggle();
+          setupRightSideToggle();
+        }, 500);
       } else {
         loginScreen.style.display = "flex";
         appContainer.style.display = "none";
@@ -896,10 +1804,20 @@
         inputs.scanner.style.cursor = 'not-allowed';
         inputs.scanner.placeholder = '🔒 Barkod okutma yetkiniz yok';
         
-        inputs.search.disabled = false;
-        inputs.search.style.opacity = '1';
-        inputs.search.style.cursor = 'text';
-        inputs.search.placeholder = 'Aramak istediğiniz barkodu girin...';
+        // Semi-admin arama yapabilir
+        if (inputs.search) {
+          inputs.search.disabled = false;
+          inputs.search.style.opacity = '1';
+          inputs.search.style.cursor = 'text';
+          inputs.search.placeholder = 'Aramak istediğiniz barkodu girin...';
+        }
+        
+        if (inputs.searchNormal) {
+          inputs.searchNormal.disabled = false;
+          inputs.searchNormal.style.opacity = '1';
+          inputs.searchNormal.style.cursor = 'text';
+          inputs.searchNormal.placeholder = 'Aramak istediğiniz barkodu girin...';
+        }
         
         return;
       }
@@ -947,10 +1865,20 @@
         inputs.atanacak.style.cursor = 'not-allowed';
         inputs.atanacak.placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
         
-        inputs.search.disabled = true;
-        inputs.search.style.opacity = '0.6';
-        inputs.search.style.cursor = 'not-allowed';
-        inputs.search.placeholder = '🔒 Arama yapma yetkiniz yok';
+        // Viewer arama yapabilir - sadece düzenleme yapamaz
+        if (inputs.search) {
+          inputs.search.disabled = false;
+          inputs.search.style.opacity = '1';
+          inputs.search.style.cursor = 'text';
+          inputs.search.placeholder = 'Aramak istediğiniz barkodu girin...';
+        }
+        
+        if (inputs.searchNormal) {
+          inputs.searchNormal.disabled = false;
+          inputs.searchNormal.style.opacity = '1';
+          inputs.searchNormal.style.cursor = 'text';
+          inputs.searchNormal.placeholder = 'Aramak istediğiniz barkodu girin...';
+        }
       } else {
         normalUsers.forEach(name => {
           inputs[name].disabled = false;
@@ -962,9 +1890,17 @@
         inputs.atanacak.style.opacity = '1';
         inputs.atanacak.style.cursor = 'text';
         
-        inputs.search.disabled = false;
-        inputs.search.style.opacity = '1';
-        inputs.search.style.cursor = 'text';
+        if (inputs.search) {
+          inputs.search.disabled = false;
+          inputs.search.style.opacity = '1';
+          inputs.search.style.cursor = 'text';
+        }
+        
+        if (inputs.searchNormal) {
+          inputs.searchNormal.disabled = false;
+          inputs.searchNormal.style.opacity = '1';
+          inputs.searchNormal.style.cursor = 'text';
+        }
       }
     }
 
@@ -973,7 +1909,6 @@
       return now.toLocaleString('tr-TR');
     }
 
-    // YENİ FONKSİYON: Barkod geçmişini kaydet
     function saveBarcodeHistory(code, fromList, toList, user) {
       const timestamp = getTimestamp();
       const historyEntry = {
@@ -984,11 +1919,9 @@
         timestampRaw: Date.now()
       };
       
-      // Firebase'e geçmiş kaydını ekle
       db.ref(`servis/history/${code}`).push(historyEntry);
     }
 
-    // YENİ FONKSİYON: Barkod geçmişini getir ve göster
     async function loadAndDisplayHistory(code) {
       try {
         const snapshot = await db.ref(`servis/history/${code}`).once('value');
@@ -1003,7 +1936,6 @@
           return;
         }
 
-        // Geçmişi tarihe göre sırala (en yeniden en eskiye)
         const historyArray = Object.values(historyData).sort((a, b) => b.timestampRaw - a.timestampRaw);
         
         const listNames = {
@@ -1024,7 +1956,8 @@
           satisa: '💰 Satışa Gidecek',
           sahiniden: '🏪 Sahibinden',
           mediaMarkt: '🛒 Media Markt',
-          teslimEdilenler: '✅ Teslim Edildi'
+          teslimEdilenler: '✅ Teslim Edildi',
+          'SİLİNDİ': '🗑️ Silindi'
         };
 
         let historyHTML = '<h4>📜 Geçmiş Hareketler</h4>';
@@ -1064,7 +1997,7 @@
       
       allLists.forEach(name => {
         if (name !== exceptList && userCodes[name].has(code)) {
-          removedFrom = name; // Hangi listeden kaldırıldığını kaydet
+          removedFrom = name;
           userCodes[name].delete(code);
           delete codeTimestamps[name][code];
           delete codeUsers[name][code];
@@ -1140,7 +2073,6 @@
           if (!userCodes[name].has(code)) {
             const previousList = removeFromOtherLists(code, name);
             
-            // Geçmişe kaydet
             saveBarcodeHistory(code, previousList, name, currentUserName);
             
             if (name === 'onarim') {
@@ -1183,7 +2115,6 @@
         if (!userCodes[name].has(code)) {
           const previousList = removeFromOtherLists(code, name);
           
-          // Geçmişe kaydet
           saveBarcodeHistory(code, previousList, name, currentUserName);
           
           db.ref(`servis/${name}/${code}`).set(timestamp);
@@ -1208,15 +2139,28 @@
     });
 
     let searchTimeout;
-    inputs.search.addEventListener("input", e => {
-      if (currentUserRole === 'viewer') {
-        e.target.value = '';
-        return;
-      }
-      
+    
+    // Admin panelindeki search input
+    if (inputs.search) {
+      inputs.search.addEventListener("input", e => {
+        performSearch(e.target.value, 'searchResult', 'historyLog');
+      });
+    }
+
+    // Normal kullanıcı arama alanı için event listener
+    if (inputs.searchNormal) {
+      inputs.searchNormal.addEventListener("input", e => {
+        performSearch(e.target.value, 'searchResultNormal', 'historyLogNormal');
+      });
+    }
+
+    function performSearch(value, resultElementId, historyElementId) {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
-        const query = e.target.value.trim().slice(0, 15);
+        const query = value.trim().slice(0, 15);
+        const searchResult = document.getElementById(resultElementId);
+        const historyLog = document.getElementById(historyElementId);
+        
         if (query.length === 0) {
           searchResult.style.display = "none";
           historyLog.style.display = "none";
@@ -1265,14 +2209,83 @@
 
         if (foundIn.length > 0) {
           searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}`;
-          // Geçmişi yükle ve göster
-          loadAndDisplayHistory(query);
+          loadAndDisplayHistoryToElement(query, historyElementId);
         } else {
           searchResult.innerHTML = `<div style="color: #e74c3c;">❌ Barkod bulunamadı</div>`;
           historyLog.style.display = "none";
         }
       }, 300);
-    });
+    }
+
+    async function loadAndDisplayHistoryToElement(code, historyElementId) {
+      const historyLog = document.getElementById(historyElementId);
+      
+      try {
+        const snapshot = await db.ref(`servis/history/${code}`).once('value');
+        const historyData = snapshot.val();
+        
+        if (!historyData) {
+          historyLog.innerHTML = `
+            <h4>📜 Geçmiş Hareketler</h4>
+            <div class="no-history">Bu barkod için henüz hareket kaydı bulunmuyor.</div>
+          `;
+          historyLog.style.display = 'block';
+          return;
+        }
+
+        const historyArray = Object.values(historyData).sort((a, b) => b.timestampRaw - a.timestampRaw);
+        
+        const listNames = {
+          atanacak: '📋 Atanacak',
+          parcaBekliyor: '⚙️ Parça Bekliyor',
+          phonecheck: '📱 PhoneCheck',
+          gokhan: '🧑‍🔧 Gökhan',
+          enes: '🧑‍🔧 Enes',
+          yusuf: '🧑‍🔧 Yusuf',
+          samet: '🧑‍🔧 Samet',
+          teknisyen1: '🧑‍🔧 Teknisyen1',
+          teknisyen2: '🧑‍🔧 Teknisyen2',
+          engin: '🧑‍🔧 Engin',
+          ismail: '🧑‍🔧 İsmail',
+          mehmet: '🧑‍🔧 Mehmet',
+          onarim: '🔧 Onarım Tamamlandı',
+          disServis: '🔨 Dış Servis',
+          satisa: '💰 Satışa Gidecek',
+          sahiniden: '🏪 Sahibinden',
+          mediaMarkt: '🛒 Media Markt',
+          teslimEdilenler: '✅ Teslim Edildi',
+          'SİLİNDİ': '🗑️ Silindi'
+        };
+
+        let historyHTML = '<h4>📜 Geçmiş Hareketler</h4>';
+        
+        historyArray.forEach((entry, index) => {
+          const fromName = listNames[entry.from] || entry.from;
+          const toName = listNames[entry.to] || entry.to;
+          const isCurrent = index === 0;
+          
+          historyHTML += `
+            <div class="history-item ${isCurrent ? 'current' : ''}">
+              <span class="history-action">
+                ${isCurrent ? '📍 Şu Anda: ' : '↪️ '} ${fromName} → ${toName}
+              </span>
+              <span class="history-user">👤 ${entry.user || 'Bilinmeyen'}</span>
+              <span class="history-time">🕒 ${entry.timestamp}</span>
+            </div>
+          `;
+        });
+        
+        historyLog.innerHTML = historyHTML;
+        historyLog.style.display = 'block';
+      } catch (error) {
+        console.error('Geçmiş yüklenirken hata:', error);
+        historyLog.innerHTML = `
+          <h4>📜 Geçmiş Hareketler</h4>
+          <div class="no-history">Geçmiş yüklenirken bir hata oluştu.</div>
+        `;
+        historyLog.style.display = 'block';
+      }
+    }
 
     let scannerTimeout;
     inputs.scanner.addEventListener("input", e => {
@@ -1308,6 +2321,7 @@
           });
 
           renderList();
+          showToast(`Barkod eşleşti: ${code}`, 'success');
         }
         e.target.value = "";
       }, 150);
@@ -1353,6 +2367,12 @@
             <span class="status"></span>
           </div>
           <div class="mini-item-time">📅 ${timestamp}${user ? ' • ' + user : ''}</div>
+          ${currentUserRole === 'admin' ? `
+            <div class="mini-item-actions">
+              <button class="item-action-btn edit" onclick="openEditBarcodeModal('${code}', '${name}')">✏️ Düzenle</button>
+              <button class="item-action-btn delete" onclick="deleteBarcode('${code}', '${name}')">🗑️ Sil</button>
+            </div>
+          ` : ''}
         `;
         list.appendChild(div);
       });
@@ -1401,21 +2421,21 @@
       }
     }
 
-  function loadData() {
+    function loadData() {
       const lists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarimTamamlandi", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
       let loadedCount = 0;
       const totalLists = lists.length + 1;
       
-     lists.forEach(name => {
+      lists.forEach(name => {
         db.ref(`servis/${name}`).once("value", snap => {
           const data = snap.val();
           const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
         
-   userCodes[localName].clear();
+          userCodes[localName].clear();
           codeTimestamps[localName] = {};
           codeUsers[localName] = {};
           
-        if (!data) {
+          if (!data) {
             loadedCount++;
             if (loadedCount === totalLists) {
               dataLoaded = true;
@@ -1430,7 +2450,8 @@
             updateLabelAndCount(localName);
             return;
           }
-const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
+
+          const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
 
           keys.forEach(code => {
             const val = data[code];
@@ -1441,7 +2462,7 @@ const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
               codeUsers[localName][code] = user;
               userCodes[localName].add(code);
               if (localName !== 'teslimEdilenler') {
-            allCodes.add(code);
+                allCodes.add(code);
               }
             } else {
               codeTimestamps[localName][code] = val;
@@ -1452,7 +2473,6 @@ const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
               }
             }
           });
-
 
           updateLabelAndCount(localName);
 
@@ -1499,90 +2519,81 @@ const keys = Object.keys(data).filter(k => k !== "eslesenler" && k !== "adet");
       location.reload();
     }, 4 * 60 * 1000);
 
-function setupSectionToggle(sectionElement, listId, labelId) {
-    const list = document.getElementById(listId);
-    const label = document.getElementById(labelId);
-    const textarea = list ? list.previousElementSibling : null;
-
-    if (sectionElement && list && textarea && label) {
-        list.style.display = 'none';
-        textarea.style.display = 'none';
-
-        sectionElement.style.cursor = 'pointer'; 
+    // YENİ TOGGLE SİSTEMİ - SADECE TIKLANAN LABEL AÇILIR/KAPANIR
+    function setupSectionToggle() {
+      const sectionNames = ['gokhan', 'yusuf', 'enes', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'];
+      
+      sectionNames.forEach(name => {
+        const labelElement = labels[name];
+        const listElement = miniLists[name];
+        const textareaElement = inputs[name];
         
-        label.textContent += ' (Gizli)';
-
-        sectionElement.addEventListener('click', (event) => {
-            if (event.target.tagName === 'TEXTAREA' || event.target.tagName === 'INPUT') {
-                return;
-            }
-
-            if (list.style.display === 'none') {
-                list.style.display = 'flex';
-                textarea.style.display = 'block';
-                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
-            } else {
-                list.style.display = 'none';
-                textarea.style.display = 'none';
-                label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)');
-            }
+        if (!labelElement || !listElement || !textareaElement) return;
+        
+        // Başlangıçta tümü kapalı
+        listElement.style.display = 'none';
+        textareaElement.style.display = 'none';
+        
+        // Label'ı tıklanabilir yap
+        labelElement.style.cursor = 'pointer';
+        labelElement.style.userSelect = 'none';
+        
+        // Click event ekle - SADECE bu label için
+        labelElement.addEventListener('click', function(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          
+          const isCurrentlyHidden = listElement.style.display === 'none';
+          
+          if (isCurrentlyHidden) {
+            // Aç
+            listElement.style.display = 'flex';
+            textareaElement.style.display = 'block';
+          } else {
+            // Kapat
+            listElement.style.display = 'none';
+            textareaElement.style.display = 'none';
+          }
         });
+      });
     }
-}
 
-function setupLabelToggle(labelId, listId) {
-    const label = document.getElementById(labelId);
-    const list = document.getElementById(listId);
-    const textarea = list ? list.previousElementSibling : null;
-
-    if (label && list && textarea) {
-        list.style.display = 'none';
-        textarea.style.display = 'none';
-
-        label.style.cursor = 'pointer';
+    // Sağ taraf label toggle'ları
+    function setupRightSideToggle() {
+      const rightNames = ['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+      
+      rightNames.forEach(name => {
+        const labelElement = labels[name];
+        const listElement = miniLists[name];
+        const textareaElement = inputs[name];
         
-        label.textContent += ' (Gizli)';
-
-        label.addEventListener('click', () => {
-            if (list.style.display === 'none') {
-                list.style.display = 'flex';
-                textarea.style.display = 'block';
-                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
-            } else {
-                list.style.display = 'none';
-                textarea.style.display = 'none';
-                label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)');
-            }
+        if (!labelElement || !listElement || !textareaElement) return;
+        
+        // Başlangıçta kapalı
+        listElement.style.display = 'none';
+        textareaElement.style.display = 'none';
+        
+        labelElement.style.cursor = 'pointer';
+        labelElement.style.userSelect = 'none';
+        
+        labelElement.addEventListener('click', function(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          
+          const isCurrentlyHidden = listElement.style.display === 'none';
+          
+          if (isCurrentlyHidden) {
+            listElement.style.display = 'flex';
+            textareaElement.style.display = 'block';
+          } else {
+            listElement.style.display = 'none';
+            textareaElement.style.display = 'none';
+          }
         });
+      });
     }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const sectionToggleLists = [
-        'gokhan', 'yusuf', 'enes', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'
-    ];
-
-    sectionToggleLists.forEach(name => {
-        const listId = `${name}List`;
-        const labelId = `${name}Label`;
-        const listElement = document.getElementById(listId);
-        
-        if (listElement) {
-            const sectionElement = listElement.closest('.section');
-            setupSectionToggle(sectionElement, listId, labelId);
-        }
-    });
-
-    const labelToggleLists = [
-        'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
-    ];
-    
-    labelToggleLists.forEach(name => {
-        const listId = `${name}List`;
-        const labelId = `${name}Label`;
-        setupLabelToggle(labelId, listId);
-    });
-});
     
   </script>
 </body>
