@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teknik Servis Cihaz Takip Sistemi</title>
- <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <style>
@@ -189,6 +189,109 @@
     
     .modal-button.danger:hover {
       background: #c0392b;
+    }
+    
+    /* ========================================
+       MOBILFON DATA DISPLAY
+       ======================================== */
+    .mobilfon-data {
+      margin-top: 15px;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 10px;
+      border: 2px solid #fff;
+      animation: slideDown 0.4s ease;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .mobilfon-data h4 {
+      margin: 0 0 10px 0;
+      color: #fff;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .mobilfon-parts-list {
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 10px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .mobilfon-part-item {
+      background: rgba(255,255,255,0.25);
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .mobilfon-part-item::before {
+      content: "🔧";
+      font-size: 16px;
+    }
+    
+    .mobilfon-technician {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 6px;
+      color: #ffd700;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .mobilfon-loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    
+    .mobilfon-loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .mobilfon-error {
+      margin-top: 10px;
+      padding: 10px;
+      background: rgba(231, 76, 60, 0.2);
+      border: 1px solid #e74c3c;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 13px;
     }
     
     /* ========================================
@@ -1039,6 +1142,7 @@
         <label for="searchInput" style="display: block; margin-bottom: 10px; font-size: 18px; font-weight: bold;">🔍 Barkod Ara:</label>
         <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px; background: rgba(255,255,255,0.9); color: #333;"></textarea>
         <div id="searchResult" style="margin-top: 10px; padding: 10px; background: rgba(10, 78, 180, 0.493); border-radius: 8px; min-height: 40px; display: none; color: #fff;"></div>
+        <div id="mobilfonDataAdmin" style="display: none;"></div>
         <div id="historyLog" class="history-log" style="display: none; background: rgba(255,255,255,0.1); margin-top: 10px;"></div>
       </div>
     </div>
@@ -1108,6 +1212,7 @@
             <label for="searchInputNormal">🔍 Barkod Ara:</label>
             <textarea id="searchInputNormal" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
             <div id="searchResultNormal" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
+            <div id="mobilfonDataNormal" style="display: none;"></div>
             <div id="historyLogNormal" class="history-log" style="display: none; background: #ac34db;"></div>
           </div>
         </div>
@@ -1179,6 +1284,85 @@
   </div>
 
   <script>
+    // ========================================
+    // MOBILFON API CONFIGURATION
+    // ========================================
+    const MOBILFON_API_URL = 'http://localhost:3000/api/mobilfon/search';
+    
+    // ========================================
+    // MOBILFON DATA FETCHER
+    // ========================================
+    async function fetchMobilfonData(barcode, containerElementId) {
+      const container = document.getElementById(containerElementId);
+      
+      // Loading göster
+      container.innerHTML = `
+        <div class="mobilfon-loading">
+          <div class="mobilfon-loading-spinner"></div>
+          <span>Mobilfon sisteminden parça bilgileri çekiliyor...</span>
+        </div>
+      `;
+      container.style.display = 'block';
+      
+      try {
+        const response = await fetch(`${MOBILFON_API_URL}/${barcode}`);
+        const data = await response.json();
+        
+        if (data.success && data.mobilfonData) {
+          displayMobilfonData(data.mobilfonData, containerElementId);
+        } else {
+          container.innerHTML = `
+            <div class="mobilfon-error">
+              ⚠️ ${data.message || 'Mobilfon sisteminde bu barkod için parça bilgisi bulunamadı'}
+              ${data.hint ? '<br><small>' + data.hint + '</small>' : ''}
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Mobilfon API Hatası:', error);
+        container.innerHTML = `
+          <div class="mobilfon-error">
+            ❌ Mobilfon sistemine bağlanırken hata oluştu. Lütfen sunucunun çalıştığından emin olun.
+            <br><small>Detay: ${error.message}</small>
+          </div>
+        `;
+      }
+    }
+    
+    function displayMobilfonData(mobilfonData, containerElementId) {
+      const container = document.getElementById(containerElementId);
+      
+      let html = '<div class="mobilfon-data">';
+      html += '<h4>🔧 Mobilfon Parça Bilgileri</h4>';
+      
+      if (mobilfonData.parts && mobilfonData.parts.length > 0) {
+        html += '<div class="mobilfon-parts-list">';
+        mobilfonData.parts.forEach(part => {
+          html += `<div class="mobilfon-part-item">${part}</div>`;
+        });
+        html += '</div>';
+        
+        if (mobilfonData.partsCount) {
+          html += `<div style="margin-top: 10px; font-size: 13px; color: rgba(255,255,255,0.8);">Toplam ${mobilfonData.partsCount} parça</div>`;
+        }
+      } else {
+        html += '<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 15px;">Parça bilgisi bulunamadı</div>';
+      }
+      
+      if (mobilfonData.technician) {
+        html += `<div class="mobilfon-technician">👤 Teknisyen: ${mobilfonData.technician}</div>`;
+      }
+      
+      if (mobilfonData.fetchedAt) {
+        html += `<div style="margin-top: 10px; font-size: 11px; color: rgba(255,255,255,0.6); text-align: right;">📅 ${mobilfonData.fetchedAt}</div>`;
+      }
+      
+      html += '</div>';
+      
+      container.innerHTML = html;
+      container.style.display = 'block';
+    }
+
     const firebaseConfig = {
         apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
       authDomain: "cokluhaber-dc6ff.firebaseapp.com",
@@ -2143,28 +2327,37 @@
     // Admin panelindeki search input
     if (inputs.search) {
       inputs.search.addEventListener("input", e => {
-        performSearch(e.target.value, 'searchResult', 'historyLog');
+        performSearch(e.target.value, 'searchResult', 'historyLog', 'mobilfonDataAdmin');
       });
     }
 
     // Normal kullanıcı arama alanı için event listener
     if (inputs.searchNormal) {
       inputs.searchNormal.addEventListener("input", e => {
-        performSearch(e.target.value, 'searchResultNormal', 'historyLogNormal');
+        performSearch(e.target.value, 'searchResultNormal', 'historyLogNormal', 'mobilfonDataNormal');
       });
     }
 
-    function performSearch(value, resultElementId, historyElementId) {
+    function performSearch(value, resultElementId, historyElementId, mobilfonElementId) {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => {
         const query = value.trim().slice(0, 15);
         const searchResult = document.getElementById(resultElementId);
         const historyLog = document.getElementById(historyElementId);
+        const mobilfonData = document.getElementById(mobilfonElementId);
         
         if (query.length === 0) {
           searchResult.style.display = "none";
           historyLog.style.display = "none";
+          if (mobilfonData) mobilfonData.style.display = "none";
           return;
+        }
+
+        // Eğer 15 haneli bir barkod ise Mobilfon'dan veri çek
+        if (query.length === 15 && /^\d{15}$/.test(query)) {
+          fetchMobilfonData(query, mobilfonElementId);
+        } else {
+          if (mobilfonData) mobilfonData.style.display = "none";
         }
 
         searchResult.style.display = "block";
