@@ -188,6 +188,37 @@
   box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
 }
 
+.export-excel-btn {
+  width: 100%;
+  padding: 15px;
+  background: #27ae60;
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.export-excel-btn:hover {
+  background: #219653;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.export-excel-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  } 
+
 .report-results {
   margin-top: 30px;
   padding: 25px;
@@ -1778,6 +1809,9 @@
 }
 
   </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 </head>
 <body>
   <!-- TOAST CONTAINER -->
@@ -1836,6 +1870,10 @@
     <button class="generate-report-btn" onclick="generateReport()">
       📊 Rapor Oluştur
     </button>
+
+    <button class="export-excel-btn" onclick="exportToExcel()" id="exportExcelBtn" disabled>
+  📊 Excel'e Aktar
+</button>
     
     <div class="report-results" id="reportResults">
       <!-- Results will be displayed here -->
@@ -2259,7 +2297,8 @@ function showReportsView() {
 }
 
 function closeReportsModal() {
-  document.getElementById('reportsModal').classList.remove('active');
+    document.getElementById('reportsModal').classList.remove('active');
+    disableExcelExport();
 }
 
 async function generateReport() {
@@ -2405,18 +2444,27 @@ async function generateReport() {
     });
     detailsHTML += '</div>';
     
-    reportResults.innerHTML = `
-      ${summaryHTML}
-      ${userStatsHTML}
-      <div class="report-details">
-        <h3>📋 Detaylı İşlem Listesi</h3>
-        ${detailFiltersHTML}
-        ${detailsHTML}
-      </div>
-    `;
+reportResults.innerHTML = `
+  ${summaryHTML}
+  ${userStatsHTML}
+  <div class="report-details">
+    <h3>📋 Detaylı İşlem Listesi</h3>
+    ${detailFiltersHTML}
+    ${detailsHTML}
+  </div>
+`;
     
     // Filtreleme işlevselliğini ekle
     setupDetailFilters(detailsData);
+
+    enableExcelExport({ 
+    details: detailsData, 
+    totalActions, 
+    userCount: Object.keys(userStats).length, 
+    userStats, 
+    reportDate: dateInput, 
+    selectedList: listName 
+});
     
   } catch (error) {
     console.error('Rapor oluşturulurken hata:', error);
@@ -2557,7 +2605,78 @@ function clearDetailFilters() {
   showToast('Filtreler temizlendi!', 'info');
 }
     
-  
+ // ========================================
+// EXCEL EXPORT FUNCTIONALITY
+// ========================================
+let currentReportData = null;
+
+function enableExcelExport(data) {
+    currentReportData = data;
+    document.getElementById('exportExcelBtn').disabled = false;
+}
+
+function disableExcelExport() {
+    currentReportData = null;
+    document.getElementById('exportExcelBtn').disabled = true;
+}
+
+function exportToExcel() {
+    if (!currentReportData) {
+        showToast('Excel için veri bulunamadı!', 'error');
+        return;
+    }
+
+    try {
+        const workbook = XLSX.utils.book_new();
+        
+        // Ana rapor
+        const reportData = currentReportData.details.map(item => ({
+            'Barkod': item.barcode,
+            'Önceki Liste': item.fromName,
+            'Yeni Liste': item.toName,
+            'Kullanıcı': item.user,
+            'Tarih': item.timestamp
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(reportData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Detaylı Rapor');
+        
+        // Özet
+        const summaryData = [
+            {'İstatistik': 'Toplam İşlem', 'Değer': currentReportData.totalActions},
+            {'İstatistik': 'Aktif Kullanıcı', 'Değer': currentReportData.userCount},
+            {'İstatistik': 'Rapor Tarihi', 'Değer': currentReportData.reportDate},
+            {'İstatistik': 'Seçilen Liste', 'Değer': currentReportData.selectedList}
+        ];
+        const summaryWorksheet = XLSX.utils.json_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(workbook, summaryWorksheet, 'Özet');
+        
+        // Kullanıcı istatistikleri
+        const userStatsArray = Object.entries(currentReportData.userStats)
+            .sort((a, b) => b[1] - a[1])
+            .map(([user, count], index) => ({
+                'Sıra': index + 1,
+                'Kullanıcı': user,
+                'İşlem Sayısı': count
+            }));
+        const userStatsWorksheet = XLSX.utils.json_to_sheet(userStatsArray);
+        XLSX.utils.book_append_sheet(workbook, userStatsWorksheet, 'Kullanıcı İstatistikleri');
+        
+        // İndir
+        const date = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(workbook, `Servis_Raporu_${date}.xlsx`);
+        
+        showToast('Excel dosyası başarıyla indirildi!', 'success');
+    } catch (error) {
+        console.error('Excel export hatası:', error);
+        showToast('Excel oluşturulurken hata oluştu!', 'error');
+    }
+}
+
+// generateReport fonksiyonunun sonuna şu satırı ekleyin:
+// enableExcelExport({ details: detailsData, totalActions, userCount: Object.keys(userStats).length, userStats, reportDate: dateInput, selectedList: listName });
+
+// closeReportsModal fonksiyonuna şu satırı ekleyin:
+// disableExcelExport(); 
 
     const firebaseConfig = {
              apiKey: "AIzaSyCbwCl4dKOV7w9e1enR_pxG8GyNIbmzCNs",
