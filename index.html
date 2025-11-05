@@ -1683,6 +1683,100 @@
       .toast { min-width: 250px; }
       .part-order-button { bottom: 20px; right: 20px; width: 55px; height: 55px; font-size: 24px; }
     }
+
+    .detail-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.detail-filter-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.9);
+  color: #333;
+  font-size: 14px;
+}
+
+.detail-filter-input:focus {
+  outline: none;
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+}
+
+.detail-list-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.detail-item {
+  padding: 12px;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,0.15);
+  border-left: 4px solid #2ecc71;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.detail-item:hover {
+  background: rgba(255,255,255,0.25);
+  transform: translateX(5px);
+}
+
+.detail-item.hidden {
+  display: none;
+}
+
+.no-detail-results {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255,255,255,0.7);
+  font-style: italic;
+}
+
+.filter-info {
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+
+.clear-filters-btn {
+  padding: 10px 15px;
+  background: #e74c3c;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.clear-filters-btn:hover {
+  background: #c0392b;
+  transform: translateY(-2px);
+}
+
+.clear-filters-btn:active {
+  transform: translateY(0);
+}
+
   </style>
 </head>
 <body>
@@ -1733,6 +1827,11 @@
         </select>
       </div>
     </div>
+
+    <!-- Bu butonu report-filters'ın hemen altına ekleyin -->
+<button class="clear-filters-btn" onclick="clearDetailFilters()" style="display: none;" id="clearFiltersBtn">
+  🗑️ Filtreleri Temizle
+</button>
     
     <button class="generate-report-btn" onclick="generateReport()">
       📊 Rapor Oluştur
@@ -2184,7 +2283,7 @@ async function generateReport() {
     const listsToCheck = listSelect ? [listSelect] : Object.keys(userCodes);
     let totalActions = 0;
     let userStats = {};
-    let detailsHTML = '';
+    let detailsData = [];
     
     for (const listName of listsToCheck) {
       const snapshot = await db.ref(`servis/history`).once('value');
@@ -2227,13 +2326,14 @@ async function generateReport() {
               const fromName = listNames[entry.from] || entry.from;
               const toName = listNames[entry.to] || entry.to;
               
-              detailsHTML += `
-                <div class="detail-item">
-                  <div class="barcode">${barcode}</div>
-                  <div class="info">${fromName} → ${toName}</div>
-                  <div class="info">👤 ${user} • 🕒 ${entry.timestamp}</div>
-                </div>
-              `;
+              detailsData.push({
+                barcode: barcode,
+                fromName: fromName,
+                toName: toName,
+                user: user,
+                timestamp: entry.timestamp,
+                rawData: entry
+              });
             }
           }
         }
@@ -2280,14 +2380,43 @@ async function generateReport() {
     });
     userStatsHTML += '</div>';
     
+    // Detaylı liste için filtreleme arayüzü
+    const detailFiltersHTML = `
+      <div class="detail-filters">
+        <input type="text" class="detail-filter-input" id="detailBarcodeFilter" placeholder="🔍 Barkod ara...">
+        <input type="text" class="detail-filter-input" id="detailUserFilter" placeholder="👤 Kullanıcı ara...">
+        <input type="text" class="detail-filter-input" id="detailListFilter" placeholder="📋 Liste ara...">
+      </div>
+      <div class="filter-info" id="filterInfo">
+        Toplam ${detailsData.length} kayıt gösteriliyor
+      </div>
+    `;
+    
+    // Detaylı liste HTML'i
+    let detailsHTML = '<div class="detail-list-container" id="detailListContainer">';
+    detailsData.forEach(item => {
+      detailsHTML += `
+        <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" data-from="${item.fromName}" data-to="${item.toName}">
+          <div class="barcode">${item.barcode}</div>
+          <div class="info">${item.fromName} → ${item.toName}</div>
+          <div class="info">👤 ${item.user} • 🕒 ${item.timestamp}</div>
+        </div>
+      `;
+    });
+    detailsHTML += '</div>';
+    
     reportResults.innerHTML = `
       ${summaryHTML}
       ${userStatsHTML}
       <div class="report-details">
         <h3>📋 Detaylı İşlem Listesi</h3>
+        ${detailFiltersHTML}
         ${detailsHTML}
       </div>
     `;
+    
+    // Filtreleme işlevselliğini ekle
+    setupDetailFilters(detailsData);
     
   } catch (error) {
     console.error('Rapor oluşturulurken hata:', error);
@@ -2308,7 +2437,125 @@ async function generateReport() {
     // ========================================
       
 
+function setupDetailFilters(detailsData) {
+  const barcodeFilter = document.getElementById('detailBarcodeFilter');
+  const userFilter = document.getElementById('detailUserFilter');
+  const listFilter = document.getElementById('detailListFilter');
+  const filterInfo = document.getElementById('filterInfo');
+  const detailItems = document.querySelectorAll('.detail-item');
+  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+  function updateClearButton() {
+    const hasFilters = barcodeFilter.value || userFilter.value || listFilter.value;
+    clearFiltersBtn.style.display = hasFilters ? 'block' : 'none';
+  }
+
+  function applyFilters() {
+    const barcodeValue = barcodeFilter.value.toLowerCase();
+    const userValue = userFilter.value.toLowerCase();
+    const listValue = listFilter.value.toLowerCase();
+
+    let visibleCount = 0;
+
+    detailItems.forEach(item => {
+      const barcode = item.getAttribute('data-barcode').toLowerCase();
+      const user = item.getAttribute('data-user').toLowerCase();
+      const from = item.getAttribute('data-from').toLowerCase();
+      const to = item.getAttribute('data-to').toLowerCase();
+
+      const matchesBarcode = barcode.includes(barcodeValue);
+      const matchesUser = user.includes(userValue);
+      const matchesList = from.includes(listValue) || to.includes(listValue);
+
+      if (matchesBarcode && matchesUser && matchesList) {
+        item.classList.remove('hidden');
+        visibleCount++;
+      } else {
+        item.classList.add('hidden');
+      }
+    });
+
+    // Filtre bilgisini güncelle
+    filterInfo.textContent = `${visibleCount} kayıt gösteriliyor (Toplam: ${detailsData.length})`;
+    
+    // Clear butonunu güncelle
+    updateClearButton();
+    
+    // Eğer hiç sonuç yoksa mesaj göster
+    if (visibleCount === 0) {
+      const container = document.getElementById('detailListContainer');
+      if (!container.querySelector('.no-detail-results')) {
+        const noResults = document.createElement('div');
+        noResults.className = 'no-detail-results';
+        noResults.innerHTML = `
+          Filtre kriterlerinize uygun kayıt bulunamadı.
+          <button class="clear-filters-btn" onclick="clearDetailFilters()" style="margin-top: 10px;">
+            🗑️ Filtreleri Temizle
+          </button>
+        `;
+        container.innerHTML = '';
+        container.appendChild(noResults);
+      }
+    } else {
+      // Eğer sonuç varsa no-results mesajını temizle
+      const noResults = document.querySelector('.no-detail-results');
+      if (noResults) {
+        noResults.remove();
+      }
+    }
+  }
+
+  // Input event listener'ları ekle
+  [barcodeFilter, userFilter, listFilter].forEach(input => {
+    input.addEventListener('input', () => {
+      applyFilters();
+      updateClearButton();
+    });
+  });
+
+  // Enter tuşuna basıldığında da filtre uygula
+  [barcodeFilter, userFilter, listFilter].forEach(input => {
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        applyFilters();
+        updateClearButton();
+      }
+    });
+  });
+
+  // İlk durum için clear butonunu güncelle
+  updateClearButton();
+}
+
+// Yeni filtre temizleme fonksiyonu
+function clearDetailFilters() {
+  document.getElementById('detailBarcodeFilter').value = '';
+  document.getElementById('detailUserFilter').value = '';
+  document.getElementById('detailListFilter').value = '';
   
+  // Filtreleri uygula (tüm kayıtları göster)
+  const detailItems = document.querySelectorAll('.detail-item');
+  detailItems.forEach(item => {
+    item.classList.remove('hidden');
+  });
+  
+  // Bilgi mesajını güncelle
+  const filterInfo = document.getElementById('filterInfo');
+  if (filterInfo) {
+    filterInfo.textContent = `Toplam ${detailItems.length} kayıt gösteriliyor`;
+  }
+  
+  // Clear butonunu gizle
+  document.getElementById('clearFiltersBtn').style.display = 'none';
+  
+  // No-results mesajını temizle
+  const noResults = document.querySelector('.no-detail-results');
+  if (noResults) {
+    noResults.remove();
+  }
+  
+  showToast('Filtreler temizlendi!', 'info');
+}
     
   
 
