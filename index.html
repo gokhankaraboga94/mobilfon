@@ -4405,34 +4405,34 @@ if (user.email === 'admin@servis.com') {
       }
     }
 
-    function removeFromOtherLists(code, exceptList) {
-      const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-      
-      Object.keys(userCodes).forEach(key => {
-        if (!listsToCount.includes(key) && !['onarim', 'teslimEdilenler'].includes(key)) {
-      listsToCount.push(key);
+function removeFromOtherLists(code, exceptList) {
+  const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+  
+  // Dinamik olarak eklenen tüm listeleri dahil et
+  Object.keys(userCodes).forEach(key => {
+    if (!allLists.includes(key)) {
+      allLists.push(key);
     }
   });
-      
-      let removedFrom = null;
-
-
-      
-      allLists.forEach(name => {
-        if (name !== exceptList && userCodes[name] && userCodes[name].has(code)) {
-          removedFrom = name;
-          userCodes[name].delete(code);
-          delete codeTimestamps[name][code];
-          delete codeUsers[name][code];
-          const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
-          db.ref(`servis/${dbPath}`).child(code).remove();
-          updateLabelAndCount(name);
-          renderMiniList(name);
-        }
-      });
-      
-      return removedFrom;
+  
+  let removedFrom = null;
+  
+  allLists.forEach(name => {
+    if (name !== exceptList && userCodes[name] && userCodes[name].has(code)) {
+      removedFrom = name;
+      userCodes[name].delete(code);
+      delete codeTimestamps[name][code];
+      delete codeUsers[name][code];
+      const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
+      db.ref(`servis/${dbPath}`).child(code).remove();
+      updateLabelAndCount(name);
+      renderMiniList(name);
     }
+  });
+  
+  return removedFrom;
+}
+
 
     function updateLabelAndCount(name) {
       if (!userCodes[name]) return;
