@@ -2086,6 +2086,11 @@
           <div class="label">Media Markt</div>
           <div id="adminMediaMarkt" class="value">0</div>
         </div>
+
+        <div class="admin-stat-box">
+  <div class="label">Toplam Teknisyen Cihazları</div>
+  <div id="adminTeknisyenler" class="value">0</div>
+</div>
         <div class="admin-stat-box">
           <div class="label">Teslim Edilenler</div>
           <div id="adminTeslimEdilenler" class="value">0</div>
@@ -4404,12 +4409,14 @@ if (user.email === 'admin@servis.com') {
       const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
       
       Object.keys(userCodes).forEach(key => {
-        if (!allLists.includes(key)) {
-          allLists.push(key);
-        }
-      });
+        if (!listsToCount.includes(key) && !['onarim', 'teslimEdilenler'].includes(key)) {
+      listsToCount.push(key);
+    }
+  });
       
       let removedFrom = null;
+
+
       
       allLists.forEach(name => {
         if (name !== exceptList && userCodes[name] && userCodes[name].has(code)) {
@@ -4839,9 +4846,10 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
 
     function updateAdminStats() {
       const totalCodesWithoutOnarim = new Set();
-      const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', "teknisyen1", "teknisyen2", 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
-      
-      Object.keys(userCodes).forEach(key => {
+        const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', "teknisyen1", "teknisyen2", 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+
+     
+ Object.keys(userCodes).forEach(key => {
         if (!listsToCount.includes(key) && !['onarim', 'teslimEdilenler'].includes(key)) {
           listsToCount.push(key);
         }
@@ -4857,11 +4865,33 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
       const matchedBarcodes = scannedCodes.size;
       const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
       
+       // Teknisyen cihazlarını hesapla
+  const teknisyenListeleri = ['gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'];
+  let toplamTeknisyenCihazlari = 0;
+  
+  teknisyenListeleri.forEach(teknisyen => {
+    if (userCodes[teknisyen]) {
+      toplamTeknisyenCihazlari += userCodes[teknisyen].size;
+    }
+  });
+      
+  
+  // Dinamik teknisyenleri de ekle
+  Object.keys(userCodes).forEach(key => {
+    if (!teknisyenListeleri.includes(key) && 
+        !['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'].includes(key)) {
+      toplamTeknisyenCihazlari += userCodes[key].size;
+    }
+  });
+
       document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
       document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
       document.getElementById('adminMatchRate').textContent = matchRate + '%';
       document.getElementById('adminTeslimEdilenler').textContent = userCodes.teslimEdilenler ? userCodes.teslimEdilenler.size : 0;
       document.getElementById('adminAtanacak').textContent = userCodes.atanacak ? userCodes.atanacak.size : 0;
+        document.getElementById('adminTeknisyenler').textContent = toplamTeknisyenCihazlari; // Yeni eklenen
+
+      
       document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor ? userCodes.parcaBekliyor.size : 0;
       document.getElementById('adminPhonecheck').textContent = userCodes.phonecheck ? userCodes.phonecheck.size : 0;
       document.getElementById('adminOnarim').textContent = userCodes.onarim ? userCodes.onarim.size : 0;
