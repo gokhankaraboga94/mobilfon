@@ -4469,80 +4469,83 @@ if (inputs.searchNormal) {
   });
 }
 
+// performSearch fonksiyonunu güncelleyin
 function performSearch(value, resultElementId, historyElementId, partInfoElementId) {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
         const query = value.trim().slice(0, 15);
         const searchResult = document.getElementById(resultElementId);
         const historyLog = document.getElementById(historyElementId);
-        const mobilfonData = document.getElementById(mobilfonElementId);
         const partInfo = document.getElementById(partInfoElementId);
         
         if (query.length === 0) {
-          searchResult.style.display = "none";
-          historyLog.style.display = "none";
-          if (mobilfonData) mobilfonData.style.display = "none";
-          if (partInfo) partInfo.style.display = "none";
-          return;
+            searchResult.style.display = "none";
+            historyLog.style.display = "none";
+            if (partInfo) partInfo.style.display = "none";
+            return;
         }
-
-    
 
         searchResult.style.display = "block";
         const foundIn = [];
         const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "teknisyen1", "teknisyen2", "engin", "ismail", "mehmet", "onarim", "disServis", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
         
         Object.keys(userCodes).forEach(key => {
-          if (!allLists.includes(key)) {
-            allLists.push(key);
-          }
+            if (!allLists.includes(key)) {
+                allLists.push(key);
+            }
         });
         
         allLists.forEach(name => {
-          if (userCodes[name] && userCodes[name].has(query)) {
-            let status = "";
-            const specialListsWithUser = ['phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-            
-            if (name === 'atanacak' || name === 'parcaBekliyor') {
-              status = "⏰ Bekliyor";
-            } else if (specialListsWithUser.includes(name)) {
-              const labelMap = {
-                phonecheck: '📱 PhoneCheck',
-                onarim: '🔧 Onarım Tamamlandı',
-                disServis: '🔨 Dış Servis',
-                satisa: '💰 Satışa Gidecek',
-                sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt',
-                teslimEdilenler: '✅ Teslim Edildi'
-              };
-              status = `${labelMap[name]}'te - ${codeUsers[name][query] || ''}`;
-            } else {
-              status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
+            if (userCodes[name] && userCodes[name].has(query)) {
+                let status = "";
+                const specialListsWithUser = ['phonecheck', 'onarim', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+                
+                if (name === 'atanacak' || name === 'parcaBekliyor') {
+                    status = "⏰ Bekliyor";
+                } else if (specialListsWithUser.includes(name)) {
+                    const labelMap = {
+                        phonecheck: '📱 PhoneCheck',
+                        onarim: '🔧 Onarım Tamamlandı',
+                        disServis: '🔨 Dış Servis',
+                        satisa: '💰 Satışa Gidecek',
+                        sahiniden: '🏪 Sahibinden',
+                        mediaMarkt: '🛒 Media Markt',
+                        teslimEdilenler: '✅ Teslim Edildi'
+                    };
+                    status = `${labelMap[name]}'te - ${codeUsers[name][query] || ''}`;
+                } else {
+                    status = scannedCodes.has(query) ? "✅ Eşleşti" : "❌ Henüz eşleşmedi";
+                }
+                
+                const displayName = name === 'atanacak' ? 'Atanacak Cihazlar' : 
+                                   name === 'parcaBekliyor' ? 'Parça Bekliyor' :
+                                   name === 'phonecheck' ? 'PhoneCheck' :
+                                   name === 'onarim' ? 'Onarım Tamamlandı' :
+                                   name === 'disServis' ? 'Dış Servis' :
+                                   name === 'satisa' ? 'Satışa Gidecek' :
+                                   name === 'sahiniden' ? 'Sahibinden' :
+                                   name === 'mediaMarkt' ? 'Media Markt' :
+                                   name === 'teslimEdilenler' ? 'Teslim Edilenler' :
+                                   name.charAt(0).toUpperCase() + name.slice(1);
+                foundIn.push(`<strong>${displayName}</strong>: ${status}`);
             }
-            
-            const displayName = name === 'atanacak' ? 'Atanacak Cihazlar' : 
-                               name === 'parcaBekliyor' ? 'Parça Bekliyor' :
-                               name === 'phonecheck' ? 'PhoneCheck' :
-                               name === 'onarim' ? 'Onarım Tamamlandı' :
-                               name === 'disServis' ? 'Dış Servis' :
-                               name === 'satisa' ? 'Satışa Gidecek' :
-                               name === 'sahiniden' ? 'Sahibinden' :
-                               name === 'mediaMarkt' ? 'Media Markt' :
-                               name === 'teslimEdilenler' ? 'Teslim Edilenler' :
-                               name.charAt(0).toUpperCase() + name.slice(1);
-            foundIn.push(`<strong>${displayName}</strong>: ${status}`);
-          }
         });
 
         if (foundIn.length > 0) {
-          searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}`;
-          loadAndDisplayHistoryToElement(query, historyElementId);
+            searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}`;
+            loadAndDisplayHistoryToElement(query, historyElementId);
+            
+            // Parça bilgilerini göster
+            if (partInfo) {
+                displayPartInfo(query, partInfoElementId);
+            }
         } else {
-          searchResult.innerHTML = `<div style="color: #e74c3c;">❌ Barkod bulunamadı</div>`;
-          historyLog.style.display = "none";
+            searchResult.innerHTML = `<div style="color: #e74c3c;">❌ Barkod bulunamadı</div>`;
+            historyLog.style.display = "none";
+            if (partInfo) partInfo.style.display = "none";
         }
-      }, 300);
-    }
+    }, 300);
+}
 
     async function loadAndDisplayHistoryToElement(code, historyElementId) {
       const historyLog = document.getElementById(historyElementId);
