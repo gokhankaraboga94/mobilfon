@@ -2318,15 +2318,11 @@ async function generateReport() {
   const startDateInput = document.getElementById('reportStartDate').value;
   const endDateInput = document.getElementById('reportEndDate').value;
   const listSelect = document.getElementById('reportList').value;
-  // if (!dateInput) { // ESKİSİ
+  
   if (!startDateInput || !endDateInput) {
     showToast('Lütfen başlangıç ve bitiş tarihlerini seçin!', 'warning');
     return;
   }
-  
-  // const selectedDate = new Date(dateInput); // ESKİSİ
-  // const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0)).getTime(); // ESKİSİ
-  // const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999)).getTime(); // ESKİSİ
   
   const startDate = new Date(startDateInput);
   const endDate = new Date(endDateInput);
@@ -2350,6 +2346,12 @@ async function generateReport() {
     let userStats = {};
     let detailsData = [];
     
+    // Mevcut tüm barkodların son durumunu al
+    const currentBarcodes = new Set();
+    Object.values(userCodes).forEach(set => {
+      set.forEach(code => currentBarcodes.add(code));
+    });
+    
     for (const listName of listsToCheck) {
       const snapshot = await db.ref(`servis/history`).once('value');
       const historyData = snapshot.val();
@@ -2359,50 +2361,85 @@ async function generateReport() {
       for (const [barcode, barcodeHistory] of Object.entries(historyData)) {
         const historyArray = Object.values(barcodeHistory);
         
-        for (const entry of historyArray) {
-          // if (entry.timestampRaw >= startOfDay && entry.timestampRaw <= endOfDay) { // ESKİSİ
-          if (entry.timestampRaw >= startOfPeriod && entry.timestampRaw <= endOfPeriod) {
-            // ... fonksiyonun geri kalanı AYNI KALACAK ...
-            if (!listSelect || entry.to === listName) {
-              totalActions++;
-              
-              const user = entry.user || 'Bilinmeyen';
-              userStats[user] = (userStats[user] || 0) + 1;
-              
-              const listNames = {
-                atanacak: '📋 Atanacak',
-                parcaBekliyor: '⚙️ Parça Bekliyor',
-                phonecheck: '📱 PhoneCheck',
-                gokhan: '🧑‍🔧 Gökhan',
-                enes: '🧑‍🔧 Enes',
-                yusuf: '🧑‍🔧 Yusuf',
-                samet: '🧑‍🔧 Samet',
-                teknisyen1: '🧑‍🔧 Teknisyen1',
-                teknisyen2: '🧑‍🔧 Teknisyen2',
-                engin: '🧑‍🔧 Engin',
-                ismail: '🧑‍🔧 İsmail',
-                mehmet: '🧑‍🔧 Mehmet',
-                onarim: '🔧 Onarım Tamamlandı',
-                disServis: '🔨 Dış Servis',
-                satisa: '💰 Satışa Gidecek',
-                sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt',
-                teslimEdilenler: '✅ Teslim Edildi'
-              };
-              
-              const fromName = listNames[entry.from] || entry.from;
-              const toName = listNames[entry.to] || entry.to;
-              
-              detailsData.push({
-                barcode: barcode,
-                fromName: fromName,
-                toName: toName,
-                user: user,
-                timestamp: entry.timestamp,
-                rawData: entry
-              });
+        // Barkodun tarih aralığındaki tüm hareketlerini filtrele
+        const periodActions = historyArray.filter(entry => 
+          entry.timestampRaw >= startOfPeriod && entry.timestampRaw <= endOfPeriod
+        );
+        
+        if (periodActions.length === 0) continue;
+        
+        // Barkodun bu tarih aralığındaki son hareketini bul
+        const lastActionInPeriod = periodActions.reduce((latest, current) => 
+          current.timestampRaw > latest.timestampRaw ? current : latest
+        );
+        
+        // Eğer barkod hala sistemdeyse ve son hareket listedeyse say
+        // Eğer barkod artık sistemde değilse (teslim edilip geri alınmamışsa) say
+        if (!listSelect || lastActionInPeriod.to === listName) {
+          // Barkodun şu anki durumunu kontrol et
+          let isCurrentlyInSystem = currentBarcodes.has(barcode);
+          let isCurrentlyInTargetList = userCodes[listName] && userCodes[listName].has(barcode);
+          
+          // Eğer spesifik bir liste seçilmişse ve barkod şu anda o listede değilse, sayma
+          if (listSelect && !isCurrentlyInTargetList) {
+            continue;
+          }
+          
+          // Eğer liste seçilmemişse (tüm listeler) ve barkod artık sistemde değilse, say
+          if (!listSelect && !isCurrentlyInSystem) {
+            continue;
+          }
+          
+          totalActions++;
+          
+          const user = lastActionInPeriod.user || 'Bilinmeyen';
+          userStats[user] = (userStats[user] || 0) + 1;
+          
+          const listNames = {
+            atanacak: '📋 Atanacak',
+            parcaBekliyor: '⚙️ Parça Bekliyor',
+            phonecheck: '📱 PhoneCheck',
+            gokhan: '🧑‍🔧 Gökhan',
+            enes: '🧑‍🔧 Enes',
+            yusuf: '🧑‍🔧 Yusuf',
+            samet: '🧑‍🔧 Samet',
+            teknisyen1: '🧑‍🔧 Teknisyen1',
+            teknisyen2: '🧑‍🔧 Teknisyen2',
+            engin: '🧑‍🔧 Engin',
+            ismail: '🧑‍🔧 İsmail',
+            mehmet: '🧑‍🔧 Mehmet',
+            onarim: '🔧 Onarım Tamamlandı',
+            disServis: '🔨 Dış Servis',
+            satisa: '💰 Satışa Gidecek',
+            sahiniden: '🏪 Sahibinden',
+            mediaMarkt: '🛒 Media Markt',
+            teslimEdilenler: '✅ Teslim Edildi'
+          };
+          
+          const fromName = listNames[lastActionInPeriod.from] || lastActionInPeriod.from;
+          const toName = listNames[lastActionInPeriod.to] || lastActionInPeriod.to;
+          
+          // Barkodun şu anki durumunu belirle
+          let currentStatus = '❌ Sistemde Yok';
+          if (isCurrentlyInSystem) {
+            // Hangi listede olduğunu bul
+            for (const [listName, codeSet] of Object.entries(userCodes)) {
+              if (codeSet.has(barcode)) {
+                currentStatus = `📍 ${listNames[listName] || listName}`;
+                break;
+              }
             }
           }
+          
+          detailsData.push({
+            barcode: barcode,
+            fromName: fromName,
+            toName: toName,
+            user: user,
+            timestamp: lastActionInPeriod.timestamp,
+            currentStatus: currentStatus,
+            rawData: lastActionInPeriod
+          });
         }
       }
     }
@@ -2415,25 +2452,28 @@ async function generateReport() {
       `;
       return;
     }
-    
 
-const listName = listSelect ? document.querySelector(`#reportList option[value="${listSelect}"]`).textContent : 'Tüm Listeler';
-const dateRangeText = `${startDateInput} - ${endDateInput}`;
+    const listName = listSelect ? document.querySelector(`#reportList option[value="${listSelect}"]`).textContent : 'Tüm Listeler';
+    const dateRangeText = `${startDateInput} - ${endDateInput}`;
 
-let summaryHTML = `
-  <div class="report-summary">
-    <div class="summary-card">
-      <div class="label">Toplam İşlem</div>
-      <div class="value">${totalActions}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Aktif Kullanıcı</div>
-      <div class="value">${Object.keys(userStats).length}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Tarih Aralığı</div>
-      <div class="value" style="font-size: 16px;">${dateRangeText}</div>
-    </div>
+    let summaryHTML = `
+      <div class="report-summary">
+        <div class="summary-card">
+          <div class="label">Toplam İşlem</div>
+          <div class="value">${totalActions}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Aktif Kullanıcı</div>
+          <div class="value">${Object.keys(userStats).length}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Tarih Aralığı</div>
+          <div class="value" style="font-size: 16px;">${dateRangeText}</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Rapor Türü</div>
+          <div class="value" style="font-size: 14px;">${listName}<br><small>(Güncel Durum)</small></div>
+        </div>
       </div>
     `;
     
@@ -2451,11 +2491,12 @@ let summaryHTML = `
     
     // Detaylı liste için filtreleme arayüzü
     const detailFiltersHTML = `
-      <div class="detail-filters">
-        <input type="text" class="detail-filter-input" id="detailBarcodeFilter" placeholder="🔍 Barkod ara...">
-        <input type="text" class="detail-filter-input" id="detailUserFilter" placeholder="👤 Kullanıcı ara...">
-        <input type="text" class="detail-filter-input" id="detailListFilter" placeholder="📋 Liste ara...">
-      </div>
+<div class="detail-filters">
+  <input type="text" class="detail-filter-input" id="detailBarcodeFilter" placeholder="🔍 Barkod ara...">
+  <input type="text" class="detail-filter-input" id="detailUserFilter" placeholder="👤 Kullanıcı ara...">
+  <input type="text" class="detail-filter-input" id="detailListFilter" placeholder="📋 Liste ara...">
+  <input type="text" class="detail-filter-input" id="detailStatusFilter" placeholder="📍 Durum ara..."> <!-- BU SATIRI EKLEYİN -->
+</div>
       <div class="filter-info" id="filterInfo">
         Toplam ${detailsData.length} kayıt gösteriliyor
       </div>
@@ -2465,36 +2506,37 @@ let summaryHTML = `
     let detailsHTML = '<div class="detail-list-container" id="detailListContainer">';
     detailsData.forEach(item => {
       detailsHTML += `
-        <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" data-from="${item.fromName}" data-to="${item.toName}">
+        <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" data-from="${item.fromName}" data-to="${item.toName}" data-status="${item.currentStatus}">
           <div class="barcode">${item.barcode}</div>
           <div class="info">${item.fromName} → ${item.toName}</div>
           <div class="info">👤 ${item.user} • 🕒 ${item.timestamp}</div>
+          <div class="info" style="color: ${item.currentStatus.includes('❌') ? '#e74c3c' : '#2ecc71'};">${item.currentStatus}</div>
         </div>
       `;
     });
     detailsHTML += '</div>';
     
-reportResults.innerHTML = `
-  ${summaryHTML}
-  ${userStatsHTML}
-  <div class="report-details">
-    <h3>📋 Detaylı İşlem Listesi</h3>
-    ${detailFiltersHTML}
-    ${detailsHTML}
-  </div>
-`;
+    reportResults.innerHTML = `
+      ${summaryHTML}
+      ${userStatsHTML}
+      <div class="report-details">
+        <h3>📋 Detaylı İşlem Listesi</h3>
+        ${detailFiltersHTML}
+        ${detailsHTML}
+      </div>
+    `;
     
     // Filtreleme işlevselliğini ekle
     setupDetailFilters(detailsData);
 
     enableExcelExport({ 
-    details: detailsData, 
-    totalActions, 
-    userCount: Object.keys(userStats).length, 
-    userStats, 
- reportDate: dateRangeText, // YENİSİ
-    selectedList: listName 
-});
+      details: detailsData, 
+      totalActions, 
+      userCount: Object.keys(userStats).length, 
+      userStats, 
+      reportDate: dateRangeText,
+      selectedList: listName 
+    });
     
   } catch (error) {
     console.error('Rapor oluşturulurken hata:', error);
@@ -2519,12 +2561,13 @@ function setupDetailFilters(detailsData) {
   const barcodeFilter = document.getElementById('detailBarcodeFilter');
   const userFilter = document.getElementById('detailUserFilter');
   const listFilter = document.getElementById('detailListFilter');
+  const statusFilter = document.getElementById('detailStatusFilter'); // YENİ EKLENDİ
   const filterInfo = document.getElementById('filterInfo');
   const detailItems = document.querySelectorAll('.detail-item');
   const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
   function updateClearButton() {
-    const hasFilters = barcodeFilter.value || userFilter.value || listFilter.value;
+    const hasFilters = barcodeFilter.value || userFilter.value || listFilter.value || statusFilter.value;
     clearFiltersBtn.style.display = hasFilters ? 'block' : 'none';
   }
 
@@ -2532,6 +2575,7 @@ function setupDetailFilters(detailsData) {
     const barcodeValue = barcodeFilter.value.toLowerCase();
     const userValue = userFilter.value.toLowerCase();
     const listValue = listFilter.value.toLowerCase();
+    const statusValue = statusFilter.value.toLowerCase(); // YENİ EKLENDİ
 
     let visibleCount = 0;
 
@@ -2540,12 +2584,14 @@ function setupDetailFilters(detailsData) {
       const user = item.getAttribute('data-user').toLowerCase();
       const from = item.getAttribute('data-from').toLowerCase();
       const to = item.getAttribute('data-to').toLowerCase();
+      const status = item.getAttribute('data-status').toLowerCase(); // YENİ EKLENDİ
 
       const matchesBarcode = barcode.includes(barcodeValue);
       const matchesUser = user.includes(userValue);
       const matchesList = from.includes(listValue) || to.includes(listValue);
+      const matchesStatus = status.includes(statusValue); // YENİ EKLENDİ
 
-      if (matchesBarcode && matchesUser && matchesList) {
+      if (matchesBarcode && matchesUser && matchesList && matchesStatus) {
         item.classList.remove('hidden');
         visibleCount++;
       } else {
@@ -2553,13 +2599,10 @@ function setupDetailFilters(detailsData) {
       }
     });
 
-    // Filtre bilgisini güncelle
+    // ... fonksiyonun geri kalanı aynı kalacak ...
     filterInfo.textContent = `${visibleCount} kayıt gösteriliyor (Toplam: ${detailsData.length})`;
-    
-    // Clear butonunu güncelle
     updateClearButton();
     
-    // Eğer hiç sonuç yoksa mesaj göster
     if (visibleCount === 0) {
       const container = document.getElementById('detailListContainer');
       if (!container.querySelector('.no-detail-results')) {
@@ -2575,7 +2618,6 @@ function setupDetailFilters(detailsData) {
         container.appendChild(noResults);
       }
     } else {
-      // Eğer sonuç varsa no-results mesajını temizle
       const noResults = document.querySelector('.no-detail-results');
       if (noResults) {
         noResults.remove();
@@ -2583,8 +2625,8 @@ function setupDetailFilters(detailsData) {
     }
   }
 
-  // Input event listener'ları ekle
-  [barcodeFilter, userFilter, listFilter].forEach(input => {
+  // Input event listener'ları ekle (statusFilter'ı da ekleyin)
+  [barcodeFilter, userFilter, listFilter, statusFilter].forEach(input => {
     input.addEventListener('input', () => {
       applyFilters();
       updateClearButton();
@@ -2592,7 +2634,7 @@ function setupDetailFilters(detailsData) {
   });
 
   // Enter tuşuna basıldığında da filtre uygula
-  [barcodeFilter, userFilter, listFilter].forEach(input => {
+  [barcodeFilter, userFilter, listFilter, statusFilter].forEach(input => {
     input.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         applyFilters();
@@ -2601,15 +2643,13 @@ function setupDetailFilters(detailsData) {
     });
   });
 
-  // İlk durum için clear butonunu güncelle
   updateClearButton();
 }
-
-// Yeni filtre temizleme fonksiyonu
 function clearDetailFilters() {
   document.getElementById('detailBarcodeFilter').value = '';
   document.getElementById('detailUserFilter').value = '';
   document.getElementById('detailListFilter').value = '';
+  document.getElementById('detailStatusFilter').value = ''; // BU SATIRI EKLEYİN
   
   // Filtreleri uygula (tüm kayıtları göster)
   const detailItems = document.querySelectorAll('.detail-item');
