@@ -2361,6 +2361,31 @@ async function generateReport() {
       for (const [barcode, barcodeHistory] of Object.entries(historyData)) {
         const historyArray = Object.values(barcodeHistory);
         
+        // PhoneCheck geçmişini kontrol et
+        let phoneCheckInfo = null;
+        // PhoneCheck'e GİRİŞ yapan ilk kaydı bul
+        const phoneCheckEntry = historyArray.find(entry => entry.to === 'phonecheck');
+
+        if (phoneCheckEntry) {
+          phoneCheckInfo = {
+            user: phoneCheckEntry.user,
+            timestamp: phoneCheckEntry.timestamp,
+            action: 'Giriş'
+          };
+        } else {
+          // Eğer direkt giriş kaydı yoksa, PhoneCheck'te olduğu bir kayıt bul
+          const inPhoneCheckEntry = historyArray.find(entry => 
+            entry.from === 'phonecheck' || entry.to === 'phonecheck'
+          );
+          if (inPhoneCheckEntry) {
+            phoneCheckInfo = {
+              user: inPhoneCheckEntry.user || 'Bilinmeyen',
+              timestamp: inPhoneCheckEntry.timestamp,
+              action: 'Mevcut'
+            };
+          }
+        } // BU SATIR EKLENDİ - KAPANAN PARANTEZ
+        
         // Barkodun tarih aralığındaki tüm hareketlerini filtrele
         const periodActions = historyArray.filter(entry => 
           entry.timestampRaw >= startOfPeriod && entry.timestampRaw <= endOfPeriod
@@ -2374,7 +2399,6 @@ async function generateReport() {
         );
         
         // Eğer barkod hala sistemdeyse ve son hareket listedeyse say
-        // Eğer barkod artık sistemde değilse (teslim edilip geri alınmamışsa) say
         if (!listSelect || lastActionInPeriod.to === listName) {
           // Barkodun şu anki durumunu kontrol et
           let isCurrentlyInSystem = currentBarcodes.has(barcode);
@@ -2438,6 +2462,7 @@ async function generateReport() {
             user: user,
             timestamp: lastActionInPeriod.timestamp,
             currentStatus: currentStatus,
+            phoneCheckInfo: phoneCheckInfo,
             rawData: lastActionInPeriod
           });
         }
@@ -2495,7 +2520,7 @@ async function generateReport() {
   <input type="text" class="detail-filter-input" id="detailBarcodeFilter" placeholder="🔍 Barkod ara...">
   <input type="text" class="detail-filter-input" id="detailUserFilter" placeholder="👤 Kullanıcı ara...">
   <input type="text" class="detail-filter-input" id="detailListFilter" placeholder="📋 Liste ara...">
-  <input type="text" class="detail-filter-input" id="detailStatusFilter" placeholder="📍 Durum ara..."> <!-- BU SATIRI EKLEYİN -->
+  <input type="text" class="detail-filter-input" id="detailStatusFilter" placeholder="📍 Durum ara...">
 </div>
       <div class="filter-info" id="filterInfo">
         Toplam ${detailsData.length} kayıt gösteriliyor
@@ -2505,14 +2530,28 @@ async function generateReport() {
     // Detaylı liste HTML'i
     let detailsHTML = '<div class="detail-list-container" id="detailListContainer">';
     detailsData.forEach(item => {
-      detailsHTML += `
-        <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" data-from="${item.fromName}" data-to="${item.toName}" data-status="${item.currentStatus}">
-          <div class="barcode">${item.barcode}</div>
-          <div class="info">${item.fromName} → ${item.toName}</div>
-          <div class="info">👤 ${item.user} • 🕒 ${item.timestamp}</div>
-          <div class="info" style="color: ${item.currentStatus.includes('❌') ? '#e74c3c' : '#2ecc71'};">${item.currentStatus}</div>
-        </div>
-      `;
+        detailsHTML += `
+            <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" 
+                 data-from="${item.fromName}" data-to="${item.toName}" 
+                 data-status="${item.currentStatus}" 
+                 data-phonecheck="${item.phoneCheckInfo ? 'var' : 'yok'}">
+                <div class="barcode">${item.barcode}</div>
+                <div class="info">${item.fromName} → ${item.toName}</div>
+                <div class="info">👤 ${item.user} • 🕒 ${item.timestamp}</div>
+                ${item.phoneCheckInfo ? `
+                    <div class="info" style="color: #3498db;">
+                        📱 PhoneCheck: ${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})
+                    </div>
+                ` : `
+                    <div class="info" style="color: #95a5a6;">
+                        📱 PhoneCheck: Yok
+                    </div>
+                `}
+                <div class="info" style="color: ${item.currentStatus.includes('❌') ? '#e74c3c' : '#2ecc71'};">
+                    ${item.currentStatus}
+                </div>
+            </div>
+        `;
     });
     detailsHTML += '</div>';
     
@@ -2548,6 +2587,7 @@ async function generateReport() {
     `;
   }
 }
+
     // ========================================
     // MOBILFON API CONFIGURATION
     // ========================================
@@ -2699,14 +2739,18 @@ function exportToExcel() {
     try {
         const workbook = XLSX.utils.book_new();
         
-        // Ana rapor
+        // Ana rapor - YENİ SÜTUN EKLENDİ
         const reportData = currentReportData.details.map(item => ({
             'Barkod': item.barcode,
             'Önceki Liste': item.fromName,
             'Yeni Liste': item.toName,
+            'PhoneCheck Geçmişi': item.phoneCheckInfo 
+                ? `${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})`
+                : 'Yok',
             'Kullanıcı': item.user,
             'Tarih': item.timestamp
         }));
+        
         const worksheet = XLSX.utils.json_to_sheet(reportData);
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Detaylı Rapor');
         
