@@ -1830,11 +1830,16 @@
       <button class="close-reports" onclick="closeReportsModal()">✕</button>
     </div>
     
-    <div class="report-filters">
-      <div class="filter-group">
-        <label>📅 Tarih Seçin</label>
-        <input type="date" id="reportDate">
-      </div>
+<div class="report-filters">
+  <div class="filter-group">
+    <label>📅 Başlangıç Tarihi</label>
+    <input type="date" id="reportStartDate">
+  </div>
+  
+  <div class="filter-group">
+    <label>📅 Bitiş Tarihi</label>
+    <input type="date" id="reportEndDate">
+  </div>
       
       <div class="filter-group">
         <label>📋 Liste Seçin</label>
@@ -2298,8 +2303,11 @@ function showMainView() {
 function showReportsView() {
   document.getElementById('reportsModal').classList.add('active');
   const today = new Date().toISOString().split('T')[0];
-  document.getElementById('reportDate').value = today;
+  // document.getElementById('reportDate').value = today; // ESKİSİ
+  document.getElementById('reportStartDate').value = today; // YENİSİ
+  document.getElementById('reportEndDate').value = today; // YENİSİ
 }
+
 
 function closeReportsModal() {
     document.getElementById('reportsModal').classList.remove('active');
@@ -2307,17 +2315,30 @@ function closeReportsModal() {
 }
 
 async function generateReport() {
-  const dateInput = document.getElementById('reportDate').value;
+  const startDateInput = document.getElementById('reportStartDate').value;
+  const endDateInput = document.getElementById('reportEndDate').value;
   const listSelect = document.getElementById('reportList').value;
-  
-  if (!dateInput) {
-    showToast('Lütfen bir tarih seçin!', 'warning');
+  // if (!dateInput) { // ESKİSİ
+  if (!startDateInput || !endDateInput) {
+    showToast('Lütfen başlangıç ve bitiş tarihlerini seçin!', 'warning');
     return;
   }
   
-  const selectedDate = new Date(dateInput);
-  const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0)).getTime();
-  const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999)).getTime();
+  // const selectedDate = new Date(dateInput); // ESKİSİ
+  // const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0)).getTime(); // ESKİSİ
+  // const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999)).getTime(); // ESKİSİ
+  
+  const startDate = new Date(startDateInput);
+  const endDate = new Date(endDateInput);
+  endDate.setHours(23, 59, 59, 999);
+  
+  if (startDate > endDate) {
+    showToast('Başlangıç tarihi bitiş tarihinden büyük olamaz!', 'error');
+    return;
+  }
+  
+  const startOfPeriod = startDate.getTime();
+  const endOfPeriod = endDate.getTime();
   
   try {
     const reportResults = document.getElementById('reportResults');
@@ -2339,7 +2360,9 @@ async function generateReport() {
         const historyArray = Object.values(barcodeHistory);
         
         for (const entry of historyArray) {
-          if (entry.timestampRaw >= startOfDay && entry.timestampRaw <= endOfDay) {
+          // if (entry.timestampRaw >= startOfDay && entry.timestampRaw <= endOfDay) { // ESKİSİ
+          if (entry.timestampRaw >= startOfPeriod && entry.timestampRaw <= endOfPeriod) {
+            // ... fonksiyonun geri kalanı AYNI KALACAK ...
             if (!listSelect || entry.to === listName) {
               totalActions++;
               
@@ -2393,22 +2416,24 @@ async function generateReport() {
       return;
     }
     
-    const listName = listSelect ? document.querySelector(`#reportList option[value="${listSelect}"]`).textContent : 'Tüm Listeler';
-    
-    let summaryHTML = `
-      <div class="report-summary">
-        <div class="summary-card">
-          <div class="label">Toplam İşlem</div>
-          <div class="value">${totalActions}</div>
-        </div>
-        <div class="summary-card">
-          <div class="label">Aktif Kullanıcı</div>
-          <div class="value">${Object.keys(userStats).length}</div>
-        </div>
-        <div class="summary-card">
-          <div class="label">Seçilen Liste</div>
-          <div class="value" style="font-size: 18px;">${listName}</div>
-        </div>
+
+const listName = listSelect ? document.querySelector(`#reportList option[value="${listSelect}"]`).textContent : 'Tüm Listeler';
+const dateRangeText = `${startDateInput} - ${endDateInput}`;
+
+let summaryHTML = `
+  <div class="report-summary">
+    <div class="summary-card">
+      <div class="label">Toplam İşlem</div>
+      <div class="value">${totalActions}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Aktif Kullanıcı</div>
+      <div class="value">${Object.keys(userStats).length}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Tarih Aralığı</div>
+      <div class="value" style="font-size: 16px;">${dateRangeText}</div>
+    </div>
       </div>
     `;
     
@@ -2467,7 +2492,7 @@ reportResults.innerHTML = `
     totalActions, 
     userCount: Object.keys(userStats).length, 
     userStats, 
-    reportDate: dateInput, 
+ reportDate: dateRangeText, // YENİSİ
     selectedList: listName 
 });
     
