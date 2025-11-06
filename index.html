@@ -4633,25 +4633,27 @@ function removeFromOtherLists(code, exceptList) {
                 renderMiniList('phonecheck');
               }
               
-              db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
-              codeTimestamps.onarim[code] = timestamp;
-              codeUsers.onarim[code] = currentUserName;
-              userCodes.onarim.add(code);
-              allCodes.add(code);
-            } else if (name === 'teslimEdilenler') {
-              db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-              codeTimestamps[name][code] = timestamp;
-              codeUsers[name][code] = currentUserName;
-              userCodes[name].add(code);
-            } else {
-              db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-              codeTimestamps[name][code] = timestamp;
-              codeUsers[name][code] = currentUserName;
-              userCodes[name].add(code);
-              allCodes.add(code);
-            }
-          }
-        });
+        db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
+        codeTimestamps.onarim[code] = timestamp;
+        codeUsers.onarim[code] = currentUserName;
+        userCodes.onarim.add(code);
+        // onarim barkodlarını da toplam barkodlara ekliyoruz
+        allCodes.add(code); // BU SATIR EKLENDİ
+      } else if (name === 'teslimEdilenler') {
+        db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+        codeTimestamps[name][code] = timestamp;
+        codeUsers[name][code] = currentUserName;
+        userCodes[name].add(code);
+        // teslimEdilenler'i toplam barkodlara EKLEMİYORUZ
+      } else {
+        db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+        codeTimestamps[name][code] = timestamp;
+        codeUsers[name][code] = currentUserName;
+        userCodes[name].add(code);
+        allCodes.add(code);
+      }
+    }
+  });
         
         updateLabelAndCount(name);
         renderList();
@@ -4953,28 +4955,28 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
       }
     }
 
-    function updateAdminStats() {
-      const totalCodesWithoutOnarim = new Set();
-        const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', "teknisyen1", "teknisyen2", 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt'];
+function updateAdminStats() {
+  const totalCodesWithOnarim = new Set();
+  // onarim listesini de dahil ediyoruz
+  const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', "teknisyen1", "teknisyen2", 'engin', 'ismail', 'mehmet', 'disServis', 'satisa', 'sahiniden', 'mediaMarkt', 'onarim']; // 'onarim' eklendi
 
-     
- Object.keys(userCodes).forEach(key => {
-        if (!listsToCount.includes(key) && !['onarim', 'teslimEdilenler'].includes(key)) {
-          listsToCount.push(key);
-        }
-      });
-      
-      listsToCount.forEach(name => {
-        if (userCodes[name]) {
-          userCodes[name].forEach(code => totalCodesWithoutOnarim.add(code));
-        }
-      });
-      
-      const totalBarcodes = totalCodesWithoutOnarim.size;
-      const matchedBarcodes = scannedCodes.size;
-      const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
-      
-       // Teknisyen cihazlarını hesapla
+  Object.keys(userCodes).forEach(key => {
+    if (!listsToCount.includes(key) && !['teslimEdilenler'].includes(key)) { // 'onarim' burada hariç tutulmuyor
+      listsToCount.push(key);
+    }
+  });
+  
+  listsToCount.forEach(name => {
+    if (userCodes[name]) {
+      userCodes[name].forEach(code => totalCodesWithOnarim.add(code));
+    }
+  });
+  
+  const totalBarcodes = totalCodesWithOnarim.size;
+  const matchedBarcodes = scannedCodes.size;
+  const matchRate = totalBarcodes > 0 ? Math.round((matchedBarcodes / totalBarcodes) * 100) : 0;
+  
+  // Teknisyen cihazlarını hesapla
   const teknisyenListeleri = ['gokhan', 'enes', 'yusuf', 'samet', 'teknisyen1', 'teknisyen2', 'engin', 'ismail', 'mehmet'];
   let toplamTeknisyenCihazlari = 0;
   
@@ -4983,7 +4985,6 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
       toplamTeknisyenCihazlari += userCodes[teknisyen].size;
     }
   });
-      
   
   // Dinamik teknisyenleri de ekle
   Object.keys(userCodes).forEach(key => {
@@ -4993,23 +4994,21 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
     }
   });
 
-      document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
-      document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
-      document.getElementById('adminMatchRate').textContent = matchRate + '%';
-      document.getElementById('adminTeslimEdilenler').textContent = userCodes.teslimEdilenler ? userCodes.teslimEdilenler.size : 0;
-      document.getElementById('adminAtanacak').textContent = userCodes.atanacak ? userCodes.atanacak.size : 0;
-        document.getElementById('adminTeknisyenler').textContent = toplamTeknisyenCihazlari; // Yeni eklenen
-
-      
-      document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor ? userCodes.parcaBekliyor.size : 0;
-      document.getElementById('adminPhonecheck').textContent = userCodes.phonecheck ? userCodes.phonecheck.size : 0;
-      document.getElementById('adminOnarim').textContent = userCodes.onarim ? userCodes.onarim.size : 0;
-      document.getElementById('adminDisServis').textContent = userCodes.disServis ? userCodes.disServis.size : 0;
-      document.getElementById('adminSatisa').textContent = userCodes.satisa ? userCodes.satisa.size : 0;
-      document.getElementById('adminSahiniden').textContent = userCodes.sahiniden ? userCodes.sahiniden.size : 0;
-      document.getElementById('adminMediaMarkt').textContent = userCodes.mediaMarkt ? userCodes.mediaMarkt.size : 0;
-    }
-
+  document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
+  document.getElementById('adminMatchedBarcodes').textContent = matchedBarcodes;
+  document.getElementById('adminMatchRate').textContent = matchRate + '%';
+  document.getElementById('adminTeslimEdilenler').textContent = userCodes.teslimEdilenler ? userCodes.teslimEdilenler.size : 0;
+  document.getElementById('adminAtanacak').textContent = userCodes.atanacak ? userCodes.atanacak.size : 0;
+  document.getElementById('adminTeknisyenler').textContent = toplamTeknisyenCihazlari;
+  
+  document.getElementById('adminParcaBekliyor').textContent = userCodes.parcaBekliyor ? userCodes.parcaBekliyor.size : 0;
+  document.getElementById('adminPhonecheck').textContent = userCodes.phonecheck ? userCodes.phonecheck.size : 0;
+  document.getElementById('adminOnarim').textContent = userCodes.onarim ? userCodes.onarim.size : 0;
+  document.getElementById('adminDisServis').textContent = userCodes.disServis ? userCodes.disServis.size : 0;
+  document.getElementById('adminSatisa').textContent = userCodes.satisa ? userCodes.satisa.size : 0;
+  document.getElementById('adminSahiniden').textContent = userCodes.sahiniden ? userCodes.sahiniden.size : 0;
+  document.getElementById('adminMediaMarkt').textContent = userCodes.mediaMarkt ? userCodes.mediaMarkt.size : 0;
+}
     function syncTextareaWithData(name) {
       if (!dataLoaded || !inputs[name]) return;
       
@@ -5019,100 +5018,102 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
       }
     }
 
-    function loadData() {
-      db.ref('servis').once('value', snapshot => {
-        const data = snapshot.val();
-        if (!data) return;
+function loadData() {
+  db.ref('servis').once('value', snapshot => {
+    const data = snapshot.val();
+    if (!data) return;
+    
+    const allKeys = Object.keys(data).filter(k => k !== 'eslesenler' && k !== 'history');
+    
+    let loadedCount = 0;
+    const totalLists = allKeys.length + 1;
+    
+    allKeys.forEach(name => {
+      const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
+      
+      if (!userCodes[localName]) {
+        userCodes[localName] = new Set();
+        codeTimestamps[localName] = {};
+        codeUsers[localName] = {};
         
-        const allKeys = Object.keys(data).filter(k => k !== 'eslesenler' && k !== 'history');
-        
-        let loadedCount = 0;
-        const totalLists = allKeys.length + 1;
-        
-        allKeys.forEach(name => {
-          const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
-          
-          if (!userCodes[localName]) {
-            userCodes[localName] = new Set();
-            codeTimestamps[localName] = {};
-            codeUsers[localName] = {};
-            
-            if (!inputs[localName] && !['eslesenler', 'history', 'adet'].includes(localName)) {
-              const container = document.getElementById('techniciansContainer');
-              if (container) {
-                createTechnicianSection(localName, container);
-              }
-            }
+        if (!inputs[localName] && !['eslesenler', 'history', 'adet'].includes(localName)) {
+          const container = document.getElementById('techniciansContainer');
+          if (container) {
+            createTechnicianSection(localName, container);
           }
-          
-          db.ref(`servis/${name}`).once("value", snap => {
-            const listData = snap.val();
-            
-            userCodes[localName].clear();
-            codeTimestamps[localName] = {};
-            codeUsers[localName] = {};
-            
-            if (!listData) {
-              loadedCount++;
-              if (loadedCount === totalLists) {
-                dataLoaded = true;
-                renderList();
-              }
-              updateLabelAndCount(localName);
-              return;
-            }
-
-            const keys = Object.keys(listData).filter(k => k !== "eslesenler" && k !== "adet");
-
-            keys.forEach(code => {
-              const val = listData[code];
-              if (typeof val === 'object') {
-                const user = val.user || '';
-                const ts = val.ts || '';
-                codeTimestamps[localName][code] = ts;
-                codeUsers[localName][code] = user;
-                userCodes[localName].add(code);
-                if (localName !== 'teslimEdilenler') {
-                  allCodes.add(code);
-                }
-              } else {
-                codeTimestamps[localName][code] = val;
-                codeUsers[localName][code] = null;
-                userCodes[localName].add(code);
-                if (localName !== 'teslimEdilenler') {
-                  allCodes.add(code);
-                }
-              }
-            });
-
-            updateLabelAndCount(localName);
-
-            if (listData.eslesenler) {
-              Object.keys(listData.eslesenler).forEach(code => scannedCodes.add(code));
-            }
-
-            loadedCount++;
-            if (loadedCount === totalLists) {
-              dataLoaded = true;
-              renderList();
-            }
-          });
-        });
-
-        db.ref("servis/eslesenler").once("value", snap => {
-          const data = snap.val();
-          if (data) {
-            scannedCodes.clear();
-            Object.keys(data).forEach(code => scannedCodes.add(code));
-          }
+        }
+      }
+      
+      db.ref(`servis/${name}`).once("value", snap => {
+        const listData = snap.val();
+        
+        userCodes[localName].clear();
+        codeTimestamps[localName] = {};
+        codeUsers[localName] = {};
+        
+        if (!listData) {
           loadedCount++;
           if (loadedCount === totalLists) {
             dataLoaded = true;
             renderList();
           }
+          updateLabelAndCount(localName);
+          return;
+        }
+
+        const keys = Object.keys(listData).filter(k => k !== "eslesenler" && k !== "adet");
+
+        keys.forEach(code => {
+          const val = listData[code];
+          if (typeof val === 'object') {
+            const user = val.user || '';
+            const ts = val.ts || '';
+            codeTimestamps[localName][code] = ts;
+            codeUsers[localName][code] = user;
+            userCodes[localName].add(code);
+            // onarim listesini de toplam barkodlara ekliyoruz
+            if (localName !== 'teslimEdilenler') { // sadece teslimEdilenler'i hariç tutuyoruz
+              allCodes.add(code);
+            }
+          } else {
+            codeTimestamps[localName][code] = val;
+            codeUsers[localName][code] = null;
+            userCodes[localName].add(code);
+            // onarim listesini de toplam barkodlara ekliyoruz
+            if (localName !== 'teslimEdilenler') { // sadece teslimEdilenler'i hariç tutuyoruz
+              allCodes.add(code);
+            }
+          }
         });
+
+        updateLabelAndCount(localName);
+
+        if (listData.eslesenler) {
+          Object.keys(listData.eslesenler).forEach(code => scannedCodes.add(code));
+        }
+
+        loadedCount++;
+        if (loadedCount === totalLists) {
+          dataLoaded = true;
+          renderList();
+        }
       });
-    }
+    });
+
+    db.ref("servis/eslesenler").once("value", snap => {
+      const data = snap.val();
+      if (data) {
+        scannedCodes.clear();
+        Object.keys(data).forEach(code => scannedCodes.add(code));
+      }
+      loadedCount++;
+      if (loadedCount === totalLists) {
+        dataLoaded = true;
+        renderList();
+      }
+    });
+  });
+}
 
     // 4 dakikada bir otomatik sayfa yenileme
     setInterval(function() {
