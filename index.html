@@ -2596,9 +2596,9 @@ body {
   </div>
   
   <div class="dashboard-details">
-    <h3>📋 Teslim Alınanların Kaynak Dağılımı</h3>
+    <h3>📋 Kaynak Dağılımı</h3>
     <div class="dashboard-detail-item">
-      <span class="dashboard-detail-label">Atanacak(Teşhis)</span>
+      <span class="dashboard-detail-label">Atanacak</span>
       <span class="dashboard-detail-value" id="dashboardAtanacakCount">0</span>
     </div>
     <div class="dashboard-detail-item">
@@ -3415,11 +3415,34 @@ async function generateDeliveryReport(startDate, endDate) {
             
             // Kaynak bilgisini history'den al
             let sourceInfo = 'Bilinmiyor';
+             let phoneCheckInfo = null; // YENİ EKLENDİ
             try {
               const histSnapshot = await db.ref(`servis/history/${code}`).once('value');
               const histData = histSnapshot.val();
               if (histData) {
                 const histArray = Object.values(histData);
+                 const phoneCheckEntry = histArray.find(entry => entry.to === 'phonecheck');
+                if (phoneCheckEntry) {
+                  phoneCheckInfo = {
+                    user: phoneCheckEntry.user,
+                    timestamp: phoneCheckEntry.timestamp,
+                    action: 'Giriş'
+                  };
+                } else {
+                  // Eğer direkt giriş kaydı yoksa, PhoneCheck'te olduğu bir kayıt bul
+                  const inPhoneCheckEntry = histArray.find(entry => 
+                    entry.from === 'phonecheck' || entry.to === 'phonecheck'
+                  );
+                  if (inPhoneCheckEntry) {
+                    phoneCheckInfo = {
+                      user: inPhoneCheckEntry.user || 'Bilinmeyen',
+                      timestamp: inPhoneCheckEntry.timestamp,
+                      action: 'Mevcut'
+                    };
+                  }
+                }
+               
+               
                 // Son kayıttan önceki kayıt (teslim edilmeden önce neredeydi?)
                 const previousEntry = histArray[histArray.length - 2];
                 if (previousEntry && previousEntry.from) {
@@ -3435,15 +3458,16 @@ async function generateDeliveryReport(startDate, endDate) {
               console.warn(`   ⚠️ History okunamadı:`, e);
             }
             
-            allDeliveredIMEIs.push({
+    allDeliveredIMEIs.push({
               imei: code,
               date: itemDate,
               source: sourceInfo,
               user: userValue || 'Bilinmiyor',
-              timestamp: itemTime
+              timestamp: itemTime,
+              phoneCheckInfo: phoneCheckInfo // YENİ EKLENDİ
             });
             
-            console.log(`   ✅ Listeye eklendi!`);
+      console.log(`   ✅ Listeye eklendi!`);
           } else {
             console.log(`   ❌ Tarih aralığı dışında`);
           }
@@ -3452,7 +3476,7 @@ async function generateDeliveryReport(startDate, endDate) {
         }
       }
       
-      console.log('\n✅ Tarama tamamlandı');
+  console.log('\n✅ Tarama tamamlandı');
       console.log(`📊 Toplam bulunan: ${totalDelivered}`);
     } else {
       console.warn('⚠️ userCodes.teslimEdilenler boş!');
@@ -3472,7 +3496,8 @@ async function generateDeliveryReport(startDate, endDate) {
               date: date,
               source: dayData.receivedIMEIs[imei].source || 'Bilinmiyor',
               user: dayData.receivedIMEIs[imei].user || 'Bilinmiyor',
-              timestamp: dayData.receivedIMEIs[imei].timestamp || 0
+              timestamp: dayData.receivedIMEIs[imei].timestamp || 0,
+              phoneCheckInfo: null // burası değişti - PhoneCheck bilgisi eklendi
             });
             
             totalDelivered++;
@@ -3540,7 +3565,7 @@ async function generateDeliveryReport(startDate, endDate) {
     sourceStatsHTML += '</div>';
     
     // IMEI Detayları
-    let imeiDetailsHTML = '<div class="report-details"><h3>📱 Teslim Edilen IMEI Detayları</h3>';
+   let imeiDetailsHTML = '<div class="report-details"><h3>📱 Teslim Edilen IMEI Detayları</h3>';
     
     imeiDetailsHTML += `
       <div class="detail-filters">
@@ -3567,14 +3592,24 @@ async function generateDeliveryReport(startDate, endDate) {
         });
         const formattedTime = dateObj.toLocaleTimeString('tr-TR');
         
-        imeiDetailsHTML += `
-          <div class="detail-item" data-imei="${item.imei}" data-source="${sourceNames[item.source] || item.source}" data-user="${item.user}">
+ imeiDetailsHTML += `
+          <div class="detail-item" data-imei="${item.imei}" data-source="${sourceNames[item.source] || item.source}" data-user="${item.user}" data-phonecheck="${item.phoneCheckInfo ? 'var' : 'yok'}">
             <div class="barcode">${item.imei}</div>
             <div class="info">📋 Kaynak: ${sourceNames[item.source] || item.source}</div>
             <div class="info">👤 Kullanıcı: ${item.user}</div>
             <div class="info">📅 ${formattedDate} • 🕒 ${formattedTime}</div>
+            ${item.phoneCheckInfo ? `
+              <div class="info" style="color: #3498db;">
+                📱 PhoneCheck: ${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})
+              </div>
+            ` : `
+              <div class="info" style="color: #95a5a6;">
+                📱 PhoneCheck: Yok
+              </div>
+            `}
           </div>
         `;
+        // burası değişti - PhoneCheck HTML bitti ↑
       });
     } else {
       imeiDetailsHTML += '<div class="no-results">Bu tarih aralığında teslim edilen IMEI bulunmuyor.</div>';
@@ -3999,8 +4034,8 @@ function exportDeliveryReportToExcel() {
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
     
     // YENİ: Sheet 2: IMEI Detayları
-    if (currentReportData.deliveredIMEIs && currentReportData.deliveredIMEIs.length > 0) {
-      const imeiHeaders = ['IMEI', 'Kaynak', 'Kullanıcı', 'Tarih', 'Saat'];
+ if (currentReportData.deliveredIMEIs && currentReportData.deliveredIMEIs.length > 0) {
+      const imeiHeaders = ['IMEI', 'Kaynak', 'Kullanıcı', 'Tarih', 'Saat', 'PhoneCheck Bilgisi']; // YENİ KOLON EKLENDİ
       const imeiRows = currentReportData.deliveredIMEIs.map(item => {
         const dateObj = new Date(item.timestamp);
         const sourceNames = {
@@ -4010,29 +4045,38 @@ function exportDeliveryReportToExcel() {
           mediaMarkt: '🛒 Media Markt'
         };
         
+        // burası değişti - PhoneCheck bilgisi eklendi ↓
+        let phoneCheckText = 'Yok';
+        if (item.phoneCheckInfo) {
+          phoneCheckText = `${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})`;
+        }
+        
         return [
           item.imei,
           sourceNames[item.source] || item.source,
           item.user,
           dateObj.toLocaleDateString('tr-TR'),
-          dateObj.toLocaleTimeString('tr-TR')
+          dateObj.toLocaleTimeString('tr-TR'),
+          phoneCheckText // YENİ KOLON
         ];
       });
       
       const imeiData = [imeiHeaders, ...imeiRows];
       const imeiSheet = XLSX.utils.aoa_to_sheet(imeiData);
       
-      // Sütun genişliklerini ayarla
+      // burası değişti - Sütun genişlikleri güncellendi ↓
       imeiSheet['!cols'] = [
         { wch: 18 }, // IMEI
         { wch: 20 }, // Kaynak
         { wch: 15 }, // Kullanıcı
         { wch: 12 }, // Tarih
-        { wch: 10 }  // Saat
+        { wch: 10 }, // Saat
+        { wch: 40 }  // PhoneCheck Bilgisi - YENİ EKLENDİ
       ];
       
       XLSX.utils.book_append_sheet(workbook, imeiSheet, 'IMEI Detayları');
     }
+    
     
     // Sheet 3: Günlük Detay
     if (currentReportData.dailyBreakdown) {
@@ -4086,20 +4130,29 @@ let lastCheckedDate = null; // Son kontrol edilen tarih
 function checkMidnightReset() {
   const today = getTodayDateString();
   
-  if (lastCheckedDate && lastCheckedDate !== today) {
+  // İlk çalıştırmada lastCheckedDate'i set et
+  if (!lastCheckedDate) {
+    lastCheckedDate = today;
+    console.log(`✅ İlk kontrol - Tarih: ${today}`);
+    return;
+  }
+  
+  // Tarih değiştiyse sıfırla
+  if (lastCheckedDate !== today) {
     console.log(`🌙 Gece yarısı geçti (Türkiye saati): ${lastCheckedDate} → ${today}`);
     
-    // burası değişmedi - lokal değişkenleri sıfırla
+    // Lokal değişkenleri sıfırla
     dailyReceivedIMEIs.clear();
     dailyDeliveredCount = 0;
     
-    // burası değişmedi - UI'ı güncelle
+    // UI'ı güncelle
     updateDashboardUI({});
+    
+    // Yeni günü kaydet
+    lastCheckedDate = today;
     
     showToast('Günlük sayaçlar sıfırlandı - Yeni güne hoş geldiniz! 🌅', 'info');
   }
-  
-  lastCheckedDate = today;
 }
 
 
@@ -4113,23 +4166,32 @@ window.addEventListener('load', () => {
 
 // Güncel tarihi formatla
 function getTodayDateString() {
-  const today = new Date();
-  // Türkiye için UTC+3 timezone offset ekle
-  const turkeyOffset = 3 * 60; // dakika cinsinden
-  const localOffset = today.getTimezoneOffset(); // kullanıcının local offset'i
-  const totalOffset = turkeyOffset + localOffset;
+  // Türkiye saati için doğrudan UTC+3 hesapla
+  const now = new Date();
+  const turkeyTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3 * 60 * 60 * 1000));
   
-  const turkeyDate = new Date(today.getTime() + totalOffset * 60000);
-  return turkeyDate.toISOString().split('T')[0]; // YYYY-MM-DD formatı
+  const year = turkeyTime.getFullYear();
+  const month = String(turkeyTime.getMonth() + 1).padStart(2, '0');
+  const day = String(turkeyTime.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
 }
 
-// Dashboard tarihini güncelle
 function updateDashboardDate() {
   const dateElement = document.getElementById('dashboardDate');
   if (dateElement) {
-    const today = new Date();
-    const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-    dateElement.textContent = today.toLocaleDateString('tr-TR', options);
+    // Türkiye saatini kullan
+    const now = new Date();
+    const turkeyTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3 * 60 * 60 * 1000));
+    
+    const options = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric', 
+      weekday: 'long',
+      timeZone: 'Europe/Istanbul'
+    };
+    dateElement.textContent = turkeyTime.toLocaleDateString('tr-TR', options);
   }
 }
 
@@ -5635,6 +5697,14 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('dashboardPanel').style.display = 'block';
         updateDashboardDate();
         loadDashboardStats();
+
+         // TEST LOGu - Türkiye saati kontrolü
+  console.log('🕐 Şu anki Türkiye tarihi:', getTodayDateString());
+  console.log('🕐 lastCheckedDate:', lastCheckedDate);
+  const now = new Date();
+  const turkeyTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3 * 60 * 60 * 1000));
+  console.log('🕐 Türkiye saati (tam):', turkeyTime.toLocaleString('tr-TR'));
+  
       } else {
         document.getElementById('dashboardPanel').style.display = 'none';
       }
