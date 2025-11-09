@@ -3,6 +3,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -2926,14 +2927,13 @@ function showMainView() {
         // ========================================
         // YENİ EKLENEN: Dashboard'ı da göster (admin ise)
         // ========================================
-    if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {  // burası değişti - semi-admin eklendi
+    if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
             document.getElementById('dashboardPanel').style.display = 'block';
             updateDashboardDate();
             loadDashboardStats();
         } else {
             document.getElementById('dashboardPanel').style.display = 'none';
         }
-        // ========================================
         
         document.getElementById('userManagement').style.display = 'none';
         document.getElementById('warehousePanel').style.display = 'none';
@@ -2969,6 +2969,7 @@ function showUserManagement() {
     
     try {
         // Kullanıcı yönetimini göster
+         document.getElementById('dashboardPanel').style.display = 'none';
         document.getElementById('mainLayout').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'none';
         document.getElementById('userManagement').style.display = 'block';
