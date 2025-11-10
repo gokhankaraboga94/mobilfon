@@ -5,6 +5,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -91,12 +92,11 @@ body {
 /* Main Layout için margin düzeltmesi */
 .main-layout {
   display: flex;
-  gap: 15px; /* 20px'ten 15px'e düşürdük */
+  gap: 20px;
   width: 100%;
-  max-width: 1600px;
-    /* margin-top kaldırıldı - app-container'ın margin'i yeterli */
+  max-width: 100%; /* 1600px'ten 100%'e değiştirildi - tam genişlik */
+  padding: 0 20px; /* Yeni eklendi - yan boşluklar */
 }
-
 /* Section'lar için margin düzeltmesi */
 .section {
     flex: 1 1 30%;
@@ -116,13 +116,7 @@ body {
     transition: all 0.4s ease;
 }
 
-/* Right side için margin düzeltmesi */
-.right-side {
-  width: 360px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px; /* 15px'ten 12px'e düşürdük */
-}
+
 
 /* Toast container pozisyonunu güncelle */
 .toast-container {
@@ -1678,35 +1672,30 @@ body {
       max-width: 1600px;
     }
     
-    .left-side {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    
-    .right-side {
-      width: 360px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      margin-top: 100px; /* Bu satırı ekleyin - nav yüksekliğine göre ayarlayın */
-    }
+.left-side {
+  flex: 1; /* Değişmedi ama artık daha fazla alan kaplayacak */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0; /* Yeni eklendi - flex shrink için */
+}
+
+
     
 .container {
   display: flex;
-  gap: 15px; /* 20px'ten 15px'e düşürdük */
+  gap: 15px;
   flex-wrap: wrap;
-  width: 100%;
+  width: 100%; /* Değişmedi ama vurgulandı */
 }
     
 .section {
-  flex: 1 1 30%;
+  flex: 1 1 calc(33.333% - 15px); /* 30% yerine 33.333% - 3 sütun için ideal */
   display: flex;
   flex-direction: column;
   gap: 18px;
-  min-width: 300px;
-  padding: 20px; /* 30px'ten 20px'e düşürdük */
+  min-width: 320px; /* 300px'ten 320px'e yükseltildi */
+  padding: 20px;
   background: linear-gradient(135deg, #cfd8dc 0%, #b0bec5 100%);
   color: #263238;
   border-radius: 18px;
@@ -1731,56 +1720,89 @@ body {
       text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
     
-    .right-section {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+.right-section {
+flex: 1 1 30%; /* section ile aynı flex değeri */
+  display: flex;
+  flex-direction: column;
+  gap: 18px; /* section ile aynı gap */
+  min-width: 300px; /* section ile aynı min-width */
+  padding: 20px; /* section ile aynı padding */
+  background: linear-gradient(135deg, #667eea, #764ba2); /* mevcut gradient korundu */
+  color: #fff; /* text rengi beyaz */
+  border-radius: 18px; /* section ile aynı border-radius */
+  margin-top: 1px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.2),
+    -5px -5px 15px rgba(102, 126, 234, 0.3); /* section benzeri shadow */
+  transition: all 0.4s ease;
+  cursor: pointer; /* tıklanabilir olduğunu göster */
+}
     
-    .right-section label {
-      color: #fff;
-      font-size: 0.95em;
-      font-weight: bold;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }
+.right-section label {
+ color: #fff;
+  font-size: 1.1em; /* section label ile aynı boyut */
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  cursor: pointer;
+  user-select: none;
+  display: block;
+  margin-bottom: 10px;
+}
     
-    .special-right-section {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+.special-right-section {
+flex: 1 1 30%; /* section ile aynı flex değeri */
+  display: flex;
+  flex-direction: column;
+  gap: 18px; /* section ile aynı gap */
+  min-width: 300px; /* section ile aynı min-width */
+  padding: 20px; /* section ile aynı padding */
+  background: linear-gradient(135deg, #667eea, #764ba2); /* mevcut gradient korundu */
+  color: #fff; /* text rengi beyaz */
+  border-radius: 18px; /* section ile aynı border-radius */
+  margin-top: 1px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.2),
+    -5px -5px 15px rgba(102, 126, 234, 0.3); /* section benzeri shadow */
+  transition: all 0.4s ease;
+  cursor: pointer; /* tıklanabilir olduğunu göster */
+}
+}
     
-    .special-right-section label {
-      color: #fff;
-      font-size: 0.95em;
-      font-weight: bold;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }
+.special-right-section label {
+  color: #fff;
+  font-size: 1.05em;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
     
-    .delivered-section {
-      background: linear-gradient(135deg, #27ae60, #2ecc71);
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+.delivered-section {
+ flex: 1 1 30%; /* section ile aynı flex değeri */
+  display: flex;
+  flex-direction: column;
+  gap: 18px; /* section ile aynı gap */
+  min-width: 300px; /* section ile aynı min-width */
+  padding: 20px; /* section ile aynı padding */
+  background: linear-gradient(135deg, #667eea, #764ba2); /* mevcut gradient korundu */
+  color: #fff; /* text rengi beyaz */
+  border-radius: 18px; /* section ile aynı border-radius */
+  margin-top: 1px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.2),
+    -5px -5px 15px rgba(102, 126, 234, 0.3); /* section benzeri shadow */
+  transition: all 0.4s ease;
+  cursor: pointer; /* tıklanabilir olduğunu göster */
+}
     
-    .delivered-section label {
-      color: #fff;
-      font-size: 0.95em;
-      font-weight: bold;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-    }
+.delivered-section label {
+  color: #fff;
+  font-size: 1.05em;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
     
     textarea {
       width: 100%;
@@ -1794,10 +1816,13 @@ body {
       resize: none;
     }
     
-    .right-section textarea, .special-right-section textarea, .delivered-section textarea {
-      height: 200px;
-      font-size: 13px;
-    }
+.right-section textarea, 
+.special-right-section textarea, 
+.delivered-section textarea {
+  height: 240px; /* 220px'ten 240px'e yükseltildi */
+  font-size: 14px;
+  padding: 12px;
+}
     
     label { 
       font-weight: bold;
@@ -1814,22 +1839,26 @@ body {
   display: none; /* BU SATIR ÖNEMLİ - none olmalı */
 }
     
-    .right-section .mini-list, .special-right-section .mini-list, .delivered-section .mini-list {
-      max-height: 200px;
-    }
+.right-section .mini-list, 
+.special-right-section .mini-list, 
+.delivered-section .mini-list {
+  max-height: 260px; /* 240px'ten 260px'e yükseltildi */
+  overflow-y: auto;
+}
     
-    .mini-item {
-      padding: 8px;
-      background: #555;
-      border-radius: 5px;
-      font-family: monospace;
-      font-size: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-direction: column;
-      gap: 5px;
-    }
+.mini-item {
+  padding: 8px;
+  background: #555;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-direction: column;
+  gap: 5px;
+}
+
     
     .mini-item-row {
       width: 100%;
@@ -2065,10 +2094,21 @@ body {
     @media (max-width: 1200px) {
       .main-layout { flex-direction: column; }
       .right-side { width: 100%; flex-direction: row; flex-wrap: wrap; }
-      .right-section, .special-right-section, .delivered-section { flex: 1; min-width: 250px; }
-      .container { display: grid; grid-template-columns: repeat(2, 1fr); }
-      .section { min-width: unset; }
+.section,
+  .right-section,
+  .special-right-section,
+  .delivered-section {
+    min-width: unset;
+    flex: 1 1 100%;
+  }
+}  .container,
+  #rightSectionsContainer {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }      .section { min-width: unset; }
       .warehouse-orders { grid-template-columns: 1fr; }
+      
     }
     
     @media (max-width: 768px) {
@@ -2078,7 +2118,7 @@ body {
       .section { flex: 1 1 100%; min-width: unset; }
       .right-side { flex-direction: column; }
       .login-box { padding: 40px 30px; }
-      .toast { min-width: 250px; }
+      .toast { min-width: 280px; }
       .part-order-button { bottom: 20px; right: 20px; width: 55px; height: 55px; font-size: 24px; }
     }
 
@@ -2824,76 +2864,70 @@ body {
     <div id="teslimEdilenlerList" class="mini-list"></div>  </div>
 </div>
 
+<div class="container" style="margin-top: 20px;" id="rightSectionsContainer">
+  <div class="right-section" data-section="atanacak">
+    <label for="atanacakInput"><span id="atanacakLabel">📋 Atanacak -  0</span></label>
+    <textarea id="atanacakInput" placeholder="Atanacak cihazlar..."></textarea>
+    <div id="atanacakList" class="mini-list"></div>
+  </div>
+  
+  <div class="right-section" data-section="parcaBekliyor">
+    <label for="parcaBekliyorInput"><span id="parcaBekliyorLabel">⚙️ Parça Bekliyor -  0</span></label>
+    <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazlar..."></textarea>
+    <div id="parcaBekliyorList" class="mini-list"></div>
+  </div>
+  
+  <div class="right-section" data-section="phonecheck">
+    <label for="phonecheckInput"><span id="phonecheckLabel">📱 PhoneCheck -  0</span></label>
+    <textarea id="phonecheckInput" placeholder="PhoneCheck'e transfer edilecek barkodlar..."></textarea>
+    <div id="phonecheckList" class="mini-list"></div>
+  </div>
 
+  <div class="right-section" data-section="onarim">
+    <label for="onarimInput"><span id="onarimLabel">🔧 Onarım Tamamlandı -  0</span></label>
+    <textarea id="onarimInput" placeholder="Onarımı tamamlanan cihazlar..."></textarea>
+    <div id="onarimList" class="mini-list"></div>
+  </div>
 
+  <div class="special-right-section" data-section="onCamDisServis">
+    <label for="onCamDisServisInput"><span id="onCamDisServisLabel">🔨 Ön Cam Dış Servis -  0</span></label>
+    <textarea id="onCamDisServisInput" placeholder="Ön cam için dış servise gönderilecek barkodlar..."></textarea>
+    <div id="onCamDisServisList" class="mini-list"></div>
+  </div>
 
-      <div class="right-side">
-        <div class="right-section">
-          <label for="atanacakInput"><span id="atanacakLabel">📋 Atanacak -  </span></label>
-          <textarea id="atanacakInput" placeholder="Atanacak cihazlar..."></textarea>
-          <div id="atanacakList" class="mini-list"></div>
-        </div>
-        
-        <div class="right-section">
-          <label for="parcaBekliyorInput"><span id="parcaBekliyorLabel">⚙️ Parça Bekliyor -  </span></label>
-          <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazlar..."></textarea>
-          <div id="parcaBekliyorList" class="mini-list"></div>
-        </div>
-        
-        <div class="right-section">
-          <label for="phonecheckInput"><span id="phonecheckLabel">📱 PhoneCheck -  </span></label>
-          <textarea id="phonecheckInput" placeholder="PhoneCheck'e transfer edilecek barkodlar..."></textarea>
-          <div id="phonecheckList" class="mini-list"></div>
-        </div>
+  <div class="special-right-section" data-section="anakartDisServis">
+    <label for="anakartDisServisInput"><span id="anakartDisServisLabel">🔨 Anakart Dış Servis -  0</span></label>
+    <textarea id="anakartDisServisInput" placeholder="Anakart için dış servise gönderilecek barkodlar..."></textarea>
+    <div id="anakartDisServisList" class="mini-list"></div>
+  </div>
 
-        <div class="right-section">
-          <label for="onarimInput"><span id="onarimLabel">🔧 Onarım Tamamlandı -  </span></label>
-          <textarea id="onarimInput" placeholder="Onarımı tamamlanan cihazlar..."></textarea>
-          <div id="onarimList" class="mini-list"></div>
-        </div>
+  <div class="special-right-section" data-section="SonKullanıcı">
+    <label for="SonKullanıcıInput"><span id="SonKullanıcıLabel">👤 Son Kullanıcı -  0</span></label>
+    <textarea id="SonKullanıcıInput" placeholder="Son Kullanıcı barkodlar..."></textarea>
+    <div id="SonKullanıcıList" class="mini-list"></div>
+  </div>
 
-   <!-- YERİNE BUNLARI KOY: -->
-<div class="special-right-section">
-  <label for="onCamDisServisInput"><span id="onCamDisServisLabel">🔨 Ön Cam Dış Servis -  </span></label>
-  <textarea id="onCamDisServisInput" placeholder="Ön cam için dış servise gönderilecek barkodlar..."></textarea>
-  <div id="onCamDisServisList" class="mini-list"></div> <!-- BU SATIR OLMALI -->
+  <div class="special-right-section" data-section="satisa">
+    <label for="satisaInput"><span id="satisaLabel">💰 Satışa Gidecek -  0</span></label>
+    <textarea id="satisaInput" placeholder="Satışa gidecek barkodlar..."></textarea>
+    <div id="satisaList" class="mini-list"></div>
+  </div>
+
+  <div class="special-right-section" data-section="sahiniden">
+    <label for="sahinidenInput"><span id="sahinidenLabel">🏪 Sahibinden -  0</span></label>
+    <textarea id="sahinidenInput" placeholder="Sahibinden gelen barkodlar..."></textarea>
+    <div id="sahinidenList" class="mini-list"></div>
+  </div>
+
+  <div class="special-right-section" data-section="mediaMarkt">
+    <label for="mediaMarktInput"><span id="mediaMarktLabel">🛒 Media Markt -  0</span></label>
+    <textarea id="mediaMarktInput" placeholder="Media Markt barkodları..."></textarea>
+    <div id="mediaMarktList" class="mini-list"></div>
+  </div>
 </div>
 
-<div class="special-right-section">
-  <label for="anakartDisServisInput"><span id="anakartDisServisLabel">🔨 Anakart Dış Servis -  </span></label>
-  <textarea id="anakartDisServisInput" placeholder="Anakart için dış servise gönderilecek barkodlar..."></textarea>
-  <div id="anakartDisServisList" class="mini-list"></div> <!-- BU SATIR OLMALI -->
-</div>
-
-<div class="special-right-section">
-  <label for="SonKullanıcıInput"><span id="SonKullanıcıLabel">🔨 Son kullanıcı -  </span></label>
-  <textarea id="SonKullanıcıInput" placeholder="Son Kullanıcı barkodlar..."></textarea>
-  <div id="SonKullanıcıList" class="mini-list"></div> <!-- BU SATIR OLMALI -->
-</div>
 
 
-
-        <div class="special-right-section">
-          <label for="satisaInput"><span id="satisaLabel">💰 Satışa Gidecek -  </span></label>
-          <textarea id="satisaInput" placeholder="Satışa gidecek barkodlar..."></textarea>
-          <div id="satisaList" class="mini-list"></div>
-        </div>
-
-        <div class="special-right-section">
-          <label for="sahinidenInput"><span id="sahinidenLabel">🏪 Sahibinden - </span></label>
-          <textarea id="sahinidenInput" placeholder="Sahibinden gelen barkodlar..."></textarea>
-          <div id="sahinidenList" class="mini-list"></div>
-        </div>
-
-        <div class="special-right-section">
-          <label for="mediaMarktInput"><span id="mediaMarktLabel">🛒 Media Markt -  </span></label>
-          <textarea id="mediaMarktInput" placeholder="Media Markt barkodları..."></textarea>
-          <div id="mediaMarktList" class="mini-list"></div>
-        </div>
-
- 
-      </div>
-    </div>
     
     <!-- PARÇA SİPARİŞ BUTONU (TEKNİSYENLER İÇİN) -->
     <button id="partOrderButton" class="part-order-button" style="display: none;" onclick="openPartOrderModal()">
