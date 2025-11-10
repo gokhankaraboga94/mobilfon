@@ -6424,12 +6424,7 @@ if (specialLists.includes(name)) {
 if (name === 'teslimEdilenler') {
   incrementDeliveredCount();
   // Eğer daha önce receivedIMEIs'te varsa çıkar
-  if (dailyReceivedIMEIs.has(code)) {
-    dailyReceivedIMEIs.delete(code);
-    // Firebase'den de sil
-    const todayDate = getTodayDateString();
-    db.ref(`dashboard/daily/${todayDate}/receivedIMEIs/${code}`).remove();
-  }
+
 }
 
             if (name === 'onarim') {
