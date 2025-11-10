@@ -2536,7 +2536,7 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
   <option value="onCamDisServis">🔨 Ön Cam Dış Servis</option>      <!-- YENİ EKLENDİ -->
   <option value="anakartDisServis">🔨 Anakart Dış Servis</option>  <!-- YENİ EKLENDİ -->
   <option value="satisa">💰 Satışa Gidecek</option>
-  <option value="SonKullanıcı">Son Kullanıcı</option>
+  <option value="SonKullanıcı">SonKullanıcı</option>
   <option value="sahiniden">🏪 Sahibinden</option>
   <option value="mediaMarkt">🛒 Media Markt</option>
   <option value="teslimEdilenler">✅ Teslim Edilenler</option>
@@ -2733,8 +2733,8 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
       <span class="dashboard-detail-value" id="dashboardAtanacakCount">0</span>
     </div>
     <div class="dashboard-detail-item">
-      <span class="dashboard-detail-label">Son Kullanıcı</span>
-      <span class="dashboard-detail-value" id="dashboardSonKullaniciCount">0</span>
+      <span class="dashboard-detail-label">SonKullanıcı</span>
+      <span class="dashboard-detail-value" id="dashboardSonKullanıcıCount">0</span>
     </div>
     <div class="dashboard-detail-item">
       <span class="dashboard-detail-label">Sahibinden</span>
@@ -2991,7 +2991,7 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
   </div>
 
   <div class="special-right-section" data-section="SonKullanıcı">
-    <label for="SonKullanıcıInput"><span id="SonKullanıcıLabel">👤 Son Kullanıcı -  0</span></label>
+    <label for="SonKullanıcıInput"><span id="SonKullanıcıLabel">👤 SonKullanıcı -  0</span></label>
     <textarea id="SonKullanıcıInput" placeholder="Son Kullanıcı barkodlar..."></textarea>
     <div id="SonKullanıcıList" class="mini-list"></div>
   </div>
@@ -4395,7 +4395,7 @@ function updateDashboardUI(data = {}) {
   
   // Detaylı sayılar
   document.getElementById('dashboardAtanacakCount').textContent = data.sources?.atanacak || 0;
-  document.getElementById('dashboardSonKullaniciCount').textContent = data.sources?.SonKullanıcı || 0;
+  document.getElementById('dashboardSonKullanıcıCount').textContent = data.sources?.SonKullanıcı || 0;
   document.getElementById('dashboardSahibindenCount').textContent = data.sources?.sahiniden || 0;
   document.getElementById('dashboardMediaMarktCount').textContent = data.sources?.mediaMarkt || 0;
 }
@@ -6404,19 +6404,21 @@ if (name === 'teslimEdilenler' && currentUserRole !== 'admin') {
 
       const timestamp = getTimestamp();
       
-      const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim',  'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-            const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
+      const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim',  'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
+const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
 
-      if (specialLists.includes(name)) {
-        codes.forEach(code => {
-          if (!userCodes[name].has(code)) {
-            const previousList = removeFromOtherLists(code, name);
-            
-            saveBarcodeHistory(code, previousList, name, currentUserName);
-            
-           if (dashboardSourceLists.includes(name)) {
-  addReceivedIMEI(code, name);
-}
+// saveCodes fonksiyonunda (satır ~1020 civarı)
+if (specialLists.includes(name)) {
+    codes.forEach(code => {
+      if (!userCodes[name].has(code)) {
+        const previousList = removeFromOtherLists(code, name);
+        
+        saveBarcodeHistory(code, previousList, name, currentUserName);
+        
+        // burası değişti - Son Kullanıcı kontrolü eklendi ↓
+      if (dashboardSourceLists.includes(name)) {
+      addReceivedIMEI(code, name);
+    }
 
 // burası değişti - Teslim edilenler listesine ekleniyorsa sayaç artır VE received'dan çıkar
 if (name === 'teslimEdilenler') {
@@ -7350,7 +7352,7 @@ document.addEventListener('click', function(e) {
       <strong>Bu işlem şunları sıfırlayacak:</strong><br><br>
       📊 Bugün Teslim Alınan: <span id="resetTeslimAlinan">0</span><br>
       📤 Bugün Teslim Edilen: <span id="resetTeslimEdilen">0</span><br>
-      📋 Kaynak Dağılımı (Atanacak, Son Kullanıcı, Sahibinden, Media Markt)<br><br>
+      📋 Kaynak Dağılımı (Atanacak, SonKullanıcı, Sahibinden, Media Markt)<br><br>
       <strong style="color: #ffd700;">⚠️ Bu işlem geri alınamaz!</strong><br>
       İşlem database'de loglanacaktır.
     </p>
