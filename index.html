@@ -1769,7 +1769,7 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
   transition: all 0.4s ease;
   cursor: pointer; /* tıklanabilir olduğunu göster */
 }
-}
+
     
 .special-right-section label {
   color: #fff;
@@ -2110,7 +2110,7 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
   }      .section { min-width: unset; }
       .warehouse-orders { grid-template-columns: 1fr; }
       
-    }
+    
     
     @media (max-width: 768px) {
       body { padding: 15px; }
@@ -2374,6 +2374,89 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
   }
 }
 
+
+.reset-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10003;
+    animation: fadeIn 0.3s ease;
+}
+
+.reset-modal-overlay.active {
+    display: flex;
+}
+
+.reset-modal {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    animation: modalSlideIn 0.3s ease;
+}
+
+.reset-modal h2 {
+    color: white;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+.reset-modal p {
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.reset-modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.reset-modal-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.reset-modal-btn.confirm {
+    background: white;
+    color: #e74c3c;
+}
+
+.reset-modal-btn.confirm:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+.reset-modal-btn.cancel {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.reset-modal-btn.cancel:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+#resetDashboardBtn:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+}
+
   </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -2394,6 +2477,11 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
       <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı Yönetimi</button>
     </div>
     
+    <!-- MEVCUT NAV-BUTTONS DIV'İNDEN SONRA, NAV-SEARCH'TEN ÖNCE -->
+<button onclick="openResetDashboardModal()" id="resetDashboardBtn" style="display: none; padding: 10px 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+    🔄 Dashboard Sıfırla
+</button>
+
     <!-- YENİ EKLENEN ARAMA ALANI -->
     <div class="nav-search">
       <input type="text" id="navSearchInput" placeholder="🔍 Barkod ara..." maxlength="15">
@@ -5635,6 +5723,7 @@ auth.onAuthStateChanged(async user => {
       if (user.email === 'admin@servis.com') {
         currentUserRole = 'admin';
         document.getElementById('userManagementBtn').style.display = (currentUserRole === 'admin') ? 'block' : 'none';
+        document.getElementById('resetDashboardBtn').style.display = 'block'; // ← BU SATIRI EKLEYİN
 
         currentUserPermissions = null;
         document.getElementById('adminNav').style.display = 'flex';
@@ -7169,6 +7258,108 @@ function showFullBarcodeDetails(barcode) {
         }
     }, 500);
 }
+
+
+function openResetDashboardModal() {
+    // Modal'ı aç ve mevcut değerleri göster
+    document.getElementById('resetTeslimAlinan').textContent = dailyReceivedIMEIs.size;
+    document.getElementById('resetTeslimEdilen').textContent = dailyDeliveredCount;
+    document.getElementById('resetDashboardModal').classList.add('active');
+}
+
+function closeResetDashboardModal() {
+    document.getElementById('resetDashboardModal').classList.remove('active');
+}
+
+async function confirmResetDashboard() {
+    const todayDate = getTodayDateString();
+    
+    try {
+        // Mevcut verileri yedekle (log için)
+        const currentSnapshot = await db.ref(`dashboard/daily/${todayDate}`).once('value');
+        const currentData = currentSnapshot.val();
+        
+        // Reset log'u oluştur
+        const resetLog = {
+            timestamp: Date.now(),
+            timestampReadable: getTimestamp(),
+            user: currentUserName,
+            previousData: {
+                receivedCount: dailyReceivedIMEIs.size,
+                deliveredCount: dailyDeliveredCount,
+                receivedIMEIs: currentData?.receivedIMEIs ? Object.keys(currentData.receivedIMEIs) : [],
+                sources: currentData?.sources || {}
+            }
+        };
+        
+        // Log'u database'e kaydet
+        await db.ref(`dashboard/resetLogs/${todayDate}/${Date.now()}`).set(resetLog);
+        
+        // Dashboard verilerini sıfırla
+        await db.ref(`dashboard/daily/${todayDate}`).set({
+            receivedIMEIs: {},
+            deliveredCount: 0,
+            sources: {
+                atanacak: 0,
+                SonKullanıcı: 0,
+                sahiniden: 0,
+                mediaMarkt: 0
+            }
+        });
+        
+        // Lokal değişkenleri sıfırla
+        dailyReceivedIMEIs.clear();
+        dailyDeliveredCount = 0;
+        
+        // UI'ı güncelle
+        updateDashboardUI({
+            sources: {
+                atanacak: 0,
+                SonKullanıcı: 0,
+                sahiniden: 0,
+                mediaMarkt: 0
+            }
+        });
+        
+        closeResetDashboardModal();
+        showToast('✅ Dashboard başarıyla sıfırlandı ve işlem loglandı!', 'success');
+        
+        console.log('📊 Dashboard Reset Log:', resetLog);
+        
+    } catch (error) {
+        console.error('❌ Dashboard sıfırlama hatası:', error);
+        showToast('Dashboard sıfırlanırken hata oluştu!', 'error');
+    }
+}
+
+// Modal dışına tıklanınca kapat
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('resetDashboardModal');
+    if (e.target === modal) {
+        closeResetDashboardModal();
+    }
+});
+
+
 </script>
+
+<div class="reset-modal-overlay" id="resetDashboardModal">
+  <div class="reset-modal">
+    <h2>⚠️ Dashboard Sıfırlama</h2>
+    <p>
+      <strong>Bu işlem şunları sıfırlayacak:</strong><br><br>
+      📊 Bugün Teslim Alınan: <span id="resetTeslimAlinan">0</span><br>
+      📤 Bugün Teslim Edilen: <span id="resetTeslimEdilen">0</span><br>
+      📋 Kaynak Dağılımı (Atanacak, Son Kullanıcı, Sahibinden, Media Markt)<br><br>
+      <strong style="color: #ffd700;">⚠️ Bu işlem geri alınamaz!</strong><br>
+      İşlem database'de loglanacaktır.
+    </p>
+    <div class="reset-modal-buttons">
+      <button class="reset-modal-btn cancel" onclick="closeResetDashboardModal()">❌ İptal</button>
+      <button class="reset-modal-btn confirm" onclick="confirmResetDashboard()">✅ Sıfırla</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
