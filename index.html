@@ -7,6 +7,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -1773,7 +1774,7 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
     
 .special-right-section label {
   color: #fff;
-  font-size: 1.05em;
+  font-size: 1.1em;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
@@ -1798,8 +1799,8 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
 }
     
 .delivered-section label {
-  color: #fff;
-  font-size: 1.05em;
+color: #fff;
+  font-size: 1.1em;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
 }
@@ -1817,12 +1818,17 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
       resize: none;
     }
     
-.right-section textarea, 
-.special-right-section textarea, 
+.right-section textarea,
+.special-right-section textarea,
 .delivered-section textarea {
-  height: 240px; /* 220px'ten 240px'e yükseltildi */
+  height: 240px;
   font-size: 14px;
   padding: 12px;
+  background: rgba(255,255,255,0.9);
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  resize: none;
 }
     
     label { 
@@ -1840,11 +1846,14 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
   display: none; /* BU SATIR ÖNEMLİ - none olmalı */
 }
     
-.right-section .mini-list, 
-.special-right-section .mini-list, 
+.right-section .mini-list,
+.special-right-section .mini-list,
 .delivered-section .mini-list {
-  max-height: 260px; /* 240px'ten 260px'e yükseltildi */
+  max-height: 260px;
   overflow-y: auto;
+  background: rgba(255,255,255,0.9);
+  border-radius: 8px;
+  padding: 10px;
 }
     
 .mini-item {
@@ -2096,12 +2105,26 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
       .main-layout { flex-direction: column; }
       .right-side { width: 100%; flex-direction: row; flex-wrap: wrap; }
 .section,
-  .right-section,
-  .special-right-section,
-  .delivered-section {
-    min-width: unset;
-    flex: 1 1 100%;
-  }
+ .right-section,
+.special-right-section,
+.delivered-section {
+  flex: 1 1 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 300px;
+  padding: 20px;
+  background: linear-gradient(135deg, #cfd8dc 0%, #b0bec5 100%);
+  color: #263238;
+  border-radius: 18px;
+  margin-top: 1px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.8),
+    -5px -5px 15px #f5f5f5;
+  transition: all 0.4s ease;
+  cursor: pointer;
+}
 }  .container,
   #rightSectionsContainer {
     display: grid;
@@ -2941,66 +2964,98 @@ flex: 1 1 30%; /* section ile aynı flex değeri */
     <div id="teslimEdilenlerList" class="mini-list"></div>  </div>
 </div>
 
-<div class="container" style="margin-top: 20px;" id="rightSectionsContainer">
-  <div class="right-section" data-section="atanacak">
-    <label for="atanacakInput"><span id="atanacakLabel">📋 Atanacak -  0</span></label>
+<div class="container" style="margin-top: 20px;" id="mainSectionsContainer">
+  <!-- Atanacak Section -->
+  <div class="section" data-section="atanacak">
+    <label for="atanacakInput">
+      <span id="atanacakLabel">📋 Atanacak -  0</span>
+    </label>
     <textarea id="atanacakInput" placeholder="Atanacak cihazlar..."></textarea>
     <div id="atanacakList" class="mini-list"></div>
   </div>
   
-  <div class="right-section" data-section="parcaBekliyor">
-    <label for="parcaBekliyorInput"><span id="parcaBekliyorLabel">⚙️ Parça Bekliyor -  0</span></label>
+  <!-- Parça Bekliyor Section -->
+  <div class="section" data-section="parcaBekliyor">
+    <label for="parcaBekliyorInput">
+      <span id="parcaBekliyorLabel">⚙️ Parça Bekliyor -  0</span>
+    </label>
     <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazlar..."></textarea>
     <div id="parcaBekliyorList" class="mini-list"></div>
   </div>
   
-  <div class="right-section" data-section="phonecheck">
-    <label for="phonecheckInput"><span id="phonecheckLabel">📱 PhoneCheck -  0</span></label>
+  <!-- PhoneCheck Section -->
+  <div class="section" data-section="phonecheck">
+    <label for="phonecheckInput">
+      <span id="phonecheckLabel">📱 PhoneCheck -  0</span>
+    </label>
     <textarea id="phonecheckInput" placeholder="PhoneCheck'e transfer edilecek barkodlar..."></textarea>
     <div id="phonecheckList" class="mini-list"></div>
   </div>
 
-  <div class="right-section" data-section="onarim">
-    <label for="onarimInput"><span id="onarimLabel">🔧 Onarım Tamamlandı -  0</span></label>
+  <!-- Onarım Tamamlandı Section -->
+  <div class="section" data-section="onarim">
+    <label for="onarimInput">
+      <span id="onarimLabel">🔧 Onarım Tamamlandı -  0</span>
+    </label>
     <textarea id="onarimInput" placeholder="Onarımı tamamlanan cihazlar..."></textarea>
     <div id="onarimList" class="mini-list"></div>
   </div>
 
-  <div class="special-right-section" data-section="onCamDisServis">
-    <label for="onCamDisServisInput"><span id="onCamDisServisLabel">🔨 Ön Cam Dış Servis -  0</span></label>
+  <!-- Ön Cam Dış Servis Section -->
+  <div class="section" data-section="onCamDisServis">
+    <label for="onCamDisServisInput">
+      <span id="onCamDisServisLabel">🔨 Ön Cam Dış Servis -  0</span>
+    </label>
     <textarea id="onCamDisServisInput" placeholder="Ön cam için dış servise gönderilecek barkodlar..."></textarea>
     <div id="onCamDisServisList" class="mini-list"></div>
   </div>
 
-  <div class="special-right-section" data-section="anakartDisServis">
-    <label for="anakartDisServisInput"><span id="anakartDisServisLabel">🔨 Anakart Dış Servis -  0</span></label>
+  <!-- Anakart Dış Servis Section -->
+  <div class="section" data-section="anakartDisServis">
+    <label for="anakartDisServisInput">
+      <span id="anakartDisServisLabel">🔨 Anakart Dış Servis -  0</span>
+    </label>
     <textarea id="anakartDisServisInput" placeholder="Anakart için dış servise gönderilecek barkodlar..."></textarea>
     <div id="anakartDisServisList" class="mini-list"></div>
   </div>
 
-  <div class="special-right-section" data-section="SonKullanıcı">
-    <label for="SonKullanıcıInput"><span id="SonKullanıcıLabel">👤 SonKullanıcı -  0</span></label>
+  <!-- Son Kullanıcı Section -->
+  <div class="section" data-section="SonKullanıcı">
+    <label for="SonKullanıcıInput">
+      <span id="SonKullanıcıLabel">👤 Son Kullanıcı -  0</span>
+    </label>
     <textarea id="SonKullanıcıInput" placeholder="Son Kullanıcı barkodlar..."></textarea>
     <div id="SonKullanıcıList" class="mini-list"></div>
   </div>
 
-  <div class="special-right-section" data-section="satisa">
-    <label for="satisaInput"><span id="satisaLabel">💰 Satışa Gidecek -  0</span></label>
+  <!-- Satışa Gidecek Section -->
+  <div class="section" data-section="satisa">
+    <label for="satisaInput">
+      <span id="satisaLabel">💰 Satışa Gidecek -  0</span>
+    </label>
     <textarea id="satisaInput" placeholder="Satışa gidecek barkodlar..."></textarea>
     <div id="satisaList" class="mini-list"></div>
   </div>
 
-  <div class="special-right-section" data-section="sahiniden">
-    <label for="sahinidenInput"><span id="sahinidenLabel">🏪 Sahibinden -  0</span></label>
+  <!-- Sahibinden Section -->
+  <div class="section" data-section="sahiniden">
+    <label for="sahinidenInput">
+      <span id="sahinidenLabel">🏪 Sahibinden -  0</span>
+    </label>
     <textarea id="sahinidenInput" placeholder="Sahibinden gelen barkodlar..."></textarea>
     <div id="sahinidenList" class="mini-list"></div>
   </div>
 
-  <div class="special-right-section" data-section="mediaMarkt">
-    <label for="mediaMarktInput"><span id="mediaMarktLabel">🛒 Media Markt -  0</span></label>
+  <!-- Media Markt Section -->
+  <div class="section" data-section="mediaMarkt">
+    <label for="mediaMarktInput">
+      <span id="mediaMarktLabel">🛒 Media Markt -  0</span>
+    </label>
     <textarea id="mediaMarktInput" placeholder="Media Markt barkodları..."></textarea>
     <div id="mediaMarktList" class="mini-list"></div>
   </div>
+
+
 </div>
 
 
@@ -6310,39 +6365,49 @@ async function handleServiceReturn(code, targetList) {
 
 
     function updateLabelAndCount(name) {
-      if (!userCodes[name]) return;
-      
-      const count = userCodes[name].size;
-      const labelTexts = {
- atanacak: '📋 Atanacak',
+       if (!userCodes[name]) {
+    console.warn(`⚠️ userCodes[${name}] tanımlı değil`);
+    return;
+  }
+  
+  const count = userCodes[name].size;
+  console.log(`📊 ${name} güncelleniyor: ${count} adet`);
+  
+  const labelTexts = {
+    atanacak: '📋 Atanacak',
     parcaBekliyor: '⚙️ Parça Bekliyor',
     phonecheck: '📱 PhoneCheck',
-    gokhan: "🧑‍🔧 Gökhan'ın Cihazları",
-    enes: "🧑‍🔧 Enes'in Cihazları",
-    yusuf: "🧑‍🔧 Yusuf'un Cihazları",
-    samet: "🧑‍🔧 Samet'in Cihazları",
-
-    engin: "🧑‍🔧 Engin'in Cihazları",
-    ismail: "🧑‍🔧 İsmail'in Cihazları",
-    mehmet: "🧑‍🔧 Mehmet'in Cihazları",
-    onarim: "🔧 Onarım Tamamlandı",
-    onCamDisServis: "🔨 Ön Cam Dış Servis",
-    anakartDisServis: "🔨 Anakart Dış Servis",
-    SonKullanıcı: "Son Kullanıcı",
-    satisa: "💰 Satışa Gidecek",
-    sahiniden: "🏪 Sahibinden",
-    mediaMarkt: "🛒 Media Markt",
-    teslimEdilenler: "✅ Teslim Edilenler"
-      };
-      
-      const labelText = labelTexts[name] || `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'ın Cihazları`;
-      
-      if (labels[name]) {
-        labels[name].textContent = `${labelText} - Adet: ${count}`;
+    onarim: '🔧 Onarım Tamamlandı',
+    onCamDisServis: '🔨 Ön Cam Dış Servis',
+    anakartDisServis: '🔨 Anakart Dış Servis',
+    SonKullanıcı: '👤 Son Kullanıcı',
+    satisa: '💰 Satışa Gidecek',
+    sahiniden: '🏪 Sahibinden',
+    mediaMarkt: '🛒 Media Markt',
+    teslimEdilenler: '✅ Teslim Edilenler'
+  };
+  
+  const labelText = labelTexts[name] || `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}'ın Cihazları`;
+  
+  if (labels[name]) {
+    labels[name].textContent = `${labelText} - Adet: ${count}`;
+    console.log(`✅ ${name} label güncellendi: ${count}`);
+  } else {
+    console.warn(`❌ ${name} label elementi bulunamadı`);
+    // Elementi tekrar ara
+    setTimeout(() => {
+      const labelElement = document.getElementById(`${name}Label`);
+      if (labelElement) {
+        labels[name] = labelElement;
+        labelElement.textContent = `${labelText} - Adet: ${count}`;
+        console.log(`✅ ${name} label sonradan bulundu ve güncellendi`);
       }
-      const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
-      db.ref(`servis/${dbPath}/adet`).set(count);
-    }
+    }, 500);
+  }
+  
+  const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
+  db.ref(`servis/${dbPath}/adet`).set(count);
+}
 
     function saveCodes(name, value) {
       if (isUpdating || !dataLoaded) return;
@@ -6831,6 +6896,20 @@ function loadData() {
           if (loadedCount === totalLists) {
             dataLoaded = true;
             renderList();
+                  setTimeout(() => {
+        const allSections = [
+          'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 
+          'onCamDisServis', 'anakartDisServis', 'SonKullanıcı',
+          'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
+        ];
+        
+        allSections.forEach(section => {
+          updateLabelAndCount(section);
+        });
+        
+        setupAllSectionToggles();
+      }, 1000);
+            
           }
           updateLabelAndCount(localName);
           return;
@@ -6944,60 +7023,12 @@ function setupSectionToggle(sectionElement, listId, labelId) {
     }
 }
 
-function setupRightSectionToggles() {
-    const rightSections = document.querySelectorAll('.right-section, .special-right-section, .delivered-section');
-    
-    rightSections.forEach(section => {
-        const label = section.querySelector('label');
-        const textarea = section.querySelector('textarea');
-        const miniList = section.querySelector('.mini-list');
-        
-        if (label && textarea && miniList) {
-            // Başlangıçta textarea ve liste gizli
-            textarea.style.display = 'none';
-            miniList.style.display = 'none';
-            
-            // YENİ: Tüm section'a tıklanabilir yap ve cursor'ı pointer yap
-            section.style.cursor = 'pointer';
-            
-            // YENİ: Label'a (Gizli)/(Açık) durumu ekle
-            if (!label.textContent.includes('(Gizli)') && !label.textContent.includes('(Açık)')) {
-                label.textContent = label.textContent + ' (Gizli)';
-            }
-            
-            // YENİ: Tüm section'a tıklama event'i ekle (sadece label değil)
-            section.addEventListener('click', (event) => {
-                // YENİ: Textarea'ya tıklanırsa toggle işlemi yapma
-                if (event.target === textarea || 
-                    event.target.tagName === 'TEXTAREA' || 
-                    event.target.closest('textarea')) {
-                    return;
-                }
-                
-                if (textarea.style.display === 'none') {
-                    textarea.style.display = 'block';
-                    miniList.style.display = 'flex';
-                    label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
-                } else {
-                    textarea.style.display = 'none';
-                    miniList.style.display = 'none';
-                    label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)');
-                }
-            });
-            
-            // YENİ: Textarea'ya tıklanınca event'in section'a yayılmasını engelle
-            textarea.addEventListener('click', (event) => {
-                event.stopPropagation();
-            });
-        }
-    });
-}
 
 function setupAllSectionToggles() {
-    // SOL TARAF: Tüm teknisyen section'larını bul
-    const leftSections = document.querySelectorAll('.section[data-section]');
+    // TÜM section'ları bul (hem sol hem sağ)
+    const allSections = document.querySelectorAll('.section[data-section]');
     
-    leftSections.forEach(section => {
+    allSections.forEach(section => {
         const sectionName = section.getAttribute('data-section');
         const listId = `${sectionName}List`;
         const labelId = `${sectionName}Label`;
@@ -7008,6 +7039,7 @@ function setupAllSectionToggles() {
             setupSectionToggle(section, listId, labelId);
         }
     });
+
     
     // YENİ VE BASİT: Right section'lar için doğrudan setupRightSectionToggles çağır
     setupRightSectionToggles();
