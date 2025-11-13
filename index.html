@@ -110,6 +110,10 @@
       color: #00eaff;
       text-shadow: 0 0 10px #00eaff;
     }
+
+    .autoreload-note{
+      margin-top:10px;color:#89f0ff;font-size:0.9em;opacity:0.9;
+    }
   </style>
 </head>
 <body>
@@ -122,18 +126,40 @@
     <div class="progress-bar" id="progress"></div>
   </div>
   <div class="countdown" id="countdown">10:00</div>
+  <div class="autoreload-note">Not: Sayfa her 1 dakikada bir otomatik olarak yenilenecek.</div>
 
   <script>
+    // 10 dakika countdown ve progress kontrol
     let totalSeconds = 600;
     const countdownElement = document.getElementById('countdown');
+    const progressBar = document.getElementById('progress');
 
     const timer = setInterval(() => {
+      if (totalSeconds <= 0) {
+        clearInterval(timer);
+        countdownElement.textContent = '00:00';
+        progressBar.style.width = '100%';
+        return;
+      }
+
       totalSeconds--;
       let minutes = Math.floor(totalSeconds / 60);
       let seconds = totalSeconds % 60;
       countdownElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      if (totalSeconds <= 0) clearInterval(timer);
+
+      // update progress bar width according to elapsed time
+      const elapsed = 600 - totalSeconds;
+      const pct = (elapsed / 600) * 100;
+      progressBar.style.width = pct + '%';
     }, 1000);
+
+    // Otomatik sayfa yenileme: her 1 dakikada bir (60000 ms)
+    const autoReload = setInterval(() => {
+      location.reload();
+    }, 60000);
+
+    // Eğer sayaç biterse otomatik yenilemeyi durdur (isteğe bağlı)
+    // clearInterval(autoReload);
   </script>
 </body>
 </html>
