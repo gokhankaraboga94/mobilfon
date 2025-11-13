@@ -2478,7 +2478,7 @@ color: #fff;
 }
 
 #resetDashboardBtn:hover {
-    background: #c0392b;
+    background: #157cc0;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
 }
@@ -5846,7 +5846,7 @@ auth.onAuthStateChanged(async user => {
       }
       
       // Teknisyen için parça sipariş özellikleri
-      const technicianUsers = ['technician', 'samet', 'yusuf', 'ismail', 'gokhan', 'engin', 'mehmet'];
+      const technicianUsers = ['technician', 'samet', 'yusuf', 'ismail', 'gokhan', 'engin', 'enes', 'mehmet'];
       if (currentUserRole === 'technician' || technicianUsers.includes(name)) {
         document.getElementById('partOrderButton').style.display = 'flex';
         document.getElementById('technicianPartOrders').style.display = 'block';
