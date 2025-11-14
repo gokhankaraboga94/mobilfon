@@ -3164,17 +3164,10 @@ function showUserManagement() {
     }
 }
 
-function closeReportsModal() {
-    if (isNavigationInProgress) return;
-    
+  function closeReportsModal() {
     document.getElementById('reportsModal').classList.remove('active');
     disableExcelExport();
-    
-    // Sadece admin kullanıcılar için ana sayfaya dön
-    if (currentUserRole === 'admin') {
-        showMainView();
-    }
-}
+  }
 
 // Yeni fonksiyon: Navigasyon olmadan rapor modalını kapat
 function closeReportsModalWithoutNavigation() {
@@ -3223,54 +3216,379 @@ function closeReportsModal() {
 // ========================================
 
 // YENİ KOD BAŞLADI - Eski generateReport fonksiyonunu tamamen değiştir
-async function generateReport() {
-  const startDateInput = document.getElementById('reportStartDate').value;
-  const endDateInput = document.getElementById('reportEndDate').value;
-  const listSelect = document.getElementById('reportList').value;
-  
-  if (!startDateInput || !endDateInput) {
-    showToast('Lütfen başlangıç ve bitiş tarihlerini seçin!', 'warning');
-    return;
-  }
-  
-  // ✅ Teslim Edilenler için özel hesaplama
-  if (listSelect === 'teslimEdilenler') {
-    await generateDeliveryReport(startDateInput, endDateInput);
-    return;
-  }
-  
-  const startDate = new Date(startDateInput);
-  const endDate = new Date(endDateInput);
-  endDate.setHours(23, 59, 59, 999);
-  
-  if (startDate > endDate) {
-    showToast('Başlangıç tarihi bitiş tarihinden büyük olamaz!', 'error');
-    return;
-  }
-  
-  const startOfPeriod = startDate.getTime();
-  const endOfPeriod = endDate.getTime();
-  
-  try {
-    const reportResults = document.getElementById('reportResults');
-    reportResults.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
-    reportResults.classList.add('active');
+// ========================================
+// REPORTS - generateReport FONKSİYONU DEĞİŞTİRİLECEK
+// ========================================
+
+// YENİ KOD BAŞLADI - Eski generateReport fonksiyonunu tamamen değiştir
+ async function generateReport() {
+    const startDateInput = document.getElementById('reportStartDate').value;
+    const endDateInput = document.getElementById('reportEndDate').value;
+    const listSelect = document.getElementById('reportList').value;
     
-    const listsToCheck = listSelect ? [listSelect] : Object.keys(userCodes);
-    let totalActions = 0;
-    let userStats = {};
-    let detailsData = [];
+    if (!startDateInput || !endDateInput) {
+      alert('Lütfen başlangıç ve bitiş tarihlerini seçin!');
+      return;
+    }
     
-    for (const listName of listsToCheck) {
+    // Teslim Edilenler için özel rapor
+    if (listSelect === 'teslimEdilenler') {
+      await generateDeliveryReport(startDateInput, endDateInput);
+      return;
+    }
+    
+    const startDate = new Date(startDateInput);
+    const endDate = new Date(endDateInput);
+    endDate.setHours(23, 59, 59, 999);
+    
+    if (startDate > endDate) {
+      alert('Başlangıç tarihi bitiş tarihinden büyük olamaz!');
+      return;
+    }
+    
+    const startOfPeriod = startDate.getTime();
+    const endOfPeriod = endDate.getTime();
+    
+    try {
+      const reportResults = document.getElementById('reportResults');
+      reportResults.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
+      reportResults.classList.add('active');
+      
+      const listsToCheck = listSelect ? [listSelect] : Object.keys(userCodes);
+      let totalActions = 0;
+      let userStats = {};
+      let detailsData = [];
+      
+      for (const listName of listsToCheck) {
+        const snapshot = await db.ref(`servis/history`).once('value');
+        const historyData = snapshot.val();
+        
+        if (!historyData) continue;
+        
+        for (const [barcode, barcodeHistory] of Object.entries(historyData)) {
+          const historyArray = Object.values(barcodeHistory);
+          
+          // PhoneCheck geçmişini kontrol et
+          let phoneCheckInfo = null;
+          const phoneCheckEntry = historyArray.find(entry => entry.to === 'phonecheck');
+          if (phoneCheckEntry) {
+            phoneCheckInfo = {
+              user: phoneCheckEntry.user,
+              timestamp: phoneCheckEntry.timestamp,
+              action: 'Giriş'
+            };
+          }
+          
+          // Seçilen listeye tarih aralığında giriş yapan kayıtları bul
+          const entryToList = historyArray.find(entry => 
+            entry.to === listName && 
+            entry.timestampRaw >= startOfPeriod && 
+            entry.timestampRaw <= endOfPeriod
+          );
+          
+          if (!entryToList) continue;
+          
+          totalActions++;
+          
+          const user = entryToList.user || 'Bilinmeyen';
+          userStats[user] = (userStats[user] || 0) + 1;
+          
+          // Barkodun şu anki durumunu belirle
+          const isCurrentlyInList = userCodes[listName] && userCodes[listName].has(barcode);
+          let currentStatus = '';
+          let statusColor = '';
+          
+          if (isCurrentlyInList) {
+            currentStatus = '✅ Aktif (Halen Bu Listede)';
+            statusColor = '#2ecc71';
+          } else {
+            let foundInOtherList = false;
+            for (const [otherListName, codeSet] of Object.entries(userCodes)) {
+              if (codeSet.has(barcode)) {
+                const listNames = {
+                  atanacak: '📋 Atanacak',
+                  parcaBekliyor: '⚙️ Parça Bekliyor',
+                  phonecheck: '📱 PhoneCheck',
+                  gokhan: '🧑‍🔧 Gökhan',
+                  enes: '🧑‍🔧 Enes',
+                  yusuf: '🧑‍🔧 Yusuf',
+                  samet: '🧑‍🔧 Samet',
+                  engin: '🧑‍🔧 Engin',
+                  ismail: '🧑‍🔧 İsmail',
+                  mehmet: '🧑‍🔧 Mehmet',
+                  onarim: '🔧 Onarım Tamamlandı',
+                  onCamDisServis: '🔨 Ön Cam Dış Servis',
+                  anakartDisServis: '🔨 Anakart Dış Servis',
+                  satisa: '💰 Satışa Gidecek',
+                  sahiniden: '🏪 Sahibinden',
+                  mediaMarkt: '🛒 Media Markt',
+                  SonKullanıcı: '👤 Son Kullanıcı',
+                  teslimEdilenler: '✅ Teslim Edilenler'
+                };
+                currentStatus = `⏭️ Taşındı: ${listNames[otherListName] || otherListName}`;
+                statusColor = '#95a5a6';
+                foundInOtherList = true;
+                break;
+              }
+            }
+            
+            if (!foundInOtherList) {
+              currentStatus = '❌ Sistemde Yok (Silinmiş/Teslim Edilmiş)';
+              statusColor = '#e74c3c';
+            }
+          }
+          
+          const listNames = {
+            atanacak: '📋 Atanacak',
+            parcaBekliyor: '⚙️ Parça Bekliyor',
+            phonecheck: '📱 PhoneCheck',
+            gokhan: '🧑‍🔧 Gökhan',
+            enes: '🧑‍🔧 Enes',
+            yusuf: '🧑‍🔧 Yusuf',
+            samet: '🧑‍🔧 Samet',
+            engin: '🧑‍🔧 Engin',
+            ismail: '🧑‍🔧 İsmail',
+            mehmet: '🧑‍🔧 Mehmet',
+            onarim: '🔧 Onarım Tamamlandı',
+            onCamDisServis: '🔨 Ön Cam Dış Servis',
+            anakartDisServis: '🔨 Anakart Dış Servis',
+            satisa: '💰 Satışa Gidecek',
+            sahiniden: '🏪 Sahibinden',
+            mediaMarkt: '🛒 Media Markt',
+            SonKullanıcı: '👤 Son Kullanıcı',
+            teslimEdilenler: '✅ Teslim Edilenler'
+          };
+          
+          const fromName = listNames[entryToList.from] || entryToList.from;
+          const toName = listNames[entryToList.to] || entryToList.to;
+          
+          detailsData.push({
+            barcode: barcode,
+            fromName: fromName,
+            toName: toName,
+            user: user,
+            timestamp: entryToList.timestamp,
+            entryDate: entryToList.timestampRaw,
+            currentStatus: currentStatus,
+            statusColor: statusColor,
+            isActive: isCurrentlyInList,
+            phoneCheckInfo: phoneCheckInfo,
+            rawData: entryToList
+          });
+        }
+      }
+      
+      if (totalActions === 0) {
+        reportResults.innerHTML = `
+          <div class="no-results">
+            📭 Seçilen tarih ve liste için kayıt bulunamadı.
+          </div>
+        `;
+        return;
+      }
+
+      // Kayıtları sırala: Önce aktif olanlar, sonra taşınanlar
+      detailsData.sort((a, b) => {
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+        return b.entryDate - a.entryDate;
+      });
+
+      const listName = listSelect ? document.querySelector(`#reportList option[value="${listSelect}"]`).textContent : 'Tüm Listeler';
+      const dateRangeText = `${startDateInput} - ${endDateInput}`;
+
+      const activeCount = detailsData.filter(item => item.isActive).length;
+      const movedCount = detailsData.filter(item => !item.isActive).length;
+
+      let summaryHTML = `
+        <div class="report-summary">
+          <div class="summary-card">
+            <div class="label">Toplam Kayıt</div>
+            <div class="value">${totalActions}</div>
+          </div>
+          <div class="summary-card" style="background: rgba(46, 204, 113, 0.2);">
+            <div class="label">✅ Aktif (Halen Bu Listede)</div>
+            <div class="value" style="color: #2ecc71;">${activeCount}</div>
+          </div>
+          <div class="summary-card" style="background: rgba(149, 165, 166, 0.2);">
+            <div class="label">⏭️ Taşınmış</div>
+            <div class="value" style="color: #95a5a6;">${movedCount}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Tarih Aralığı</div>
+            <div class="value" style="font-size: 16px;">${dateRangeText}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Rapor Türü</div>
+            <div class="value" style="font-size: 14px;">${listName}</div>
+          </div>
+        </div>
+      `;
+      
+      let userStatsHTML = '<div class="user-stats"><h4>👥 Kullanıcı İstatistikleri</h4>';
+      const sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]);
+      sortedUsers.forEach(([user, count]) => {
+        userStatsHTML += `
+          <div class="user-stat-item">
+            <span class="user-stat-name">👤 ${user}</span>
+            <span class="user-stat-count">${count} kayıt</span>
+          </div>
+        `;
+      });
+      userStatsHTML += '</div>';
+      
+      const detailFiltersHTML = `
+        <div class="detail-filters">
+          <input type="text" class="detail-filter-input" id="detailBarcodeFilter" placeholder="🔍 Barkod ara...">
+          <input type="text" class="detail-filter-input" id="detailUserFilter" placeholder="👤 Kullanıcı ara...">
+          <input type="text" class="detail-filter-input" id="detailStatusFilter" placeholder="📍 Durum ara...">
+          <select class="detail-filter-input" id="detailActiveFilter">
+            <option value="">Tüm Kayıtlar</option>
+            <option value="active">✅ Sadece Aktif</option>
+            <option value="moved">⏭️ Sadece Taşınmış</option>
+          </select>
+        </div>
+        <div class="filter-info" id="filterInfo">
+          Toplam ${detailsData.length} kayıt gösteriliyor (✅ ${activeCount} Aktif, ⏭️ ${movedCount} Taşınmış)
+        </div>
+        <button class="clear-filters-btn" onclick="clearDetailFilters()" style="display: none;" id="clearFiltersBtn">
+          🗑️ Filtreleri Temizle
+        </button>
+      `;
+      
+      let detailsHTML = '<div class="detail-list-container" id="detailListContainer">';
+      detailsData.forEach(item => {
+        detailsHTML += `
+          <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" 
+               data-status="${item.currentStatus}" 
+               data-active="${item.isActive ? 'active' : 'moved'}"
+               data-phonecheck="${item.phoneCheckInfo ? 'var' : 'yok'}"
+               style="border-left: 4px solid ${item.statusColor};">
+            <div class="barcode">${item.barcode}</div>
+            <div class="info">${item.fromName} → ${item.toName}</div>
+            <div class="info">👤 ${item.user} • 🕒 ${item.timestamp}</div>
+            ${item.phoneCheckInfo ? `
+              <div class="info" style="color: #3498db;">
+                📱 PhoneCheck: ${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})
+              </div>
+            ` : `
+              <div class="info" style="color: #95a5a6;">
+                📱 PhoneCheck: Yok
+              </div>
+            `}
+            <div class="info" style="color: ${item.statusColor}; font-weight: bold;">
+              ${item.currentStatus}
+            </div>
+          </div>
+        `;
+      });
+      detailsHTML += '</div>';
+      
+      reportResults.innerHTML = `
+        ${summaryHTML}
+        ${userStatsHTML}
+        <div class="report-details">
+          <h3>📋 Detaylı Kayıt Listesi</h3>
+          ${detailFiltersHTML}
+          ${detailsHTML}
+        </div>
+      `;
+      
+      setupDetailFiltersEnhanced(detailsData, activeCount, movedCount);
+      enableExcelExport({ 
+        details: detailsData, 
+        totalActions, 
+        activeCount,
+        movedCount,
+        userCount: Object.keys(userStats).length, 
+        userStats, 
+        reportDate: dateRangeText,
+        selectedList: listName 
+      });
+      
+    } catch (error) {
+      console.error('Rapor oluşturulurken hata:', error);
+      alert('Rapor oluşturulurken hata oluştu!');
+      document.getElementById('reportResults').innerHTML = `
+        <div class="no-results">
+          ❌ Rapor oluşturulurken bir hata oluştu.
+        </div>
+      `;
+    }
+  }
+// YENİ KOD BİTTİ - generateReport fonksiyonu sonu
+// YENİ KOD BİTTİ - generateReport fonksiyonu sonu
+ async function generateDeliveryReport(startDateInput, endDateInput) {
+    const startDate = new Date(startDateInput);
+    const endDate = new Date(endDateInput);
+    endDate.setHours(23, 59, 59, 999);
+    
+    if (startDate > endDate) {
+      alert('Başlangıç tarihi bitiş tarihinden büyük olamaz!');
+      return;
+    }
+    
+    const startOfPeriod = startDate.getTime();
+    const endOfPeriod = endDate.getTime();
+    
+    try {
+      const reportResults = document.getElementById('reportResults');
+      reportResults.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
+      reportResults.classList.add('active');
+      
       const snapshot = await db.ref(`servis/history`).once('value');
       const historyData = snapshot.val();
       
-      if (!historyData) continue;
+      if (!historyData) {
+        reportResults.innerHTML = `
+          <div class="no-results">
+            📭 Seçilen tarih aralığında teslim edilen cihaz bulunamadı.
+          </div>
+        `;
+        return;
+      }
+      
+      let totalDelivered = 0;
+      let deliveredIMEIs = [];
+      let sourceBreakdown = {
+        atanacak: 0,
+        SonKullanıcı: 0,
+        sahiniden: 0,
+        mediaMarkt: 0
+      };
+      let dailyBreakdown = {};
+      let userStats = {};
       
       for (const [barcode, barcodeHistory] of Object.entries(historyData)) {
         const historyArray = Object.values(barcodeHistory);
         
-        // PhoneCheck geçmişini kontrol et
+        const deliveryEntry = historyArray.find(entry => 
+          entry.to === 'teslimEdilenler' && 
+          entry.timestampRaw >= startOfPeriod && 
+          entry.timestampRaw <= endOfPeriod
+        );
+        
+        if (!deliveryEntry) continue;
+        
+        totalDelivered++;
+        
+        const user = deliveryEntry.user || 'Bilinmeyen';
+        userStats[user] = (userStats[user] || 0) + 1;
+        
+        let source = 'atanacak';
+        for (const entry of historyArray) {
+          if (entry.to === 'teslimEdilenler') break;
+          if (['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'].includes(entry.from)) {
+            source = entry.from;
+            break;
+          }
+        }
+        
+        sourceBreakdown[source] = (sourceBreakdown[source] || 0) + 1;
+        
+        const deliveryDate = new Date(deliveryEntry.timestampRaw).toISOString().split('T')[0];
+        dailyBreakdown[deliveryDate] = (dailyBreakdown[deliveryDate] || 0) + 1;
+        
         let phoneCheckInfo = null;
         const phoneCheckEntry = historyArray.find(entry => entry.to === 'phonecheck');
         if (phoneCheckEntry) {
@@ -3279,699 +3597,265 @@ async function generateReport() {
             timestamp: phoneCheckEntry.timestamp,
             action: 'Giriş'
           };
-        } else {
-          const inPhoneCheckEntry = historyArray.find(entry => 
-            entry.from === 'phonecheck' || entry.to === 'phonecheck'
-          );
-          if (inPhoneCheckEntry) {
-            phoneCheckInfo = {
-              user: inPhoneCheckEntry.user || 'Bilinmeyen',
-              timestamp: inPhoneCheckEntry.timestamp,
-              action: 'Mevcut'
-            };
-          }
         }
         
-        // 🔥 YENİ MANTIK BAŞLADI: Seçilen listeye TARIH ARALIGINDA GİRİŞ yapan TÜM kayıtları bul
-        const entryToList = historyArray.find(entry => 
-          entry.to === listName && 
-          entry.timestampRaw >= startOfPeriod && 
-          entry.timestampRaw <= endOfPeriod
-        );
-        
-        if (!entryToList) continue; // Bu barkod tarih aralığında bu listeye girmemiş
-        // 🔥 YENİ MANTIK BİTTİ
-        
-        // SİLİNECEK BAŞLADI - Eski mantık artık kullanılmıyor
-        // // Barkodun tarih aralığındaki tüm hareketlerini filtrele
-        // const periodActions = historyArray.filter(entry => 
-        //   entry.timestampRaw >= startOfPeriod && entry.timestampRaw <= endOfPeriod
-        // );
-        // 
-        // if (periodActions.length === 0) continue;
-        // 
-        // // Barkodun bu tarih aralığındaki son hareketini bul
-        // const lastActionInPeriod = periodActions.reduce((latest, current) => 
-        //   current.timestampRaw > latest.timestampRaw ? current : latest
-        // );
-        // 
-        // // Eğer barkod hala sistemdeyse ve son hareket listedeyse say
-        // if (!listSelect || lastActionInPeriod.to === listName) {
-        //   // Barkodun şu anki durumunu kontrol et
-        //   let isCurrentlyInSystem = currentBarcodes.has(barcode);
-        //   let isCurrentlyInTargetList = userCodes[listName] && userCodes[listName].has(barcode);
-        //   
-        //   // Eğer spesifik bir liste seçilmişse ve barkod şu anda o listede değilse, sayma
-        //   if (listSelect && !isCurrentlyInTargetList) {
-        //     continue;
-        //   }
-        //   
-        //   // Eğer liste seçilmemişse (tüm listeler) ve barkod artık sistemde değilse, say
-        //   if (!listSelect && !isCurrentlyInSystem) {
-        //     continue;
-        //   }
-        // SİLİNECEK BİTTİ
-        
-        totalActions++;
-        
-        // DEĞİŞTİRİLECEK BAŞLADI - Kullanıcı istatistikleri artık entryToList'ten alınıyor
-        // ESKI: const user = lastActionInPeriod.user || 'Bilinmeyen';
-        const user = entryToList.user || 'Bilinmeyen';
-        // DEĞİŞTİRİLECEK BİTTİ
-        userStats[user] = (userStats[user] || 0) + 1;
-        
-        // YENİ KOD BAŞLADI - Barkodun ŞU ANKİ durumunu belirle
-        const isCurrentlyInList = userCodes[listName] && userCodes[listName].has(barcode);
-        let currentStatus = '';
-        let statusColor = '';
-        
-        if (isCurrentlyInList) {
-          currentStatus = '✅ Aktif (Halen Bu Listede)';
-          statusColor = '#2ecc71'; // Yeşil
-        } else {
-          // Başka bir listede mi, yoksa hiçbir listede mi?
-          let foundInOtherList = false;
-          for (const [otherListName, codeSet] of Object.entries(userCodes)) {
-            if (codeSet.has(barcode)) {
-              const listNames = {
-                atanacak: '📋 Atanacak',
-                parcaBekliyor: '⚙️ Parça Bekliyor',
-                phonecheck: '📱 PhoneCheck',
-                gokhan: '🧑‍🔧 Gökhan',
-                enes: '🧑‍🔧 Enes',
-                yusuf: '🧑‍🔧 Yusuf',
-                samet: '🧑‍🔧 Samet',
-                engin: '🧑‍🔧 Engin',
-                ismail: '🧑‍🔧 İsmail',
-                mehmet: '🧑‍🔧 Mehmet',
-                onarim: '🔧 Onarım Tamamlandı',
-                onCamDisServis: '🔨 Ön Cam Dış Servis',
-                anakartDisServis: '🔨 Anakart Dış Servis',
-                satisa: '💰 Satışa Gidecek',
-                sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt',
-                SonKullanıcı: '👤 Son Kullanıcı',
-                teslimEdilenler: '✅ Teslim Edilenler'
-              };
-              currentStatus = `⏭️ Taşındı: ${listNames[otherListName] || otherListName}`;
-              statusColor = '#95a5a6'; // Gri
-              foundInOtherList = true;
-              break;
-            }
-          }
-          
-          if (!foundInOtherList) {
-            currentStatus = '❌ Sistemde Yok (Silinmiş/Teslim Edilmiş)';
-            statusColor = '#e74c3c'; // Kırmızı
-          }
-        }
-        // YENİ KOD BİTTİ
-        
-        const listNames = {
-          atanacak: '📋 Atanacak',
-          parcaBekliyor: '⚙️ Parça Bekliyor',
-          phonecheck: '📱 PhoneCheck',
-          gokhan: '🧑‍🔧 Gökhan',
-          enes: '🧑‍🔧 Enes',
-          yusuf: '🧑‍🔧 Yusuf',
-          samet: '🧑‍🔧 Samet',
-          engin: '🧑‍🔧 Engin',
-          ismail: '🧑‍🔧 İsmail',
-          mehmet: '🧑‍🔧 Mehmet',
-          onarim: '🔧 Onarım Tamamlandı',
-          onCamDisServis: '🔨 Ön Cam Dış Servis',
-          anakartDisServis: '🔨 Anakart Dış Servis',
-          satisa: '💰 Satışa Gidecek',
-          sahiniden: '🏪 Sahibinden',
-          mediaMarkt: '🛒 Media Markt',
-          SonKullanıcı: '👤 Son Kullanıcı',
-          teslimEdilenler: '✅ Teslim Edilenler'
-        };
-        
-        // DEĞİŞTİRİLECEK BAŞLADI - Artık entryToList kullanıyoruz
-        // ESKI: const fromName = listNames[lastActionInPeriod.from] || lastActionInPeriod.from;
-        // ESKI: const toName = listNames[lastActionInPeriod.to] || lastActionInPeriod.to;
-        const fromName = listNames[entryToList.from] || entryToList.from;
-        const toName = listNames[entryToList.to] || entryToList.to;
-        // DEĞİŞTİRİLECEK BİTTİ
-        
-        // SİLİNECEK BAŞLADI - Eski durum kontrolü artık kullanılmıyor
-        // // Barkodun şu anki durumunu belirle
-        // let currentStatus = '❌ Sistemde Yok';
-        // if (isCurrentlyInSystem) {
-        //   // Hangi listede olduğunu bul
-        //   for (const [listName, codeSet] of Object.entries(userCodes)) {
-        //     if (codeSet.has(barcode)) {
-        //       currentStatus = `📍 ${listNames[listName] || listName}`;
-        //       break;
-        //     }
-        //   }
-        // }
-        // SİLİNECEK BİTTİ
-        
-        // DEĞİŞTİRİLECEK BAŞLADI - detailsData objesine yeni alanlar eklendi
-        detailsData.push({
-          barcode: barcode,
-          fromName: fromName,
-          toName: toName,
+        deliveredIMEIs.push({
+          imei: barcode,
+          source: source,
           user: user,
-          // ESKI: timestamp: lastActionInPeriod.timestamp,
-          timestamp: entryToList.timestamp,
-          // YENİ EKLENEN: Listeye giriş tarihi
-          entryDate: entryToList.timestampRaw,
-          currentStatus: currentStatus,
-          // YENİ EKLENEN: Renk ve aktiflik durumu
-          statusColor: statusColor,
-          isActive: isCurrentlyInList,
-          phoneCheckInfo: phoneCheckInfo,
-          // ESKI: rawData: lastActionInPeriod
-          rawData: entryToList
+          timestamp: deliveryEntry.timestamp,
+          timestampRaw: deliveryEntry.timestampRaw,
+          phoneCheckInfo: phoneCheckInfo
         });
-        // DEĞİŞTİRİLECEK BİTTİ
-      }
-    }
-    
-    if (totalActions === 0) {
-      reportResults.innerHTML = `
-        <div class="no-results">
-          📭 Seçilen tarih ve liste için kayıt bulunamadı.
-        </div>
-      `;
-      return;
-    }
-
-    // YENİ KOD BAŞLADI - Kayıtları sırala: Önce aktif olanlar, sonra taşınanlar
-    detailsData.sort((a, b) => {
-      if (a.isActive && !b.isActive) return -1;
-      if (!a.isActive && b.isActive) return 1;
-      return b.entryDate - a.entryDate; // Tarih sırasına göre
-    });
-    // YENİ KOD BİTTİ
-
-    const listName = listSelect ? document.querySelector(`#reportList option[value="${listSelect}"]`).textContent : 'Tüm Listeler';
-    const dateRangeText = `${startDateInput} - ${endDateInput}`;
-
-    // YENİ KOD BAŞLADI - Aktif ve taşınmış kayıt sayıları
-    const activeCount = detailsData.filter(item => item.isActive).length;
-    const movedCount = detailsData.filter(item => !item.isActive).length;
-    // YENİ KOD BİTTİ
-
-    // DEĞİŞTİRİLECEK BAŞLADI - Özet kartlara aktif/taşınmış sayıları eklendi
-    let summaryHTML = `
-      <div class="report-summary">
-        <div class="summary-card">
-          <div class="label">Toplam Kayıt</div>
-          <div class="value">${totalActions}</div>
-        </div>
-        <!-- YENİ EKLENEN: Aktif kayıtlar kartı -->
-        <div class="summary-card" style="background: rgba(46, 204, 113, 0.2);">
-          <div class="label">✅ Aktif (Halen Bu Listede)</div>
-          <div class="value" style="color: #2ecc71;">${activeCount}</div>
-        </div>
-        <!-- YENİ EKLENEN: Taşınmış kayıtlar kartı -->
-        <div class="summary-card" style="background: rgba(149, 165, 166, 0.2);">
-          <div class="label">⏭️ Taşınmış</div>
-          <div class="value" style="color: #95a5a6;">${movedCount}</div>
-        </div>
-        <div class="summary-card">
-          <div class="label">Tarih Aralığı</div>
-          <div class="value" style="font-size: 16px;">${dateRangeText}</div>
-        </div>
-        <div class="summary-card">
-          <div class="label">Rapor Türü</div>
-          <!-- DEĞİŞTİRİLDİ: (Güncel Durum) metni kaldırıldı -->
-          <div class="value" style="font-size: 14px;">${listName}</div>
-        </div>
-      </div>
-    `;
-    // DEĞİŞTİRİLECEK BİTTİ
-    
-    let userStatsHTML = '<div class="user-stats"><h4>👥 Kullanıcı İstatistikleri</h4>';
-    const sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]);
-    sortedUsers.forEach(([user, count]) => {
-      userStatsHTML += `
-        <div class="user-stat-item">
-          <span class="user-stat-name">👤 ${user}</span>
-          <!-- DEĞİŞTİRİLDİ: "işlem" yerine "kayıt" -->
-          <span class="user-stat-count">${count} kayıt</span>
-        </div>
-      `;
-    });
-    userStatsHTML += '</div>';
-    
-    // DEĞİŞTİRİLECEK BAŞLADI - Filtreleme arayüzüne aktif/taşınmış filtresi eklendi
-    const detailFiltersHTML = `
-      <div class="detail-filters">
-        <input type="text" class="detail-filter-input" id="detailBarcodeFilter" placeholder="🔍 Barkod ara...">
-        <input type="text" class="detail-filter-input" id="detailUserFilter" placeholder="👤 Kullanıcı ara...">
-        <!-- DEĞİŞTİRİLDİ: Liste filtresi yerine durum filtresi -->
-        <input type="text" class="detail-filter-input" id="detailStatusFilter" placeholder="📍 Durum ara...">
-        <!-- YENİ EKLENEN: Aktif/Taşınmış seçim dropdown -->
-        <select class="detail-filter-input" id="detailActiveFilter">
-          <option value="">Tüm Kayıtlar</option>
-          <option value="active">✅ Sadece Aktif</option>
-          <option value="moved">⏭️ Sadece Taşınmış</option>
-        </select>
-      </div>
-      <div class="filter-info" id="filterInfo">
-        <!-- DEĞİŞTİRİLDİ: Aktif/taşınmış sayıları gösteriliyor -->
-        Toplam ${detailsData.length} kayıt gösteriliyor (✅ ${activeCount} Aktif, ⏭️ ${movedCount} Taşınmış)
-      </div>
-      <button class="clear-filters-btn" onclick="clearDetailFilters()" style="display: none;" id="clearFiltersBtn">
-        🗑️ Filtreleri Temizle
-      </button>
-    `;
-    // DEĞİŞTİRİLECEK BİTTİ
-    
-    // DEĞİŞTİRİLECEK BAŞLADI - Detaylı liste HTML'ine renk ve durum bilgisi eklendi
-    let detailsHTML = '<div class="detail-list-container" id="detailListContainer">';
-    detailsData.forEach(item => {
-      detailsHTML += `
-        <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" 
-             <!-- DEĞİŞTİRİLDİ: data-from ve data-to yerine data-status ve data-active -->
-             data-status="${item.currentStatus}" 
-             data-active="${item.isActive ? 'active' : 'moved'}"
-             data-phonecheck="${item.phoneCheckInfo ? 'var' : 'yok'}"
-             <!-- YENİ EKLENEN: Dinamik border rengi -->
-             style="border-left: 4px solid ${item.statusColor};">
-          <div class="barcode">${item.barcode}</div>
-          <div class="info">${item.fromName} → ${item.toName}</div>
-          <div class="info">👤 ${item.user} • 🕒 ${item.timestamp}</div>
-          ${item.phoneCheckInfo ? `
-            <div class="info" style="color: #3498db;">
-              📱 PhoneCheck: ${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})
-            </div>
-          ` : `
-            <div class="info" style="color: #95a5a6;">
-              📱 PhoneCheck: Yok
-            </div>
-          `}
-          <!-- YENİ EKLENEN: Güncel durum gösterimi -->
-          <div class="info" style="color: ${item.statusColor}; font-weight: bold;">
-            ${item.currentStatus}
-          </div>
-        </div>
-      `;
-    });
-    detailsHTML += '</div>';
-    // DEĞİŞTİRİLECEK BİTTİ
-    
-    reportResults.innerHTML = `
-      ${summaryHTML}
-      ${userStatsHTML}
-      <div class="report-details">
-        <h3>📋 Detaylı Kayıt Listesi</h3>
-        ${detailFiltersHTML}
-        ${detailsHTML}
-      </div>
-    `;
-    
-    // DEĞİŞTİRİLECEK BAŞLADI - Yeni filtreleme fonksiyonu çağrılıyor
-    // ESKI: setupDetailFilters(detailsData);
-    setupDetailFiltersEnhanced(detailsData, activeCount, movedCount);
-    // DEĞİŞTİRİLECEK BİTTİ
-
-    // DEĞİŞTİRİLECEK BAŞLADI - Excel export'a yeni alanlar eklendi
-    enableExcelExport({ 
-      details: detailsData, 
-      totalActions, 
-      // YENİ EKLENEN: Aktif ve taşınmış sayıları
-      activeCount,
-      movedCount,
-      userCount: Object.keys(userStats).length, 
-      userStats, 
-      reportDate: dateRangeText,
-      selectedList: listName 
-    });
-    // DEĞİŞTİRİLECEK BİTTİ
-    
-  } catch (error) {
-    console.error('Rapor oluşturulurken hata:', error);
-    showToast('Rapor oluşturulurken hata oluştu!', 'error');
-    document.getElementById('reportResults').innerHTML = `
-      <div class="no-results">
-        ❌ Rapor oluşturulurken bir hata oluştu.
-      </div>
-    `;
-  }
-}
-// YENİ KOD BİTTİ - generateReport fonksiyonu sonu
-async function generateDeliveryReport(startDateInput, endDateInput) {
-  const startDate = new Date(startDateInput);
-  const endDate = new Date(endDateInput);
-  endDate.setHours(23, 59, 59, 999);
-  
-  if (startDate > endDate) {
-    showToast('Başlangıç tarihi bitiş tarihinden büyük olamaz!', 'error');
-    return;
-  }
-  
-  const startOfPeriod = startDate.getTime();
-  const endOfPeriod = endDate.getTime();
-  
-  try {
-    const reportResults = document.getElementById('reportResults');
-    reportResults.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
-    reportResults.classList.add('active');
-    
-    // Teslim edilenler geçmişini al
-    const snapshot = await db.ref(`servis/history`).once('value');
-    const historyData = snapshot.val();
-    
-    if (!historyData) {
-      reportResults.innerHTML = `
-        <div class="no-results">
-          📭 Seçilen tarih aralığında teslim edilen cihaz bulunamadı.
-        </div>
-      `;
-      return;
-    }
-    
-    let totalDelivered = 0;
-    let deliveredIMEIs = [];
-    let sourceBreakdown = {
-      atanacak: 0,
-      SonKullanıcı: 0,
-      sahiniden: 0,
-      mediaMarkt: 0
-    };
-    let dailyBreakdown = {};
-    let userStats = {};
-    
-    // Tüm barkodları kontrol et
-    for (const [barcode, barcodeHistory] of Object.entries(historyData)) {
-      const historyArray = Object.values(barcodeHistory);
-      
-      // Bu barkodun teslim edilenler listesine girişini bul
-      const deliveryEntry = historyArray.find(entry => 
-        entry.to === 'teslimEdilenler' && 
-        entry.timestampRaw >= startOfPeriod && 
-        entry.timestampRaw <= endOfPeriod
-      );
-      
-      if (!deliveryEntry) continue;
-      
-      totalDelivered++;
-      
-      // Kullanıcı istatistikleri
-      const user = deliveryEntry.user || 'Bilinmeyen';
-      userStats[user] = (userStats[user] || 0) + 1;
-      
-      // Kaynak bilgisini bul (nereden geldiği)
-      let source = 'atanacak'; // varsayılan
-      for (const entry of historyArray) {
-        if (entry.to === 'teslimEdilenler') break;
-        if (['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'].includes(entry.from)) {
-          source = entry.from;
-          break;
-        }
       }
       
-      sourceBreakdown[source] = (sourceBreakdown[source] || 0) + 1;
-      
-      // Günlük dağılım
-      const deliveryDate = new Date(deliveryEntry.timestampRaw).toISOString().split('T')[0];
-      dailyBreakdown[deliveryDate] = (dailyBreakdown[deliveryDate] || 0) + 1;
-      
-      // PhoneCheck bilgisi
-      let phoneCheckInfo = null;
-      const phoneCheckEntry = historyArray.find(entry => entry.to === 'phonecheck');
-      if (phoneCheckEntry) {
-        phoneCheckInfo = {
-          user: phoneCheckEntry.user,
-          timestamp: phoneCheckEntry.timestamp,
-          action: 'Giriş'
-        };
-      }
-      
-      deliveredIMEIs.push({
-        imei: barcode,
-        source: source,
-        user: user,
-        timestamp: deliveryEntry.timestamp,
-        timestampRaw: deliveryEntry.timestampRaw,
-        phoneCheckInfo: phoneCheckInfo
-      });
-    }
-    
-    if (totalDelivered === 0) {
-      reportResults.innerHTML = `
-        <div class="no-results">
-          📭 Seçilen tarih aralığında teslim edilen cihaz bulunamadı.
-        </div>
-      `;
-      return;
-    }
-    
-    // Gün sayısını hesapla
-    const dayCount = Object.keys(dailyBreakdown).length;
-    const avgPerDay = (totalDelivered / dayCount).toFixed(1);
-    
-    const dateRangeText = `${startDateInput} - ${endDateInput}`;
-    
-    let summaryHTML = `
-      <div class="report-summary">
-        <div class="summary-card">
-          <div class="label">Toplam Teslim</div>
-          <div class="value">${totalDelivered}</div>
-        </div>
-        <div class="summary-card">
-          <div class="label">Gün Sayısı</div>
-          <div class="value">${dayCount}</div>
-        </div>
-        <div class="summary-card">
-          <div class="label">Günlük Ortalama</div>
-          <div class="value">${avgPerDay}</div>
-        </div>
-        <div class="summary-card">
-          <div class="label">Tarih Aralığı</div>
-          <div class="value" style="font-size: 16px;">${dateRangeText}</div>
-        </div>
-      </div>
-    `;
-    
-    // Kaynak dağılımı
-    let sourceHTML = '<div class="report-details"><h3>📊 Kaynak Bazlı Dağılım</h3>';
-    const sourceNames = {
-      atanacak: '📋 Atanacak',
-      SonKullanıcı: '👤 Son Kullanıcı',
-      sahiniden: '🏪 Sahibinden',
-      mediaMarkt: '🛒 Media Markt'
-    };
-    
-    Object.entries(sourceBreakdown).forEach(([source, count]) => {
-      if (count > 0) {
-        const percentage = ((count / totalDelivered) * 100).toFixed(1);
-        sourceHTML += `
-          <div class="detail-item">
-            <div class="barcode">${sourceNames[source] || source}</div>
-            <div class="info">${count} adet (%${percentage})</div>
+      if (totalDelivered === 0) {
+        reportResults.innerHTML = `
+          <div class="no-results">
+            📭 Seçilen tarih aralığında teslim edilen cihaz bulunamadı.
           </div>
         `;
+        return;
       }
-    });
-    sourceHTML += '</div>';
-    
-    // Kullanıcı istatistikleri
-    let userStatsHTML = '<div class="user-stats"><h4>👥 Kullanıcı İstatistikleri</h4>';
-    const sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]);
-    sortedUsers.forEach(([user, count]) => {
-      userStatsHTML += `
-        <div class="user-stat-item">
-          <span class="user-stat-name">👤 ${user}</span>
-          <span class="user-stat-count">${count} teslim</span>
+      
+      const dayCount = Object.keys(dailyBreakdown).length;
+      const avgPerDay = (totalDelivered / dayCount).toFixed(1);
+      
+      const dateRangeText = `${startDateInput} - ${endDateInput}`;
+      
+      let summaryHTML = `
+        <div class="report-summary">
+          <div class="summary-card">
+            <div class="label">Toplam Teslim</div>
+            <div class="value">${totalDelivered}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Gün Sayısı</div>
+            <div class="value">${dayCount}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Günlük Ortalama</div>
+            <div class="value">${avgPerDay}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Tarih Aralığı</div>
+            <div class="value" style="font-size: 16px;">${dateRangeText}</div>
+          </div>
         </div>
       `;
-    });
-    userStatsHTML += '</div>';
-    
-    // Günlük detay
-    let dailyHTML = '<div class="report-details"><h3>📅 Günlük Teslim Detayı</h3>';
-    const sortedDays = Object.entries(dailyBreakdown)
-      .sort((a, b) => b[0].localeCompare(a[0]))
-      .slice(0, 10); // Son 10 gün
-    
-    sortedDays.forEach(([date, count]) => {
-      const dateObj = new Date(date);
-      const formattedDate = dateObj.toLocaleDateString('tr-TR', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        weekday: 'long'
+      
+      let sourceHTML = '<div class="report-details"><h3>📊 Kaynak Bazlı Dağılım</h3>';
+      const sourceNames = {
+        atanacak: '📋 Atanacak',
+        SonKullanıcı: '👤 Son Kullanıcı',
+        sahiniden: '🏪 Sahibinden',
+        mediaMarkt: '🛒 Media Markt'
+      };
+      
+      Object.entries(sourceBreakdown).forEach(([source, count]) => {
+        if (count > 0) {
+          const percentage = ((count / totalDelivered) * 100).toFixed(1);
+          sourceHTML += `
+            <div class="detail-item">
+              <div class="barcode">${sourceNames[source] || source}</div>
+              <div class="info">${count} adet (%${percentage})</div>
+            </div>
+          `;
+        }
+      });
+      sourceHTML += '</div>';
+      
+      let userStatsHTML = '<div class="user-stats"><h4>👥 Kullanıcı İstatistikleri</h4>';
+      const sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]);
+      sortedUsers.forEach(([user, count]) => {
+        userStatsHTML += `
+          <div class="user-stat-item">
+            <span class="user-stat-name">👤 ${user}</span>
+            <span class="user-stat-count">${count} teslim</span>
+          </div>
+        `;
+      });
+      userStatsHTML += '</div>';
+      
+      let dailyHTML = '<div class="report-details"><h3>📅 Günlük Teslim Detayı</h3>';
+      const sortedDays = Object.entries(dailyBreakdown)
+        .sort((a, b) => b[0].localeCompare(a[0]))
+        .slice(0, 10);
+      
+      sortedDays.forEach(([date, count]) => {
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toLocaleDateString('tr-TR', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          weekday: 'long'
+        });
+        
+        dailyHTML += `
+          <div class="detail-item">
+            <div class="barcode">${formattedDate}</div>
+            <div class="info">${count} teslim</div>
+          </div>
+        `;
       });
       
-      dailyHTML += `
-        <div class="detail-item">
-          <div class="barcode">${formattedDate}</div>
-          <div class="info">${count} teslim</div>
+      if (Object.keys(dailyBreakdown).length > 10) {
+        dailyHTML += `<div class="info" style="text-align: center; color: rgba(255,255,255,0.7);">
+          ...ve ${Object.keys(dailyBreakdown).length - 10} gün daha
+        </div>`;
+      }
+      dailyHTML += '</div>';
+      
+      let imeiHTML = '<div class="report-details"><h3>📱 Son Teslim Edilen Cihazlar</h3>';
+      const recentIMEIs = deliveredIMEIs
+        .sort((a, b) => b.timestampRaw - a.timestampRaw)
+        .slice(0, 50);
+      
+      recentIMEIs.forEach(item => {
+        const sourceName = sourceNames[item.source] || item.source;
+        imeiHTML += `
+          <div class="detail-item">
+            <div class="barcode">${item.imei}</div>
+            <div class="info">${sourceName} • 👤 ${item.user}</div>
+            <div class="info">📅 ${item.timestamp}</div>
+            ${item.phoneCheckInfo ? `
+              <div class="info" style="color: #3498db;">
+                📱 PhoneCheck: ${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      
+      if (deliveredIMEIs.length > 50) {
+        imeiHTML += `<div class="info" style="text-align: center; color: rgba(255,255,255,0.7);">
+          ...ve ${deliveredIMEIs.length - 50} cihaz daha
+        </div>`;
+      }
+      imeiHTML += '</div>';
+      
+      reportResults.innerHTML = `
+        ${summaryHTML}
+        ${sourceHTML}
+        ${userStatsHTML}
+        ${dailyHTML}
+        ${imeiHTML}
+      `;
+      
+      enableExcelExport({ 
+        isDeliveryReport: true,
+        totalDelivered,
+        dayCount,
+        avgPerDay,
+        sourceBreakdown,
+        dailyBreakdown,
+        deliveredIMEIs,
+        userStats,
+        reportDate: dateRangeText
+      });
+      
+    } catch (error) {
+      console.error('Teslim edilenler raporu oluşturulurken hata:', error);
+      alert('Teslim edilenler raporu oluşturulurken hata oluştu!');
+      document.getElementById('reportResults').innerHTML = `
+        <div class="no-results">
+          ❌ Teslim edilenler raporu oluşturulurken bir hata oluştu.
         </div>
       `;
-    });
-    
-    if (Object.keys(dailyBreakdown).length > 10) {
-      dailyHTML += `<div class="info" style="text-align: center; color: rgba(255,255,255,0.7);">
-        ...ve ${Object.keys(dailyBreakdown).length - 10} gün daha
-      </div>`;
     }
-    dailyHTML += '</div>';
-    
-    // IMEI detayları (son 50 kayıt)
-    let imeiHTML = '<div class="report-details"><h3>📱 Son Teslim Edilen Cihazlar</h3>';
-    const recentIMEIs = deliveredIMEIs
-      .sort((a, b) => b.timestampRaw - a.timestampRaw)
-      .slice(0, 50);
-    
-    recentIMEIs.forEach(item => {
-      const sourceName = sourceNames[item.source] || item.source;
-      imeiHTML += `
-        <div class="detail-item">
-          <div class="barcode">${item.imei}</div>
-          <div class="info">${sourceName} • 👤 ${item.user}</div>
-          <div class="info">📅 ${item.timestamp}</div>
-          ${item.phoneCheckInfo ? `
-            <div class="info" style="color: #3498db;">
-              📱 PhoneCheck: ${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user}
-            </div>
-          ` : ''}
-        </div>
-      `;
-    });
-    
-    if (deliveredIMEIs.length > 50) {
-      imeiHTML += `<div class="info" style="text-align: center; color: rgba(255,255,255,0.7);">
-        ...ve ${deliveredIMEIs.length - 50} cihaz daha
-      </div>`;
-    }
-    imeiHTML += '</div>';
-    
-    reportResults.innerHTML = `
-      ${summaryHTML}
-      ${sourceHTML}
-      ${userStatsHTML}
-      ${dailyHTML}
-      ${imeiHTML}
-    `;
-    
-    // Excel export'u etkinleştir
-    enableExcelExport({ 
-      isDeliveryReport: true,
-      totalDelivered,
-      dayCount,
-      avgPerDay,
-      sourceBreakdown,
-      dailyBreakdown,
-      deliveredIMEIs,
-      userStats,
-      reportDate: dateRangeText
-    });
-    
-  } catch (error) {
-    console.error('Teslim edilenler raporu oluşturulurken hata:', error);
-    showToast('Teslim edilenler raporu oluşturulurken hata oluştu!', 'error');
-    document.getElementById('reportResults').innerHTML = `
-      <div class="no-results">
-        ❌ Teslim edilenler raporu oluşturulurken bir hata oluştu.
-      </div>
-    `;
   }
-}
+
 // ========================================
 // YENİ FONKSİYON EKLENECEK - setupDetailFiltersEnhanced
 // ========================================
 
 // YENİ KOD BAŞLADI - Geliştirilmiş filtreleme fonksiyonu (eskisinin yerine geçiyor)
-function setupDetailFiltersEnhanced(detailsData, activeCount, movedCount) {
-  const barcodeFilter = document.getElementById('detailBarcodeFilter');
-  const userFilter = document.getElementById('detailUserFilter');
-  const statusFilter = document.getElementById('detailStatusFilter');
-  const activeFilter = document.getElementById('detailActiveFilter'); // YENİ EKLENEN
-  const filterInfo = document.getElementById('filterInfo');
-  const detailItems = document.querySelectorAll('.detail-item');
-  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+ function setupDetailFiltersEnhanced(detailsData, activeCount, movedCount) {
+    const barcodeFilter = document.getElementById('detailBarcodeFilter');
+    const userFilter = document.getElementById('detailUserFilter');
+    const statusFilter = document.getElementById('detailStatusFilter');
+    const activeFilter = document.getElementById('detailActiveFilter');
+    const filterInfo = document.getElementById('filterInfo');
+    const detailItems = document.querySelectorAll('.detail-item');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
 
-  function updateClearButton() {
-    // DEĞİŞTİRİLDİ: activeFilter de kontrol ediliyor
-    const hasFilters = barcodeFilter.value || userFilter.value || statusFilter.value || activeFilter.value;
-    clearFiltersBtn.style.display = hasFilters ? 'block' : 'none';
-  }
+    function updateClearButton() {
+      const hasFilters = barcodeFilter.value || userFilter.value || statusFilter.value || activeFilter.value;
+      clearFiltersBtn.style.display = hasFilters ? 'block' : 'none';
+    }
 
-  function applyFilters() {
-    const barcodeValue = barcodeFilter.value.toLowerCase();
-    const userValue = userFilter.value.toLowerCase();
-    const statusValue = statusFilter.value.toLowerCase();
-    const activeValue = activeFilter.value; // YENİ EKLENEN
+    function applyFilters() {
+      const barcodeValue = barcodeFilter.value.toLowerCase();
+      const userValue = userFilter.value.toLowerCase();
+      const statusValue = statusFilter.value.toLowerCase();
+      const activeValue = activeFilter.value;
 
-    let visibleCount = 0;
-    // YENİ EKLENEN: Görünen aktif ve taşınmış sayıları
-    let visibleActive = 0;
-    let visibleMoved = 0;
+      let visibleCount = 0;
+      let visibleActive = 0;
+      let visibleMoved = 0;
 
-    detailItems.forEach(item => {
-      const barcode = item.getAttribute('data-barcode').toLowerCase();
-      const user = item.getAttribute('data-user').toLowerCase();
-      const status = item.getAttribute('data-status').toLowerCase();
-      const isActive = item.getAttribute('data-active'); // YENİ EKLENEN
+      detailItems.forEach(item => {
+        const barcode = item.getAttribute('data-barcode').toLowerCase();
+        const user = item.getAttribute('data-user').toLowerCase();
+        const status = item.getAttribute('data-status').toLowerCase();
+        const isActive = item.getAttribute('data-active');
 
-      const matchesBarcode = barcode.includes(barcodeValue);
-      const matchesUser = user.includes(userValue);
-      const matchesStatus = status.includes(statusValue);
-      const matchesActive = !activeValue || isActive === activeValue; // YENİ EKLENEN
+        const matchesBarcode = barcode.includes(barcodeValue);
+        const matchesUser = user.includes(userValue);
+        const matchesStatus = status.includes(statusValue);
+        const matchesActive = !activeValue || isActive === activeValue;
 
-      // DEĞİŞTİRİLDİ: matchesActive de kontrol ediliyor
-      if (matchesBarcode && matchesUser && matchesStatus && matchesActive) {
-        item.classList.remove('hidden');
-        visibleCount++;
-        // YENİ EKLENEN: Sayaçları güncelle
-        if (isActive === 'active') visibleActive++;
-        else visibleMoved++;
+        if (matchesBarcode && matchesUser && matchesStatus && matchesActive) {
+          item.classList.remove('hidden');
+          visibleCount++;
+          if (isActive === 'active') visibleActive++;
+          else visibleMoved++;
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+
+      filterInfo.textContent = `${visibleCount} kayıt gösteriliyor (✅ ${visibleActive} Aktif, ⏭️ ${visibleMoved} Taşınmış) - Toplam: ${detailsData.length}`;
+      updateClearButton();
+      
+      if (visibleCount === 0) {
+        const container = document.getElementById('detailListContainer');
+        if (!container.querySelector('.no-detail-results')) {
+          const noResults = document.createElement('div');
+          noResults.className = 'no-detail-results';
+          noResults.innerHTML = `
+            Filtre kriterlerinize uygun kayıt bulunamadı.
+            <button class="clear-filters-btn" onclick="clearDetailFilters()" style="margin-top: 10px;">
+              🗑️ Filtreleri Temizle
+            </button>
+          `;
+          container.innerHTML = '';
+          container.appendChild(noResults);
+        }
       } else {
-        item.classList.add('hidden');
-      }
-    });
-
-    // DEĞİŞTİRİLDİ: Filter info mesajı aktif/taşınmış sayılarını içeriyor
-    filterInfo.textContent = `${visibleCount} kayıt gösteriliyor (✅ ${visibleActive} Aktif, ⏭️ ${visibleMoved} Taşınmış) - Toplam: ${detailsData.length}`;
-    updateClearButton();
-    
-    if (visibleCount === 0) {
-      const container = document.getElementById('detailListContainer');
-      if (!container.querySelector('.no-detail-results')) {
-        const noResults = document.createElement('div');
-        noResults.className = 'no-detail-results';
-        noResults.innerHTML = `
-          Filtre kriterlerinize uygun kayıt bulunamadı.
-          <button class="clear-filters-btn" onclick="clearDetailFilters()" style="margin-top: 10px;">
-            🗑️ Filtreleri Temizle
-          </button>
-        `;
-        container.innerHTML = '';
-        container.appendChild(noResults);
-      }
-    } else {
-      const noResults = document.querySelector('.no-detail-results');
-      if (noResults) {
-        noResults.remove();
+        const noResults = document.querySelector('.no-detail-results');
+        if (noResults) {
+          noResults.remove();
+        }
       }
     }
-  }
 
-  // DEĞİŞTİRİLDİ: activeFilter de dinleyicilere eklendi
-  [barcodeFilter, userFilter, statusFilter, activeFilter].forEach(input => {
-    input.addEventListener('input', () => {
-      applyFilters();
-      updateClearButton();
-    });
-    
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
+    [barcodeFilter, userFilter, statusFilter, activeFilter].forEach(input => {
+      input.addEventListener('input', () => {
         applyFilters();
         updateClearButton();
-      }
+      });
+      
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          applyFilters();
+          updateClearButton();
+        }
+      });
     });
-  });
 
-  updateClearButton();
-}
+    updateClearButton();
+  }
 // YENİ KOD BİTTİ
 
 // ========================================
@@ -3980,36 +3864,30 @@ function setupDetailFiltersEnhanced(detailsData, activeCount, movedCount) {
 
 // DEĞİŞTİRİLECEK BAŞLADI - Mevcut fonksiyona activeFilter temizleme ekleniyor
 function clearDetailFilters() {
-  document.getElementById('detailBarcodeFilter').value = '';
-  document.getElementById('detailUserFilter').value = '';
-  // SİLİNECEK: document.getElementById('detailListFilter').value = '';
-  document.getElementById('detailStatusFilter').value = '';
-  // YENİ EKLENEN: Aktif/Taşınmış filtresini temizle
-  document.getElementById('detailActiveFilter').value = '';
-  
-  // Filtreleri uygula (tüm kayıtları göster)
-  const detailItems = document.querySelectorAll('.detail-item');
-  detailItems.forEach(item => {
-    item.classList.remove('hidden');
-  });
-  
-  // Bilgi mesajını güncelle
-  const filterInfo = document.getElementById('filterInfo');
-  if (filterInfo) {
-    filterInfo.textContent = `Toplam ${detailItems.length} kayıt gösteriliyor`;
+    document.getElementById('detailBarcodeFilter').value = '';
+    document.getElementById('detailUserFilter').value = '';
+    document.getElementById('detailStatusFilter').value = '';
+    document.getElementById('detailActiveFilter').value = '';
+    
+    const detailItems = document.querySelectorAll('.detail-item');
+    detailItems.forEach(item => {
+      item.classList.remove('hidden');
+    });
+    
+    const filterInfo = document.getElementById('filterInfo');
+    if (filterInfo) {
+      filterInfo.textContent = `Toplam ${detailItems.length} kayıt gösteriliyor`;
+    }
+    
+    document.getElementById('clearFiltersBtn').style.display = 'none';
+    
+    const noResults = document.querySelector('.no-detail-results');
+    if (noResults) {
+      noResults.remove();
+    }
+    
+    alert('Filtreler temizlendi!');
   }
-  
-  // Clear butonunu gizle
-  document.getElementById('clearFiltersBtn').style.display = 'none';
-  
-  // No-results mesajını temizle
-  const noResults = document.querySelector('.no-detail-results');
-  if (noResults) {
-    noResults.remove();
-  }
-  
-  showToast('Filtreler temizlendi!', 'info');
-}
 // DEĞİŞTİRİLECEK BİTTİ
 function clearDetailFilters() {
   document.getElementById('detailBarcodeFilter').value = '';
@@ -4049,140 +3927,111 @@ let currentReportData = null;
 function enableExcelExport(data) {
     currentReportData = data;
     document.getElementById('exportExcelBtn').disabled = false;
-}
+  }
 
-function disableExcelExport() {
+  function disableExcelExport() {
     currentReportData = null;
     document.getElementById('exportExcelBtn').disabled = true;
-}
-
-function exportToExcel() {
-  if (!currentReportData) {
-    showToast('Önce rapor oluşturmanız gerekiyor!', 'warning');
-    return;
   }
-  
-  try {
-    // ✅ Teslim Edilenler raporu için özel işlem
-    if (currentReportData.isDeliveryReport) {
-      exportDeliveryReportToExcel();
+
+  function exportToExcel() {
+    if (!currentReportData) {
+      alert('Önce rapor oluşturmanız gerekiyor!');
       return;
     }
     
-    // ✅ Normal raporlar için işlem
-    const workbook = XLSX.utils.book_new();
-    
-    // Sheet 1: Özet Bilgiler
-    const summaryData = [
-      ['RAPOR ÖZETİ'],
-      [''],
-      ['Rapor Tarihi:', currentReportData.reportDate || 'Bilinmiyor'],
-      ['Seçilen Liste:', currentReportData.selectedList || 'Tümü'],
-      ['Toplam İşlem:', currentReportData.totalActions || 0],
-      ['Aktif Kullanıcı Sayısı:', currentReportData.userCount || 0],
-      [''],
-      ['KULLANICI İSTATİSTİKLERİ'],
-      ['Kullanıcı', 'İşlem Sayısı']
-    ];
-    
-    // Kullanıcı istatistiklerini ekle
-    if (currentReportData.userStats) {
-      Object.entries(currentReportData.userStats)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([user, count]) => {
-          summaryData.push([user, count]);
-        });
-    }
-    
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
-    
-    // Sheet 2: Detaylı Liste
-    if (currentReportData.details && currentReportData.details.length > 0) {
-      const detailHeaders = ['Barkod', 'Kimden', 'Kime', 'Kullanıcı', 'Tarih', 'Güncel Durum', 'PhoneCheck Bilgisi'];
-      const detailRows = currentReportData.details.map(item => [
-        item.barcode,
-        item.fromName,
-        item.toName,
-        item.user,
-        item.timestamp,
-        item.currentStatus,
-        item.phoneCheckInfo ? 
-          `${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})` : 
-          'Yok'
-      ]);
+    try {
+      if (currentReportData.isDeliveryReport) {
+        exportDeliveryReportToExcel();
+        return;
+      }
       
-      const detailData = [detailHeaders, ...detailRows];
-      const detailSheet = XLSX.utils.aoa_to_sheet(detailData);
+      const workbook = XLSX.utils.book_new();
       
-      // Sütun genişliklerini ayarla
-      detailSheet['!cols'] = [
-        { wch: 15 }, // Barkod
-        { wch: 20 }, // Kimden
-        { wch: 20 }, // Kime
-        { wch: 15 }, // Kullanıcı
-        { wch: 18 }, // Tarih
-        { wch: 25 }, // Güncel Durum
-        { wch: 30 }  // PhoneCheck
+      // Sheet 1: Özet Bilgiler
+      const summaryData = [
+        ['RAPOR ÖZETİ'],
+        [''],
+        ['Rapor Tarihi:', currentReportData.reportDate || 'Bilinmiyor'],
+        ['Seçilen Liste:', currentReportData.selectedList || 'Tümü'],
+        ['Toplam İşlem:', currentReportData.totalActions || 0],
+        ['Aktif Kullanıcı Sayısı:', currentReportData.userCount || 0],
+        [''],
+        ['KULLANICI İSTATİSTİKLERİ'],
+        ['Kullanıcı', 'İşlem Sayısı']
       ];
       
-      XLSX.utils.book_append_sheet(workbook, detailSheet, 'Detaylı Liste');
+      if (currentReportData.userStats) {
+        Object.entries(currentReportData.userStats)
+          .sort((a, b) => b[1] - a[1])
+          .forEach(([user, count]) => {
+            summaryData.push([user, count]);
+          });
+      }
+      
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
+      
+      // Sheet 2: Detaylı Liste
+      if (currentReportData.details && currentReportData.details.length > 0) {
+        const detailHeaders = ['Barkod', 'Kimden', 'Kime', 'Kullanıcı', 'Tarih', 'Güncel Durum', 'PhoneCheck Bilgisi'];
+        const detailRows = currentReportData.details.map(item => [
+          item.barcode,
+          item.fromName,
+          item.toName,
+          item.user,
+          item.timestamp,
+          item.currentStatus,
+          item.phoneCheckInfo ? 
+            `${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})` : 
+            'Yok'
+        ]);
+        
+        const detailData = [detailHeaders, ...detailRows];
+        const detailSheet = XLSX.utils.aoa_to_sheet(detailData);
+        
+        detailSheet['!cols'] = [
+          { wch: 15 },
+          { wch: 20 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 18 },
+          { wch: 25 },
+          { wch: 30 }
+        ];
+        
+        XLSX.utils.book_append_sheet(workbook, detailSheet, 'Detaylı Liste');
+      }
+      
+      const fileName = `Rapor_${currentReportData.reportDate?.replace(/\s/g, '_') || 'Bilinmiyor'}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      alert('Excel dosyası başarıyla indirildi! 📊');
+    } catch (error) {
+      console.error('Excel export hatası:', error);
+      alert('Excel dosyası oluşturulurken hata oluştu!');
     }
-    
-    // Dosyayı indir
-    const fileName = `Rapor_${currentReportData.reportDate?.replace(/\s/g, '_') || 'Bilinmiyor'}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
-    
-    showToast('Excel dosyası başarıyla indirildi! 📊', 'success');
-  } catch (error) {
-    console.error('Excel export hatası:', error);
-    showToast('Excel dosyası oluşturulurken hata oluştu!', 'error');
   }
-}
 
 
 function exportDeliveryReportToExcel() {
-  try {
-    const workbook = XLSX.utils.book_new();
-    
-    // Sheet 1: Özet
-    const summaryData = [
-      ['TESLİM EDİLENLER RAPORU'],
-      [''],
-      ['Tarih Aralığı:', currentReportData.reportDate || 'Bilinmiyor'],
-      ['Toplam Teslim:', currentReportData.totalDelivered || 0],
-      ['Gün Sayısı:', currentReportData.dayCount || 0],
-      ['Günlük Ortalama:', currentReportData.avgPerDay || 0],
-      [''],
-      ['KAYNAK BAZLI DAĞILIM'],
-      ['Kaynak', 'Adet', 'Yüzde']
-    ];
-    
-    // Kaynak istatistiklerini ekle
-    if (currentReportData.sourceBreakdown) {
-      const sourceNames = {
-        atanacak: '📋 Atanacak',
-        SonKullanıcı: '👤 Son Kullanıcı',
-        sahiniden: '🏪 Sahibinden',
-        mediaMarkt: '🛒 Media Markt'
-      };
+    try {
+      const workbook = XLSX.utils.book_new();
       
-      Object.entries(currentReportData.sourceBreakdown).forEach(([source, count]) => {
-        if (count > 0) {
-          const percentage = ((count / currentReportData.totalDelivered) * 100).toFixed(1);
-          summaryData.push([sourceNames[source] || source, count, `%${percentage}`]);
-        }
-      });
-    }
-    
-    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
-    
-    // YENİ: Sheet 2: IMEI Detayları
- if (currentReportData.deliveredIMEIs && currentReportData.deliveredIMEIs.length > 0) {
-      const imeiHeaders = ['IMEI', 'Kaynak', 'Kullanıcı', 'Tarih', 'Saat', 'PhoneCheck Bilgisi']; // YENİ KOLON EKLENDİ
-      const imeiRows = currentReportData.deliveredIMEIs.map(item => {
-        const dateObj = new Date(item.timestamp);
+      // Sheet 1: Özet
+      const summaryData = [
+        ['TESLİM EDİLENLER RAPORU'],
+        [''],
+        ['Tarih Aralığı:', currentReportData.reportDate || 'Bilinmiyor'],
+        ['Toplam Teslim:', currentReportData.totalDelivered || 0],
+        ['Gün Sayısı:', currentReportData.dayCount || 0],
+        ['Günlük Ortalama:', currentReportData.avgPerDay || 0],
+        [''],
+        ['KAYNAK BAZLI DAĞILIM'],
+        ['Kaynak', 'Adet', 'Yüzde']
+      ];
+      
+      if (currentReportData.sourceBreakdown) {
         const sourceNames = {
           atanacak: '📋 Atanacak',
           SonKullanıcı: '👤 Son Kullanıcı',
@@ -4190,77 +4039,96 @@ function exportDeliveryReportToExcel() {
           mediaMarkt: '🛒 Media Markt'
         };
         
-        // burası değişti - PhoneCheck bilgisi eklendi ↓
-        let phoneCheckText = 'Yok';
-        if (item.phoneCheckInfo) {
-          phoneCheckText = `${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})`;
-        }
-        
-        return [
-          item.imei,
-          sourceNames[item.source] || item.source,
-          item.user,
-          dateObj.toLocaleDateString('tr-TR'),
-          dateObj.toLocaleTimeString('tr-TR'),
-          phoneCheckText // YENİ KOLON
-        ];
-      });
-      
-      const imeiData = [imeiHeaders, ...imeiRows];
-      const imeiSheet = XLSX.utils.aoa_to_sheet(imeiData);
-      
-      // burası değişti - Sütun genişlikleri güncellendi ↓
-      imeiSheet['!cols'] = [
-        { wch: 18 }, // IMEI
-        { wch: 20 }, // Kaynak
-        { wch: 15 }, // Kullanıcı
-        { wch: 12 }, // Tarih
-        { wch: 10 }, // Saat
-        { wch: 40 }  // PhoneCheck Bilgisi - YENİ EKLENDİ
-      ];
-      
-      XLSX.utils.book_append_sheet(workbook, imeiSheet, 'IMEI Detayları');
-    }
-    
-    
-    // Sheet 3: Günlük Detay
-    if (currentReportData.dailyBreakdown) {
-      const dailyHeaders = ['Tarih', 'Teslim Edilen Sayısı'];
-      const dailyRows = Object.entries(currentReportData.dailyBreakdown)
-        .sort((a, b) => b[0].localeCompare(a[0]))
-        .map(([date, count]) => {
-          const dateObj = new Date(date);
-          const formattedDate = dateObj.toLocaleDateString('tr-TR', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric',
-            weekday: 'long'
-          });
-          return [formattedDate, count];
+        Object.entries(currentReportData.sourceBreakdown).forEach(([source, count]) => {
+          if (count > 0) {
+            const percentage = ((count / currentReportData.totalDelivered) * 100).toFixed(1);
+            summaryData.push([sourceNames[source] || source, count, `%${percentage}`]);
+          }
         });
+      }
       
-      const dailyData = [dailyHeaders, ...dailyRows];
-      const dailySheet = XLSX.utils.aoa_to_sheet(dailyData);
+      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
       
-      // Sütun genişliklerini ayarla
-      dailySheet['!cols'] = [
-        { wch: 35 }, // Tarih
-        { wch: 20 }  // Sayı
-      ];
+      // Sheet 2: IMEI Detayları
+      if (currentReportData.deliveredIMEIs && currentReportData.deliveredIMEIs.length > 0) {
+        const imeiHeaders = ['IMEI', 'Kaynak', 'Kullanıcı', 'Tarih', 'Saat', 'PhoneCheck Bilgisi'];
+        const imeiRows = currentReportData.deliveredIMEIs.map(item => {
+          const dateObj = new Date(item.timestamp);
+          const sourceNames = {
+            atanacak: '📋 Atanacak',
+            SonKullanıcı: '👤 Son Kullanıcı',
+            sahiniden: '🏪 Sahibinden',
+            mediaMarkt: '🛒 Media Markt'
+          };
+          
+          let phoneCheckText = 'Yok';
+          if (item.phoneCheckInfo) {
+            phoneCheckText = `${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})`;
+          }
+          
+          return [
+            item.imei,
+            sourceNames[item.source] || item.source,
+            item.user,
+            dateObj.toLocaleDateString('tr-TR'),
+            dateObj.toLocaleTimeString('tr-TR'),
+            phoneCheckText
+          ];
+        });
+        
+        const imeiData = [imeiHeaders, ...imeiRows];
+        const imeiSheet = XLSX.utils.aoa_to_sheet(imeiData);
+        
+        imeiSheet['!cols'] = [
+          { wch: 18 },
+          { wch: 20 },
+          { wch: 15 },
+          { wch: 12 },
+          { wch: 10 },
+          { wch: 40 }
+        ];
+        
+        XLSX.utils.book_append_sheet(workbook, imeiSheet, 'IMEI Detayları');
+      }
       
-      XLSX.utils.book_append_sheet(workbook, dailySheet, 'Günlük Detay');
+      // Sheet 3: Günlük Detay
+      if (currentReportData.dailyBreakdown) {
+        const dailyHeaders = ['Tarih', 'Teslim Edilen Sayısı'];
+        const dailyRows = Object.entries(currentReportData.dailyBreakdown)
+          .sort((a, b) => b[0].localeCompare(a[0]))
+          .map(([date, count]) => {
+            const dateObj = new Date(date);
+            const formattedDate = dateObj.toLocaleDateString('tr-TR', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              weekday: 'long'
+            });
+            return [formattedDate, count];
+          });
+        
+        const dailyData = [dailyHeaders, ...dailyRows];
+        const dailySheet = XLSX.utils.aoa_to_sheet(dailyData);
+        
+        dailySheet['!cols'] = [
+          { wch: 35 },
+          { wch: 20 }
+        ];
+        
+        XLSX.utils.book_append_sheet(workbook, dailySheet, 'Günlük Detay');
+      }
+      
+      const fileName = `Teslim_Edilenler_${currentReportData.reportDate?.replace(/\s/g, '_') || 'Bilinmiyor'}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      
+      alert('Excel dosyası başarıyla indirildi! 📊');
+    } catch (error) {
+      console.error('Excel export hatası:', error);
+      alert('Excel dosyası oluşturulurken hata oluştu!');
     }
-    
-    // Dosyayı indir
-    const fileName = `Teslim_Edilenler_${currentReportData.reportDate?.replace(/\s/g, '_') || 'Bilinmiyor'}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
-    
-    showToast('Excel dosyası başarıyla indirildi! 📊', 'success');
-  } catch (error) {
-    console.error('Excel export hatası:', error);
-    showToast('Excel dosyası oluşturulurken hata oluştu!', 'error');
   }
-}
+
 
 
         // İndir
