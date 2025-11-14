@@ -10,6 +10,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -5740,6 +5741,10 @@ auth.onAuthStateChanged(async user => {
         currentUserPermissions = null;
         document.getElementById('adminNav').style.display = 'flex';
         document.getElementById('navUserInfo').style.display = 'flex';
+        setTimeout(() => {
+            addSyncButtonToNav();
+        }, 1500);
+       
         setTimeout(() => showMainView(), 100);
       } else if (user.email === 'depo@mobilfon.com') {
         currentUserRole = 'warehouse';
@@ -6279,8 +6284,11 @@ document.getElementById('navLogoutButton').addEventListener("click", () => {
       }
     }
 
+// ========================================
+// removeFromOtherLists FONKSİYONU DEĞİŞTİRİLECEK - PLAN A
+// ========================================
 function removeFromOtherLists(code, exceptList) {
-  const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet',  'engin', 'ismail', 'mehmet', 'onarim', 'onCamDisServis', 'anakartDisServis', 'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+  const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'onCamDisServis', 'anakartDisServis', 'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
   
   // Dinamik olarak eklenen tüm listeleri dahil et
   Object.keys(userCodes).forEach(key => {
@@ -6302,18 +6310,22 @@ function removeFromOtherLists(code, exceptList) {
       updateLabelAndCount(name);
       renderMiniList(name);
 
-         // ========================================
+      // ========================================
+      // YENİ EKLENDİ: Çakışma log kaydı - PLAN A
+      // ========================================
+      saveBarcodeHistory(code, name, exceptList, `${currentUserName} (Otomatik Çakışma Çözüldü: ${name} → ${exceptList})`);
+      
+      console.log(`🔄 Otomatik Çakışma Çözüldü: ${code} - ${name} → ${exceptList}`);
+      
+      // ========================================
       if (name === 'teslimEdilenler' && exceptList !== 'teslimEdilenler') {
         // Servise geri dönüş tespit edildi
         handleServiceReturn(code, exceptList);
         console.log(`🔄 Servise Geri Dönüş: ${code} - ${name} → ${exceptList}`);
       }
       // ========================================
-      // YENİ KISIM BİTİŞ
     }
   });
-
-  
   
   return removedFrom;
 }
@@ -6405,50 +6417,85 @@ async function handleServiceReturn(code, targetList) {
   db.ref(`servis/${dbPath}/adet`).set(count);
 }
 
-    function saveCodes(name, value) {
-      if (isUpdating || !dataLoaded) return;
-      
-      if (currentUserRole === 'semi-admin') {
+   // ========================================
+// saveCodes FONKSİYONUNA ÖNCELİK KONTROLÜ EKLENECEK - PLAN A
+// ========================================
+function saveCodes(name, value) {
+  if (isUpdating || !dataLoaded) return;
+  
+  if (currentUserRole === 'semi-admin') {
+    return;
+  }
+  
+  if (currentUserRole === 'technician') {
+    if (name === currentUserName) {
+      // İzin var, devam et
+    } else if (currentUserPermissions && currentUserPermissions[name]) {
+      if (currentUserPermissions[name] === 'view') {
         return;
       }
-      
-      if (currentUserRole === 'technician') {
-        if (name === currentUserName) {
-          // İzin var, devam et
-        } else if (currentUserPermissions && currentUserPermissions[name]) {
-          if (currentUserPermissions[name] === 'view') {
-            return;
-          }
-        } else {
-          return;
-        }
-      }
-      
-      if (name === 'onarim' && currentUserName !== 'yusuf') {
-        return;
-      }
+    } else {
+      return;
+    }
+  }
+  
+  if (name === 'onarim' && currentUserName !== 'yusuf') {
+    return;
+  }
+
 // ✅ DEĞİŞTİRİLDİ: Sadece admin kullanıcıları teslim edilenler alanına veri girebilir
 if (name === 'teslimEdilenler' && currentUserRole !== 'admin') {
   showToast('Sadece admin kullanıcıları teslim edilenler listesine veri girebilir!', 'warning');
   return;
 }
       
-      isUpdating = true;
+  isUpdating = true;
 
-      const rawLines = value.trim().split("\n").map(l=>l.trim()).filter(l=>l.length>0);
-      const codes = rawLines.map(line => {
-        const m = line.match(/(\d{15})/);
-        return m ? m[1] : null;
-      }).filter(Boolean);
+  const rawLines = value.trim().split("\n").map(l=>l.trim()).filter(l=>l.length>0);
+  const codes = rawLines.map(line => {
+    const m = line.match(/(\d{15})/);
+    return m ? m[1] : null;
+  }).filter(Boolean);
 
-      const timestamp = getTimestamp();
-      
-      const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim',  'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
-const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
+  const timestamp = getTimestamp();
+  
+  const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
+  const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
+
+  // ========================================
+  // YENİ EKLENDİ: Öncelik kontrolü - Teslim Edilenler en yüksek öncelikli - PLAN A
+  // ========================================
+  const validCodes = [];
+  
+  codes.forEach(code => {
+    // Eğer bu barkod zaten Teslim Edilenler'de ise ve başka bir listeye eklenmeye çalışılıyorsa
+    if (name !== 'teslimEdilenler' && userCodes.teslimEdilenler && userCodes.teslimEdilenler.has(code)) {
+      showToast(`⚠️ ${code} zaten Teslim Edilenler listesinde! Başka listeye eklenemez.`, 'warning');
+      return; // Bu barkodu işleme
+    }
+    
+    // Eğer bu barkod Onarım Tamamlandı'da ise ve Teslim Edilenler'e eklenmeye çalışılıyorsa (izin ver)
+    if (name === 'teslimEdilenler' && userCodes.onarim && userCodes.onarim.has(code)) {
+      // Bu normal bir akış, devam et
+      validCodes.push(code);
+      return;
+    }
+    
+    // Eğer bu barkod PhoneCheck'te ise ve Onarım Tamamlandı'ya eklenmeye çalışılıyorsa (izin ver)
+    if (name === 'onarim' && userCodes.phonecheck && userCodes.phonecheck.has(code)) {
+      // Bu normal bir akış, devam et
+      validCodes.push(code);
+      return;
+    }
+    
+    // Diğer tüm durumlar için barkodu kabul et
+    validCodes.push(code);
+  });
+  // ========================================
 
 // saveCodes fonksiyonunda (satır ~1020 civarı)
 if (specialLists.includes(name)) {
-    codes.forEach(code => {
+    validCodes.forEach(code => {
       if (!userCodes[name].has(code)) {
         const previousList = removeFromOtherLists(code, name);
         
@@ -6463,7 +6510,11 @@ if (specialLists.includes(name)) {
 if (name === 'teslimEdilenler') {
   incrementDeliveredCount();
   // Eğer daha önce receivedIMEIs'te varsa çıkar
-
+  if (dailyReceivedIMEIs.has(code)) {
+    dailyReceivedIMEIs.delete(code);
+    const todayDate = getTodayDateString();
+    db.ref(`dashboard/daily/${todayDate}/receivedIMEIs/${code}`).remove();
+  }
 }
 
             if (name === 'onarim') {
@@ -6504,7 +6555,7 @@ if (name === 'teslimEdilenler') {
         return;
       }
       
-      codes.forEach(code => {
+      validCodes.forEach(code => {
         if (!userCodes[name].has(code)) {
           const previousList = removeFromOtherLists(code, name);
           
@@ -6970,6 +7021,433 @@ function loadData() {
     loadDashboardStats();
   }
 } // ← loadData fonksiyonu kapanış parantezi
+
+window.addEventListener('load', function() {
+    // 5 saniye sonra otomatik çakışma kontrolü yap (sadece admin için)
+    setTimeout(() => {
+        if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+            checkForConflicts();
+        }
+    }, 5000);
+});
+
+// Otomatik çakışma kontrolü
+function checkForConflicts() {
+    let conflictCount = 0;
+    const allBarcodes = new Set();
+    
+    // Tüm barkodları topla
+    Object.values(userCodes).forEach(set => {
+        if (set && set.forEach) {
+            set.forEach(barcode => allBarcodes.add(barcode));
+        }
+    });
+    
+    // Çakışmaları say
+    for (const barcode of allBarcodes) {
+        let listCount = 0;
+        Object.values(userCodes).forEach(set => {
+            if (set && set.has && set.has(barcode)) {
+                listCount++;
+            }
+        });
+        
+        if (listCount > 1) {
+            conflictCount++;
+        }
+    }
+    
+    // Eğer çakışma varsa uyarı göster
+    if (conflictCount > 0) {
+        showToast(
+            `⚠️ ${conflictCount} çakışma tespit edildi! "🔄 Senkronize" butonunu kullanarak düzeltebilirsiniz.`, 
+            'warning', 
+            10000 // 10 saniye göster
+        );
+    }
+}
+
+
+// ========================================
+// YENİ EKLENDİ: SENKRONİZASYON FONKSİYONLARI - PLAN B
+// ========================================
+
+// Senkronizasyon butonunu nav'a ekle
+function addSyncButtonToNav() {
+    const navButtons = document.querySelector('.nav-buttons');
+    if (navButtons && !document.getElementById('syncButton')) {
+        const syncButton = document.createElement('button');
+        syncButton.id = 'syncButton';
+        syncButton.innerHTML = '🔄 Senkronize';
+        syncButton.style.display = (currentUserRole === 'admin' || currentUserRole === 'semi-admin') ? 'block' : 'none';
+        syncButton.onclick = openSyncModal;
+        syncButton.style.padding = '10px 15px';
+        syncButton.style.background = '#3498db';
+        syncButton.style.color = 'white';
+        syncButton.style.border = 'none';
+        syncButton.style.borderRadius = '8px';
+        syncButton.style.fontSize = '10px';
+        syncButton.style.fontWeight = '600';
+        syncButton.style.cursor = 'pointer';
+        syncButton.style.transition = 'all 0.3s ease';
+        
+        syncButton.addEventListener('mouseenter', function() {
+            this.style.background = '#2980b9';
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        syncButton.addEventListener('mouseleave', function() {
+            this.style.background = '#3498db';
+            this.style.transform = 'translateY(0)';
+        });
+        
+        // Dashboard Sıfırla butonundan sonra ekle
+        const resetBtn = document.getElementById('resetDashboardBtn');
+        if (resetBtn) {
+            resetBtn.parentNode.insertBefore(syncButton, resetBtn.nextSibling);
+        } else {
+            navButtons.appendChild(syncButton);
+        }
+    }
+}
+
+// Senkronizasyon modalını aç
+function openSyncModal() {
+    const modal = document.getElementById('syncModal');
+    if (!modal) {
+        createSyncModal();
+    }
+    document.getElementById('syncModal').classList.add('active');
+    analyzeSyncIssues();
+}
+
+// Senkronizasyon modalını oluştur
+function createSyncModal() {
+    const modalHTML = `
+    <div class="modal-overlay" id="syncModal">
+        <div class="modal" style="max-width: 700px;">
+            <h2>🔄 Liste Senkronizasyonu</h2>
+            <div class="sync-results" id="syncResults">
+                <div style="text-align: center; padding: 20px;">
+                    <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p>Çakışmalar taranıyor...</p>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-button secondary" onclick="closeSyncModal()">İptal</button>
+                <button class="modal-button primary" onclick="fixAllConflicts()" id="fixAllBtn" disabled>🔄 Tüm Çakışmaları Düzelt</button>
+            </div>
+        </div>
+    </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// Senkronizasyon modalını kapat
+function closeSyncModal() {
+    const modal = document.getElementById('syncModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Çakışmaları analiz et
+async function analyzeSyncIssues() {
+    const syncResults = document.getElementById('syncResults');
+    const fixAllBtn = document.getElementById('fixAllBtn');
+    
+    if (!syncResults) return;
+    
+    try {
+        // Tüm listelerdeki barkodları kontrol et
+        const conflicts = [];
+        
+        // Tüm barkodları topla
+        const allBarcodes = new Set();
+        Object.values(userCodes).forEach(set => {
+            if (set && set.forEach) {
+                set.forEach(barcode => allBarcodes.add(barcode));
+            }
+        });
+        
+        // Her barkod için hangi listelerde olduğunu kontrol et
+        for (const barcode of allBarcodes) {
+            const lists = [];
+            Object.entries(userCodes).forEach(([listName, codeSet]) => {
+                if (codeSet && codeSet.has && codeSet.has(barcode)) {
+                    lists.push(listName);
+                }
+            });
+            
+            // Eğer birden fazla listedeyse çakışma var
+            if (lists.length > 1) {
+                conflicts.push({
+                    barcode: barcode,
+                    lists: lists,
+                    priority: getListPriority(lists)
+                });
+            }
+        }
+        
+        if (conflicts.length === 0) {
+            syncResults.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #2ecc71;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+                    <h3>Harika! Hiç çakışma bulunamadı.</h3>
+                    <p>Tüm barkodlar doğru listelerde.</p>
+                </div>
+            `;
+            if (fixAllBtn) fixAllBtn.disabled = true;
+            return;
+        }
+        
+        // Çakışmaları grupla
+        const phonecheckOnarimConflicts = conflicts.filter(c => 
+            c.lists.includes('phonecheck') && c.lists.includes('onarim')
+        );
+        
+        const onarimTeslimConflicts = conflicts.filter(c => 
+            c.lists.includes('onarim') && c.lists.includes('teslimEdilenler')
+        );
+        
+        const otherConflicts = conflicts.filter(c => 
+            !(c.lists.includes('phonecheck') && c.lists.includes('onarim')) &&
+            !(c.lists.includes('onarim') && c.lists.includes('teslimEdilenler'))
+        );
+        
+        let resultsHTML = `
+            <div style="margin-bottom: 20px;">
+                <h3>📊 Çakışma Özeti</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <div style="background: rgba(52, 152, 219, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #3498db;">${conflicts.length}</div>
+                        <div style="font-size: 12px;">Toplam Çakışma</div>
+                    </div>
+                    <div style="background: rgba(243, 156, 18, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #f39c12;">${phonecheckOnarimConflicts.length}</div>
+                        <div style="font-size: 12px;">PhoneCheck ↔ Onarım</div>
+                    </div>
+                    <div style="background: rgba(231, 76, 60, 0.2); padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold; color: #e74c3c;">${onarimTeslimConflicts.length}</div>
+                        <div style="font-size: 12px;">Onarım ↔ Teslim</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // PhoneCheck ↔ Onarım çakışmaları
+        if (phonecheckOnarimConflicts.length > 0) {
+            resultsHTML += `
+                <div style="margin-bottom: 20px;">
+                    <h4>📱 PhoneCheck ↔ 🔧 Onarım Çakışmaları</h4>
+                    <div style="background: rgba(243, 156, 18, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong>Kural:</strong> PhoneCheck'teki kayıt silinecek, Onarım Tamamlandı'daki tutulacak
+                    </div>
+                    <div style="max-height: 200px; overflow-y: auto;">
+            `;
+            
+            phonecheckOnarimConflicts.forEach(conflict => {
+                resultsHTML += `
+                    <div style="padding: 8px; margin-bottom: 5px; background: rgba(255,255,255,0.1); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>${conflict.barcode}</span>
+                        <span style="font-size: 12px; color: #f39c12;">PhoneCheck → Onarım</span>
+                    </div>
+                `;
+            });
+            
+            resultsHTML += `</div></div>`;
+        }
+        
+        // Onarım ↔ Teslim çakışmaları
+        if (onarimTeslimConflicts.length > 0) {
+            resultsHTML += `
+                <div style="margin-bottom: 20px;">
+                    <h4>🔧 Onarım ↔ ✅ Teslim Çakışmaları</h4>
+                    <div style="background: rgba(231, 76, 60, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong>Kural:</strong> Onarım Tamamlandı'daki kayıt silinecek, Teslim Edilenler'deki tutulacak
+                    </div>
+                    <div style="max-height: 200px; overflow-y: auto;">
+            `;
+            
+            onarimTeslimConflicts.forEach(conflict => {
+                resultsHTML += `
+                    <div style="padding: 8px; margin-bottom: 5px; background: rgba(255,255,255,0.1); border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>${conflict.barcode}</span>
+                        <span style="font-size: 12px; color: #e74c3c;">Onarım → Teslim</span>
+                    </div>
+                `;
+            });
+            
+            resultsHTML += `</div></div>`;
+        }
+        
+        // Diğer çakışmalar
+        if (otherConflicts.length > 0) {
+            resultsHTML += `
+                <div style="margin-bottom: 20px;">
+                    <h4>⚠️ Diğer Çakışmalar</h4>
+                    <div style="max-height: 200px; overflow-y: auto;">
+            `;
+            
+            otherConflicts.forEach(conflict => {
+                resultsHTML += `
+                    <div style="padding: 8px; margin-bottom: 5px; background: rgba(255,255,255,0.1); border-radius: 4px;">
+                        <div>${conflict.barcode}</div>
+                        <div style="font-size: 12px; color: #95a5a6;">${conflict.lists.join(' ↔ ')}</div>
+                    </div>
+                `;
+            });
+            
+            resultsHTML += `</div></div>`;
+        }
+        
+        syncResults.innerHTML = resultsHTML;
+        if (fixAllBtn) fixAllBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('Çakışma analiz hatası:', error);
+        if (syncResults) {
+            syncResults.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">❌</div>
+                    <h3>Çakışmalar analiz edilirken hata oluştu</h3>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        }
+        if (fixAllBtn) fixAllBtn.disabled = true;
+    }
+}
+
+// Liste önceliklerini belirle
+function getListPriority(lists) {
+    // Öncelik sırası: Teslim Edilenler > Onarım Tamamlandı > PhoneCheck > Diğerleri
+    if (lists.includes('teslimEdilenler')) return 'teslimEdilenler';
+    if (lists.includes('onarim')) return 'onarim';
+    if (lists.includes('phonecheck')) return 'phonecheck';
+    return lists[0]; // İlk listedeki tutulsun
+}
+
+// Tüm çakışmaları düzelt
+async function fixAllConflicts() {
+    const fixAllBtn = document.getElementById('fixAllBtn');
+    const syncResults = document.getElementById('syncResults');
+    
+    if (!fixAllBtn || !syncResults) return;
+    
+    fixAllBtn.disabled = true;
+    fixAllBtn.innerHTML = '🔄 Düzeltiliyor...';
+    
+    try {
+        // Tüm barkodları topla ve çakışmaları bul
+        const allBarcodes = new Set();
+        Object.values(userCodes).forEach(set => {
+            if (set && set.forEach) {
+                set.forEach(barcode => allBarcodes.add(barcode));
+            }
+        });
+        
+        let fixedCount = 0;
+        
+        for (const barcode of allBarcodes) {
+            const lists = [];
+            Object.entries(userCodes).forEach(([listName, codeSet]) => {
+                if (codeSet && codeSet.has && codeSet.has(barcode)) {
+                    lists.push(listName);
+                }
+            });
+            
+            // Çakışma varsa düzelt
+            if (lists.length > 1) {
+                await fixConflict(barcode, lists);
+                fixedCount++;
+            }
+        }
+        
+        syncResults.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #2ecc71;">
+                <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+                <h3>Senkronizasyon Tamamlandı!</h3>
+                <p><strong>${fixedCount}</strong> çakışma başarıyla düzeltildi.</p>
+                <p>Sayfayı yenilemek için <strong>3 saniye</strong> sonra yönlendirileceksiniz...</p>
+            </div>
+        `;
+        
+        showToast(`✅ ${fixedCount} çakışma başarıyla düzeltildi!`, 'success');
+        
+        // 3 saniye sonra sayfayı yenile
+        setTimeout(() => {
+            location.reload();
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Çakışma düzeltme hatası:', error);
+        syncResults.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #e74c3c;">
+                <div style="font-size: 48px; margin-bottom: 20px;">❌</div>
+                <h3>Çakışmalar düzeltilirken hata oluştu</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
+        fixAllBtn.disabled = false;
+        fixAllBtn.innerHTML = '🔄 Tüm Çakışmaları Düzelt';
+    }
+}
+
+// Tekil çakışmayı düzelt
+async function fixConflict(barcode, lists) {
+    // Kural 1: PhoneCheck ve Onarım Tamamlandı'da aynı anda bulunuyorsa → PhoneCheck'ten sil
+    if (lists.includes('phonecheck') && lists.includes('onarim')) {
+        await removeFromList(barcode, 'phonecheck');
+        return;
+    }
+    
+    // Kural 2: Onarım Tamamlandı ve Teslim Edilenler'de aynı anda bulunuyorsa → Onarım Tamamlandı'dan sil
+    if (lists.includes('onarim') && lists.includes('teslimEdilenler')) {
+        await removeFromList(barcode, 'onarim');
+        return;
+    }
+    
+    // Kural 3: Diğer çakışmalar için ilk listedekini tut, diğerlerinden sil
+    const listToKeep = getListPriority(lists);
+    for (const listName of lists) {
+        if (listName !== listToKeep) {
+            await removeFromList(barcode, listName);
+        }
+    }
+}
+
+// Belirli bir listeden barkodu sil
+async function removeFromList(barcode, listName) {
+    if (!userCodes[listName] || !userCodes[listName].has(barcode)) {
+        return; // Zaten silinmiş
+    }
+    
+    const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+    
+    try {
+        // Firebase'den sil
+        await db.ref(`servis/${dbPath}/${barcode}`).remove();
+        
+        // Yerel verilerden sil
+        userCodes[listName].delete(barcode);
+        delete codeTimestamps[listName][barcode];
+        delete codeUsers[listName][barcode];
+        
+        // Geçmişe kaydet
+        saveBarcodeHistory(barcode, listName, 'SENKRONİZASYON_SİLİNDİ', `${currentUserName} (Manuel Senkronizasyon: ${listName} listesinden kaldırıldı)`);
+        
+        // UI'ı güncelle
+        updateLabelAndCount(listName);
+        renderMiniList(listName);
+        
+        console.log(`✅ Manuel Senkronizasyon: ${barcode} - ${listName} listesinden kaldırıldı`);
+        
+    } catch (error) {
+        console.error(`❌ ${barcode} - ${listName} listesinden kaldırılırken hata:`, error);
+        throw error;
+    }
+}
 
 // 4 dakikada bir otomatik sayfa yenileme
 setInterval(function() {
