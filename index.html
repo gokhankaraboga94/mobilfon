@@ -2,14 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -2753,7 +2745,7 @@ color: #fff;
     </div>
   </div>
   
-  <div class="dashboard-details">
+ <div class="dashboard-details">
     <h3>📋 Teslim Alınan Kaynak Dağılımı</h3>
     <div class="dashboard-detail-item">
       <span class="dashboard-detail-label">Atanacak(Teşhis)</span>
@@ -2771,8 +2763,13 @@ color: #fff;
       <span class="dashboard-detail-label">Media Markt</span>
       <span class="dashboard-detail-value" id="dashboardMediaMarktCount">0</span>
     </div>
+    <!-- ✅ YENİ EKLENEN SATIR -->
+    <div class="dashboard-detail-item" style="border-left: 3px solid #e67e22;">
+      <span class="dashboard-detail-label">🔄 Servise Geri Dönenler</span>
+      <span class="dashboard-detail-value" id="dashboardServiceReturnCount">0</span>
+    </div>
   </div>
-</div>
+   </div>
     
     <!-- USER MANAGEMENT SECTION (ADMIN ONLY) -->
     <div id="userManagement" class="user-management" style="display: none;">
@@ -4601,6 +4598,9 @@ function updateDashboardUI(data = {}) {
   document.getElementById('dashboardSonKullanıcıCount').textContent = data.sources?.SonKullanıcı || 0;
   document.getElementById('dashboardSahibindenCount').textContent = data.sources?.sahiniden || 0;
   document.getElementById('dashboardMediaMarktCount').textContent = data.sources?.mediaMarkt || 0;
+  
+  // ✅ YENİ EKLENEN - Servise geri dönenler
+  document.getElementById('dashboardServiceReturnCount').textContent = data.sources?.serviceReturn || 0;
 }
 
 // Teslim alınan IMEI ekle
@@ -6510,6 +6510,8 @@ function removeFromOtherLists(code, exceptList) {
 // burası değişti - servise geri dönüşte DELIVERED sayacını azalt
 async function handleServiceReturn(code, targetList) {
   try {
+    const todayDate = getTodayDateString();
+    
     // Firebase'de servise geri dönüş kaydı oluştur
     await db.ref(`servis/serviceReturns/${code}`).set({
       returnDate: Date.now(),
@@ -6518,8 +6520,7 @@ async function handleServiceReturn(code, targetList) {
       user: currentUserName
     });
     
-    // burası değişti - Delivered sayacını azalt
-    const todayDate = getTodayDateString();
+    // Delivered sayacını azalt
     const deliveredSnapshot = await db.ref(`dashboard/daily/${todayDate}/deliveredCount`).once('value');
     const currentDelivered = deliveredSnapshot.val() || 0;
     
@@ -6528,9 +6529,25 @@ async function handleServiceReturn(code, targetList) {
       dailyDeliveredCount = currentDelivered - 1;
     }
     
-    // burası değişti - Received'a geri ekle
+    // ✅ YENİ GÜNCELLEME - Servise geri dönüş kaydı
     if (!dailyReceivedIMEIs.has(code)) {
-      await addReceivedIMEI(code, targetList);
+      dailyReceivedIMEIs.add(code);
+      
+      const updates = {};
+      updates[`dashboard/daily/${todayDate}/receivedIMEIs/${code}`] = {
+        source: 'serviceReturn', // ✅ Kaynak: serviceReturn
+        originalTarget: targetList, // Hangi listeye döndüğü
+        timestamp: Date.now(),
+        user: currentUserName,
+        isServiceReturn: true
+      };
+      
+      // ✅ Servise geri dönüş sayacını artır
+      const serviceReturnSnapshot = await db.ref(`dashboard/daily/${todayDate}/sources/serviceReturn`).once('value');
+      const currentServiceReturnCount = serviceReturnSnapshot.val() || 0;
+      updates[`dashboard/daily/${todayDate}/sources/serviceReturn`] = currentServiceReturnCount + 1;
+      
+      await db.ref().update(updates);
     }
     
     showToast(`📥 Servise Geri Dönüş: ${code} - ${targetList} listesine eklendi`, 'info');
@@ -6539,7 +6556,7 @@ async function handleServiceReturn(code, targetList) {
       updateAdminStats();
     }
     
-    if (currentUserRole === 'admin') {
+    if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
       loadDashboardStats();
     }
     
@@ -7493,7 +7510,8 @@ async function confirmResetDashboard() {
                 atanacak: 0,
                 SonKullanıcı: 0,
                 sahiniden: 0,
-                mediaMarkt: 0
+                mediaMarkt: 0,
+                serviceReturn: 0 // ✅ YENİ EKLENEN
             }
         });
         
@@ -7507,7 +7525,8 @@ async function confirmResetDashboard() {
                 atanacak: 0,
                 SonKullanıcı: 0,
                 sahiniden: 0,
-                mediaMarkt: 0
+                mediaMarkt: 0,
+                serviceReturn: 0 // ✅ YENİ EKLENEN
             }
         });
         
