@@ -7761,107 +7761,86 @@ if (name === 'teslimEdilenler' && currentUserRole !== 'admin') {
 
       const timestamp = getTimestamp();
       
-const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
+  const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
 const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
 
+// saveCodes fonksiyonunda (satır ~1020 civarı)
 if (specialLists.includes(name)) {
-    // ✅ ÖNCELİKLE TÜM SİLMELERİ YAPALIM (async/await ile)
-    const deletePromises = [];
-    
     codes.forEach(code => {
       if (!userCodes[name].has(code)) {
-        // ÖNCELİKLE DİĞER LİSTELERDEN SİL
-        const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'onCamDisServis', 'anakartDisServis', 'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+        const previousList = removeFromOtherLists(code, name);
         
-        allLists.forEach(listName => {
-          if (listName !== name && userCodes[listName] && userCodes[listName].has(code)) {
-            console.log(`🗑️ Siliniyor: ${code} - ${listName} listesinden`);
-            
-            const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
-            
-            // Firebase'den silme promise'ini kaydet
-            const deletePromise = db.ref(`servis/${dbPath}/${code}`).remove().then(() => {
-              console.log(`✅ Firebase'den silindi: ${code} - ${listName}`);
-              
-              // Lokal verilerden sil
-              userCodes[listName].delete(code);
-              delete codeTimestamps[listName][code];
-              delete codeUsers[listName][code];
-              
-              // UI güncelle
-              updateLabelAndCount(listName);
-              renderMiniList(listName);
-              
-              // Servise geri dönüş kontrolü
-              if (listName === 'teslimEdilenler' && name !== 'teslimEdilenler') {
-                handleServiceReturn(code, name);
+        saveBarcodeHistory(code, previousList, name, currentUserName);
+        
+        // burası değişti - Son Kullanıcı kontrolü eklendi ↓
+      if (dashboardSourceLists.includes(name)) {
+      addReceivedIMEI(code, name);
+    }
+
+// burası değişti - Teslim edilenler listesine ekleniyorsa sayaç artır VE received'dan çıkar
+if (name === 'teslimEdilenler') {
+  incrementDeliveredCount();
+  // Eğer daha önce receivedIMEIs'te varsa çıkar
+
+}
+
+            if (name === 'onarim') {
+              if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
+                db.ref(`servis/phonecheck/${code}`).remove();
+                userCodes.phonecheck.delete(code);
+                delete codeTimestamps.phonecheck[code];
+                delete codeUsers.phonecheck[code];
+                updateLabelAndCount('phonecheck');
+                renderMiniList('phonecheck');
               }
-            }).catch(error => {
-              console.error(`❌ Firebase silme hatası: ${code} - ${listName}`, error);
-            });
-            
-            deletePromises.push(deletePromise);
-          }
-        });
+              
+        db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
+        codeTimestamps.onarim[code] = timestamp;
+        codeUsers.onarim[code] = currentUserName;
+        userCodes.onarim.add(code);
+        // onarim barkodlarını da toplam barkodlara ekliyoruz
+        allCodes.add(code); // BU SATIR EKLENDİ
+      } else if (name === 'teslimEdilenler') {
+        db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+        codeTimestamps[name][code] = timestamp;
+        codeUsers[name][code] = currentUserName;
+        userCodes[name].add(code);
+        // teslimEdilenler'i toplam barkodlara EKLEMİYORUZ
+      } else {
+        db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
+        codeTimestamps[name][code] = timestamp;
+        codeUsers[name][code] = currentUserName;
+        userCodes[name].add(code);
+        allCodes.add(code);
       }
-    });
-    
-    // ✅ TÜM SİLMELER BİTTİKTEN SONRA YENİ LİSTEYE EKLE
-    Promise.all(deletePromises).then(() => {
+    }
+  });
+        
+        updateLabelAndCount(name);
+        renderList();
+        isUpdating = false;
+        return;
+      }
+      
       codes.forEach(code => {
         if (!userCodes[name].has(code)) {
-          const timestamp = getTimestamp();
+          const previousList = removeFromOtherLists(code, name);
           
-          // Geçmişe kaydet
-          saveBarcodeHistory(code, 'previousList', name, currentUserName);
+          saveBarcodeHistory(code, previousList, name, currentUserName);
           
-          // Dashboard güncelle (gerekirse)
-          if (dashboardSourceLists.includes(name)) {
-            addReceivedIMEI(code, name);
-          }
-          
-          // Teslim edilenler sayacı
-          if (name === 'teslimEdilenler') {
-            incrementDeliveredCount();
-          }
-          
-          // ✅ ŞİMDİ YENİ LİSTEYE EKLEYELİM
-          if (name === 'onarim') {
-            db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
-            codeTimestamps.onarim[code] = timestamp;
-            codeUsers.onarim[code] = currentUserName;
-            userCodes.onarim.add(code);
-            allCodes.add(code);
-            console.log(`✅ Eklendi: ${code} - onarim listesine`);
-          } else if (name === 'teslimEdilenler') {
-            db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-            codeTimestamps[name][code] = timestamp;
-            codeUsers[name][code] = currentUserName;
-            userCodes[name].add(code);
-            console.log(`✅ Eklendi: ${code} - teslimEdilenler listesine`);
-          } else {
-            db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-            codeTimestamps[name][code] = timestamp;
-            codeUsers[name][code] = currentUserName;
-            userCodes[name].add(code);
-            allCodes.add(code);
-            console.log(`✅ Eklendi: ${code} - ${name} listesine`);
-          }
+          db.ref(`servis/${name}/${code}`).set(timestamp);
+          codeTimestamps[name][code] = timestamp;
+          codeUsers[name][code] = null;
+          userCodes[name].add(code);
+          allCodes.add(code);
         }
       });
-      
+
       updateLabelAndCount(name);
       renderList();
-      isUpdating = false;
       
-      console.log(`✅ Transfer tamamlandı - ${name} listesi güncellendi`);
-    }).catch(error => {
-      console.error('❌ Transfer işlemi sırasında hata:', error);
       isUpdating = false;
-    });
-    
-    return; // ← saveCodes fonksiyonundan çık
-}
+    }
 
     Object.entries(inputs).forEach(([name, textarea]) => {
       if (textarea) {
@@ -7887,8 +7866,6 @@ if (inputs.searchNormal) {
     // 4 parametre gönderiliyor ↓
   });
 }
-}
-
 
 // performSearch fonksiyonunu güncelleyin
 function performSearch(value, resultElementId, historyElementId, partInfoElementId) {
