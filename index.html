@@ -3,6 +3,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -2477,6 +2478,67 @@ color: #fff;
     box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
 }
 
+.conflict-notification {
+  position: fixed;
+  top: 150px;
+  right: 20px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
+  z-index: 9998;
+  display: none;
+  animation: conflictPulse 2s ease-in-out infinite;
+  min-width: 280px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+@keyframes conflictPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5); }
+  50% { transform: scale(1.05); box-shadow: 0 8px 25px rgba(231, 76, 60, 0.7); }
+}
+
+.conflict-notification:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(231, 76, 60, 0.7);
+}
+
+.conflict-notification-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.conflict-notification-body {
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.95;
+}
+
+.conflict-notification-count {
+  display: inline-block;
+  background: rgba(255,255,255,0.3);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+  margin: 0 3px;
+}
+
+@media (max-width: 768px) {
+  .conflict-notification {
+    top: 90px;
+    right: 10px;
+    left: 10px;
+    min-width: unset;
+  }
+}
+
+
   </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -2484,7 +2546,17 @@ color: #fff;
 </head>
 <body>
   <!-- TOAST CONTAINER -->
-  <div class="toast-container" id="toastContainer"></div>
+  <div class="toast-container" id="toastContainer"></div> 
+
+  <div class="conflict-notification" id="conflictNotification" onclick="openSyncModalFromNotification()">
+  <div class="conflict-notification-header">
+    ⚠️ Çakışma Tespit Edildi!
+  </div>
+  <div class="conflict-notification-body">
+    <span class="conflict-notification-count" id="conflictCount">0</span> adet liste çakışması bulundu.
+    <br><strong>Tıklayarak düzeltin →</strong>
+  </div>
+</div>
 
 <!-- ADMIN NAV BAR -->
 <div class="admin-nav" id="adminNav">
@@ -2516,6 +2588,9 @@ color: #fff;
     </div>
   </div>
 </div>
+
+
+
 
 <!-- REPORTS MODAL -->
 <div class="reports-modal" id="reportsModal">
@@ -4409,6 +4484,8 @@ async function fixAllConflicts() {
         
         showToast(`✅ ${fixedCount} çakışma başarıyla düzeltildi!`, 'success');
         
+             hideConflictNotification();
+
         // 3 saniye sonra sayfayı yenile
         setTimeout(() => {
             location.reload();
@@ -6097,6 +6174,13 @@ auth.onAuthStateChanged(async user => {
     setTimeout(() => {
       setupSectionToggle();
     }, 500);
+
+
+    if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+      startConflictMonitoring();
+    } else {
+      stopConflictMonitoring();
+    }
     
   } else {
     loginScreen.style.display = "flex";
@@ -6180,6 +6264,7 @@ function showWarehouseView() {
     });
 
 document.getElementById('navLogoutButton').addEventListener("click", () => {
+  stopConflictMonitoring(); // ⬅️ BU SATIRI EKLEYİN
   auth.signOut();
 });
 
@@ -7590,6 +7675,105 @@ function addSyncButtonToNav() {
         }
     }
 }
+
+
+let conflictCheckInterval = null;
+
+// Çakışmaları kontrol et ve bildir
+async function checkAndNotifyConflicts() {
+  if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') {
+    hideConflictNotification();
+    return;
+  }
+  
+  try {
+    const conflicts = await getConflictCount();
+    
+    if (conflicts > 0) {
+      showConflictNotification(conflicts);
+    } else {
+      hideConflictNotification();
+    }
+  } catch (error) {
+    console.error('Çakışma kontrolü hatası:', error);
+  }
+}
+
+// Çakışma sayısını hesapla
+async function getConflictCount() {
+  const allBarcodes = new Set();
+  Object.values(userCodes).forEach(set => {
+    if (set && set.forEach) {
+      set.forEach(barcode => allBarcodes.add(barcode));
+    }
+  });
+  
+  let conflictCount = 0;
+  
+  for (const barcode of allBarcodes) {
+    const lists = [];
+    Object.entries(userCodes).forEach(([listName, codeSet]) => {
+      if (codeSet && codeSet.has && codeSet.has(barcode)) {
+        lists.push(listName);
+      }
+    });
+    
+    if (lists.length > 1) {
+      conflictCount++;
+    }
+  }
+  
+  return conflictCount;
+}
+
+// Çakışma bildirimini göster
+function showConflictNotification(count) {
+  const notification = document.getElementById('conflictNotification');
+  const countElement = document.getElementById('conflictCount');
+  
+  if (notification && countElement) {
+    countElement.textContent = count;
+    notification.style.display = 'block';
+  }
+}
+
+// Çakışma bildirimini gizle
+function hideConflictNotification() {
+  const notification = document.getElementById('conflictNotification');
+  if (notification) {
+    notification.style.display = 'none';
+  }
+}
+
+// Bildirimden senkronizasyon modalını aç
+function openSyncModalFromNotification() {
+  openSyncModal();
+}
+
+// Çakışma kontrolünü başlat
+function startConflictMonitoring() {
+  // İlk kontrol
+  setTimeout(() => {
+    checkAndNotifyConflicts();
+  }, 3000);
+  
+  // Her 60 saniyede bir kontrol et
+  conflictCheckInterval = setInterval(() => {
+    checkAndNotifyConflicts();
+  }, 60000);
+}
+
+// Çakışma kontrolünü durdur
+function stopConflictMonitoring() {
+  if (conflictCheckInterval) {
+    clearInterval(conflictCheckInterval);
+    conflictCheckInterval = null;
+  }
+  hideConflictNotification();
+}
+
+
+
 
 
 </script>
