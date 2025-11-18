@@ -6,6 +6,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -2637,6 +2638,8 @@ color: #fff;
   <option value="sahiniden">🏪 Sahibinden</option>
   <option value="mediaMarkt">🛒 Media Markt</option>
   <option value="teslimEdilenler">✅ Teslim Edilenler</option>
+   <option value="serviceReturn">🔄 Servise Geri Dönenler</option>
+    <option value="dailyReceived">📥 Bugün Teslim Alınan</option>
         </select>
       </div>
     </div>
@@ -3296,7 +3299,7 @@ function closeReportsModal() {
 // ========================================
 
 // YENİ KOD BAŞLADI - Eski generateReport fonksiyonunu tamamen değiştir
- async function generateReport() {
+async function generateReport() {
     const startDateInput = document.getElementById('reportStartDate').value;
     const endDateInput = document.getElementById('reportEndDate').value;
     const listSelect = document.getElementById('reportList').value;
@@ -3309,6 +3312,18 @@ function closeReportsModal() {
     // Teslim Edilenler için özel rapor
     if (listSelect === 'teslimEdilenler') {
       await generateDeliveryReport(startDateInput, endDateInput);
+      return;
+    }
+    
+    // Service Returns için özel rapor
+    if (listSelect === 'serviceReturn') {
+      await generateServiceReturnReport(startDateInput, endDateInput);
+      return;
+    }
+    
+    // Bugün Teslim Alınan için özel rapor
+    if (listSelect === 'dailyReceived') {
+      await generateDailyReceivedReport(startDateInput, endDateInput);
       return;
     }
     
@@ -4009,84 +4024,379 @@ function enableExcelExport(data) {
     document.getElementById('exportExcelBtn').disabled = true;
   }
 
-  function exportToExcel() {
+ function exportToExcel() {
     if (!currentReportData) {
-      alert('Önce rapor oluşturmanız gerekiyor!');
-      return;
+        alert('Önce rapor oluşturmanız gerekiyor!');
+        return;
     }
     
     try {
-      if (currentReportData.isDeliveryReport) {
-        exportDeliveryReportToExcel();
-        return;
-      }
-      
-      const workbook = XLSX.utils.book_new();
-      
-      // Sheet 1: Özet Bilgiler
-      const summaryData = [
-        ['RAPOR ÖZETİ'],
-        [''],
-        ['Rapor Tarihi:', currentReportData.reportDate || 'Bilinmiyor'],
-        ['Seçilen Liste:', currentReportData.selectedList || 'Tümü'],
-        ['Toplam İşlem:', currentReportData.totalActions || 0],
-        ['Aktif Kullanıcı Sayısı:', currentReportData.userCount || 0],
-        [''],
-        ['KULLANICI İSTATİSTİKLERİ'],
-        ['Kullanıcı', 'İşlem Sayısı']
-      ];
-      
-      if (currentReportData.userStats) {
-        Object.entries(currentReportData.userStats)
-          .sort((a, b) => b[1] - a[1])
-          .forEach(([user, count]) => {
-            summaryData.push([user, count]);
-          });
-      }
-      
-      const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
-      
-      // Sheet 2: Detaylı Liste
-      if (currentReportData.details && currentReportData.details.length > 0) {
-        const detailHeaders = ['Barkod', 'Kimden', 'Kime', 'Kullanıcı', 'Tarih', 'Güncel Durum', 'PhoneCheck Bilgisi'];
-        const detailRows = currentReportData.details.map(item => [
-          item.barcode,
-          item.fromName,
-          item.toName,
-          item.user,
-          item.timestamp,
-          item.currentStatus,
-          item.phoneCheckInfo ? 
-            `${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})` : 
-            'Yok'
-        ]);
+        // Service Return raporu için özel export
+        if (currentReportData.isServiceReturnReport) {
+            exportServiceReturnReportToExcel();
+            return;
+        }
         
-        const detailData = [detailHeaders, ...detailRows];
-        const detailSheet = XLSX.utils.aoa_to_sheet(detailData);
+        // Daily Received raporu için özel export
+        if (currentReportData.isDailyReceivedReport) {
+            exportDailyReceivedReportToExcel();
+            return;
+        }
         
-        detailSheet['!cols'] = [
-          { wch: 15 },
-          { wch: 20 },
-          { wch: 20 },
-          { wch: 15 },
-          { wch: 18 },
-          { wch: 25 },
-          { wch: 30 }
+        // Delivery raporu için özel export
+        if (currentReportData.isDeliveryReport) {
+            exportDeliveryReportToExcel();
+            return;
+        }
+        
+        // Normal rapor için mevcut kod
+        const workbook = XLSX.utils.book_new();
+        
+        // Sheet 1: Özet Bilgiler
+        const summaryData = [
+            ['RAPOR ÖZETİ'],
+            [''],
+            ['Rapor Tarihi:', currentReportData.reportDate || 'Bilinmiyor'],
+            ['Seçilen Liste:', currentReportData.selectedList || 'Tümü'],
+            ['Toplam İşlem:', currentReportData.totalActions || 0],
+            ['Aktif Kullanıcı Sayısı:', currentReportData.userCount || 0],
+            [''],
+            ['KULLANICI İSTATİSTİKLERİ'],
+            ['Kullanıcı', 'İşlem Sayısı']
         ];
         
-        XLSX.utils.book_append_sheet(workbook, detailSheet, 'Detaylı Liste');
-      }
-      
-      const fileName = `Rapor_${currentReportData.reportDate?.replace(/\s/g, '_') || 'Bilinmiyor'}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
-      
-      alert('Excel dosyası başarıyla indirildi! 📊');
+        if (currentReportData.userStats) {
+            Object.entries(currentReportData.userStats)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([user, count]) => {
+                    summaryData.push([user, count]);
+                });
+        }
+        
+        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
+        
+        // Sheet 2: Detaylı Liste
+        if (currentReportData.details && currentReportData.details.length > 0) {
+            const detailHeaders = ['Barkod', 'Kimden', 'Kime', 'Kullanıcı', 'Tarih', 'Güncel Durum', 'PhoneCheck Bilgisi'];
+            const detailRows = currentReportData.details.map(item => [
+                item.barcode,
+                item.fromName,
+                item.toName,
+                item.user,
+                item.timestamp,
+                item.currentStatus,
+                item.phoneCheckInfo ? 
+                    `${item.phoneCheckInfo.action} - ${item.phoneCheckInfo.user} (${item.phoneCheckInfo.timestamp})` : 
+                    'Yok'
+            ]);
+            
+            const detailData = [detailHeaders, ...detailRows];
+            const detailSheet = XLSX.utils.aoa_to_sheet(detailData);
+            
+            detailSheet['!cols'] = [
+                { wch: 15 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 15 },
+                { wch: 18 },
+                { wch: 25 },
+                { wch: 30 }
+            ];
+            
+            XLSX.utils.book_append_sheet(workbook, detailSheet, 'Detaylı Liste');
+        }
+        
+        const fileName = `Rapor_${currentReportData.reportDate?.replace(/\s/g, '_') || 'Bilinmiyor'}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+        
+        alert('Excel dosyası başarıyla indirildi! 📊');
     } catch (error) {
-      console.error('Excel export hatası:', error);
-      alert('Excel dosyası oluşturulurken hata oluştu!');
+        console.error('Excel export hatası:', error);
+        alert('Excel dosyası oluşturulurken hata oluştu!');
     }
-  }
+}
+
+// Service Return Raporu için Excel Export
+function exportServiceReturnReportToExcel() {
+    try {
+        const workbook = XLSX.utils.book_new();
+        
+        // Sheet 1: Özet
+        const summaryData = [
+            ['SERVİSE GERİ DÖNÜŞ RAPORU'],
+            [''],
+            ['Tarih Aralığı:', currentReportData.reportDate || 'Bilinmiyor'],
+            ['Toplam Geri Dönüş:', currentReportData.totalReturns || 0],
+            ['Aktif Cihazlar:', currentReportData.activeCount || 0],
+            ['Sistemden Çıkanlar:', currentReportData.deletedCount || 0],
+            [''],
+            ['KULLANICI İSTATİSTİKLERİ'],
+            ['Kullanıcı', 'Geri Dönüş Sayısı']
+        ];
+        
+        if (currentReportData.userStats) {
+            Object.entries(currentReportData.userStats)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([user, count]) => {
+                    summaryData.push([user, count]);
+                });
+        }
+        
+        summaryData.push([''], ['HEDEF LİSTE DAĞILIMI'], ['Hedef Liste', 'Sayı']);
+        
+        if (currentReportData.targetListStats) {
+            Object.entries(currentReportData.targetListStats)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([target, count]) => {
+                    const listNames = {
+                        atanacak: '📋 Atanacak',
+                        gokhan: '🧑‍🔧 Gökhan',
+                        enes: '🧑‍🔧 Enes',
+                        yusuf: '🧑‍🔧 Yusuf',
+                        samet: '🧑‍🔧 Samet',
+                        engin: '🧑‍🔧 Engin',
+                        ismail: '🧑‍🔧 İsmail',
+                        mehmet: '🧑‍🔧 Mehmet',
+                        onarim: '🔧 Onarım Tamamlandı',
+                        phonecheck: '📱 PhoneCheck',
+                        parcaBekliyor: '⚙️ Parça Bekliyor',
+                        onCamDisServis: '🔨 Ön Cam Dış Servis',
+                        anakartDisServis: '🔨 Anakart Dış Servis',
+                        satisa: '💰 Satışa Gidecek',
+                        sahiniden: '🏪 Sahibinden',
+                        mediaMarkt: '🛒 Media Markt',
+                        SonKullanıcı: '👤 Son Kullanıcı'
+                    };
+                    
+                    const displayName = listNames[target] || `🧑‍🔧 ${target.charAt(0).toUpperCase() + target.slice(1)}`;
+                    summaryData.push([displayName, count]);
+                });
+        }
+        
+        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
+        
+        // Sheet 2: Detaylı Liste
+        if (currentReportData.returnDetails && currentReportData.returnDetails.length > 0) {
+            const detailHeaders = [
+                'Barkod', 
+                'Kullanıcı', 
+                'Hedef Liste', 
+                'Geri Dönüş Tarihi', 
+                'Şu Anki Durum',
+                'Şu Anki Liste',
+                'Geçmiş Hareket'
+            ];
+            
+            const detailRows = currentReportData.returnDetails.map(item => {
+                const listNames = {
+                    atanacak: '📋 Atanacak',
+                    gokhan: '🧑‍🔧 Gökhan',
+                    enes: '🧑‍🔧 Enes',
+                    yusuf: '🧑‍🔧 Yusuf',
+                    samet: '🧑‍🔧 Samet',
+                    engin: '🧑‍🔧 Engin',
+                    ismail: '🧑‍🔧 İsmail',
+                    mehmet: '🧑‍🔧 Mehmet',
+                    onarim: '🔧 Onarım Tamamlandı',
+                    phonecheck: '📱 PhoneCheck',
+                    parcaBekliyor: '⚙️ Parça Bekliyor',
+                    onCamDisServis: '🔨 Ön Cam Dış Servis',
+                    anakartDisServis: '🔨 Anakart Dış Servis',
+                    satisa: '💰 Satışa Gidecek',
+                    sahiniden: '🏪 Sahibinden',
+                    mediaMarkt: '🛒 Media Markt',
+                    SonKullanıcı: '👤 Son Kullanıcı',
+                    teslimEdilenler: '✅ Teslim Edilenler'
+                };
+                
+                const targetName = listNames[item.targetList] || item.targetList;
+                const currentListName = listNames[item.currentList] || item.currentList;
+                
+                let historyInfo = '';
+                if (item.historyEntry) {
+                    historyInfo = `${item.historyEntry.from} → ${item.historyEntry.to}`;
+                } else if (item.fromServiceReturns) {
+                    historyInfo = 'Service Returns Kaydı';
+                }
+                
+                return [
+                    item.barcode,
+                    item.user,
+                    targetName,
+                    item.timestamp,
+                    item.currentStatus,
+                    currentListName || 'Yok',
+                    historyInfo
+                ];
+            });
+            
+            const detailData = [detailHeaders, ...detailRows];
+            const detailSheet = XLSX.utils.aoa_to_sheet(detailData);
+            
+            detailSheet['!cols'] = [
+                { wch: 18 },
+                { wch: 15 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 30 },
+                { wch: 20 },
+                { wch: 25 }
+            ];
+            
+            XLSX.utils.book_append_sheet(workbook, detailSheet, 'Detaylı Liste');
+        }
+        
+        // Sheet 3: Günlük Dağılım
+        if (currentReportData.returnDetails && currentReportData.returnDetails.length > 0) {
+            const dailyStats = {};
+            
+            currentReportData.returnDetails.forEach(item => {
+                const dateStr = new Date(item.timestampRaw).toISOString().split('T')[0];
+                const formattedDate = new Date(dateStr).toLocaleDateString('tr-TR');
+                dailyStats[formattedDate] = (dailyStats[formattedDate] || 0) + 1;
+            });
+            
+            const dailyHeaders = ['Tarih', 'Geri Dönüş Sayısı'];
+            const dailyRows = Object.entries(dailyStats)
+                .sort((a, b) => b[0].localeCompare(a[0]))
+                .map(([date, count]) => [date, count]);
+            
+            const dailyData = [dailyHeaders, ...dailyRows];
+            const dailySheet = XLSX.utils.aoa_to_sheet(dailyData);
+            
+            dailySheet['!cols'] = [
+                { wch: 15 },
+                { wch: 18 }
+            ];
+            
+            XLSX.utils.book_append_sheet(workbook, dailySheet, 'Günlük Dağılım');
+        }
+        
+        const fileName = `Servis_Geri_Donus_${currentReportData.reportDate?.replace(/\s/g, '_') || 'Bilinmiyor'}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+        
+        alert('Servis Geri Dönüş Excel dosyası başarıyla indirildi! 📊');
+    } catch (error) {
+        console.error('Service Return Excel export hatası:', error);
+        alert('Excel dosyası oluşturulurken hata oluştu!');
+    }
+}
+
+// Daily Received Raporu için Excel Export
+function exportDailyReceivedReportToExcel() {
+    try {
+        const workbook = XLSX.utils.book_new();
+        
+        // Sheet 1: Özet
+        const summaryData = [
+            ['GÜNLÜK TESLİM ALINAN RAPORU'],
+            [''],
+            ['Tarih Aralığı:', currentReportData.reportDate || 'Bilinmiyor'],
+            ['Toplam Teslim Alınan:', currentReportData.totalReceived || 0],
+            ['Gün Sayısı:', currentReportData.dayCount || 0],
+            ['Günlük Ortalama:', currentReportData.avgPerDay || 0],
+            [''],
+            ['KAYNAK BAZLI DAĞILIM'],
+            ['Kaynak', 'Adet', 'Yüzde']
+        ];
+        
+        if (currentReportData.sourceStats) {
+            const sourceNames = {
+                atanacak: '📋 Atanacak',
+                SonKullanıcı: '👤 Son Kullanıcı',
+                sahiniden: '🏪 Sahibinden',
+                mediaMarkt: '🛒 Media Markt',
+                serviceReturn: '🔄 Servise Geri Dönenler'
+            };
+            
+            Object.entries(currentReportData.sourceStats).forEach(([source, count]) => {
+                if (count > 0) {
+                    const percentage = ((count / currentReportData.totalReceived) * 100).toFixed(1);
+                    summaryData.push([sourceNames[source] || source, count, `%${percentage}`]);
+                }
+            });
+        }
+        
+        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(workbook, summarySheet, 'Özet');
+        
+        // Sheet 2: Detaylı Liste
+        if (currentReportData.receivedDetails && currentReportData.receivedDetails.length > 0) {
+            const detailHeaders = [
+                'Barkod', 
+                'Kaynak', 
+                'Kullanıcı', 
+                'Tarih', 
+                'Servis Geri Dönüş',
+                'Orijinal Hedef',
+                'IMEI Geçmişi'
+            ];
+            
+            const detailRows = currentReportData.receivedDetails.map(item => {
+                const sourceNames = {
+                    atanacak: '📋 Atanacak',
+                    SonKullanıcı: '👤 Son Kullanıcı',
+                    sahiniden: '🏪 Sahibinden',
+                    mediaMarkt: '🛒 Media Markt',
+                    serviceReturn: '🔄 Servise Geri Dönenler'
+                };
+                
+                return [
+                    item.barcode,
+                    sourceNames[item.source] || item.source,
+                    item.user,
+                    item.timestamp,
+                    item.isServiceReturn ? 'Evet' : 'Hayır',
+                    item.originalTarget || '',
+                    item.imeiDetails || ''
+                ];
+            });
+            
+            const detailData = [detailHeaders, ...detailRows];
+            const detailSheet = XLSX.utils.aoa_to_sheet(detailData);
+            
+            detailSheet['!cols'] = [
+                { wch: 18 },
+                { wch: 20 },
+                { wch: 15 },
+                { wch: 20 },
+                { wch: 15 },
+                { wch: 20 },
+                { wch: 40 }
+            ];
+            
+            XLSX.utils.book_append_sheet(workbook, detailSheet, 'Detaylı Liste');
+        }
+        
+        // Sheet 3: Kullanıcı İstatistikleri
+        if (currentReportData.userStats) {
+            const userHeaders = ['Kullanıcı', 'Teslim Alım Sayısı'];
+            const userRows = Object.entries(currentReportData.userStats)
+                .sort((a, b) => b[1] - a[1])
+                .map(([user, count]) => [user, count]);
+            
+            const userData = [userHeaders, ...userRows];
+            const userSheet = XLSX.utils.aoa_to_sheet(userData);
+            
+            userSheet['!cols'] = [
+                { wch: 20 },
+                { wch: 18 }
+            ];
+            
+            XLSX.utils.book_append_sheet(workbook, userSheet, 'Kullanıcı İstatistikleri');
+        }
+        
+        const fileName = `Gunluk_Teslim_Alinan_${currentReportData.reportDate?.replace(/\s/g, '_') || 'Bilinmiyor'}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+        
+        alert('Günlük Teslim Alınan Excel dosyası başarıyla indirildi! 📊');
+    } catch (error) {
+        console.error('Daily Received Excel export hatası:', error);
+        alert('Excel dosyası oluşturulurken hata oluştu!');
+    }
+}
 
 
 function exportDeliveryReportToExcel() {
@@ -7775,8 +8085,781 @@ function stopConflictMonitoring() {
 }
 
 
+async function generateServiceReturnReport(startDateInput, endDateInput) {
+    const startDate = new Date(startDateInput);
+    const endDate = new Date(endDateInput);
+    endDate.setHours(23, 59, 59, 999);
+    
+    if (startDate > endDate) {
+      alert('Başlangıç tarihi bitiş tarihinden büyük olamaz!');
+      return;
+    }
+    
+    const startOfPeriod = startDate.getTime();
+    const endOfPeriod = endDate.getTime();
+    
+    try {
+      const reportResults = document.getElementById('reportResults');
+      reportResults.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
+      reportResults.classList.add('active');
+      
+      let totalReturns = 0;
+      let returnDetails = [];
+      let userStats = {};
+      let targetListStats = {};
+      
+      // TÜM tarihsel service return verilerini history'den al
+      const historySnapshot = await db.ref(`servis/history`).once('value');
+      const historyData = historySnapshot.val();
+      
+      if (historyData) {
+        for (const [barcode, barcodeHistory] of Object.entries(historyData)) {
+          const historyArray = Object.values(barcodeHistory);
+          
+          // Bu barkod için service return geçmişini ara
+          const serviceReturnEntries = historyArray.filter(entry => 
+            entry.user && entry.user.includes('Servise Geri Dönüş') ||
+            (entry.from === 'teslimEdilenler' && entry.to !== 'teslimEdilenler')
+          );
+          
+          // Tarih aralığına uygun service return'ları bul
+          for (const entry of serviceReturnEntries) {
+            if (entry.timestampRaw >= startOfPeriod && entry.timestampRaw <= endOfPeriod) {
+              totalReturns++;
+              
+              // Kullanıcıyı parse et
+              let user = 'Bilinmeyen';
+              let targetList = 'Bilinmeyen';
+              
+              if (entry.user && entry.user.includes('Servise Geri Dönüş')) {
+                const userMatch = entry.user.match(/Servise Geri Dönüş: (.+?) - (.+?) listesine eklendi/);
+                if (userMatch) {
+                  user = userMatch[1] || 'Bilinmeyen';
+                  targetList = userMatch[2] || 'Bilinmeyen';
+                } else {
+                  // Alternatif format kontrolü
+                  const altMatch = entry.user.match(/👤 (.+?) \(Servise Geri Dönüş/);
+                  if (altMatch) {
+                    user = altMatch[1] || 'Bilinmeyen';
+                    targetList = entry.to || 'Bilinmeyen';
+                  } else {
+                    user = entry.user.split(' ')[0] || 'Bilinmeyen';
+                    targetList = entry.to || 'Bilinmeyen';
+                  }
+                }
+              } else {
+                // Eski format için fallback
+                user = entry.user || 'Bilinmeyen';
+                targetList = entry.to || 'Bilinmeyen';
+              }
+              
+              userStats[user] = (userStats[user] || 0) + 1;
+              targetListStats[targetList] = (targetListStats[targetList] || 0) + 1;
+              
+              // Barkodun şu anki durumunu kontrol et
+              let currentStatus = '';
+              let statusColor = '';
+              let currentList = '';
+              
+              // Barkodun şu anda hangi listede olduğunu bul
+              for (const [listName, codeSet] of Object.entries(userCodes)) {
+                if (codeSet && codeSet.has(barcode)) {
+                  currentList = listName;
+                  break;
+                }
+              }
+              
+              const listNames = {
+                atanacak: '📋 Atanacak',
+                gokhan: '🧑‍🔧 Gökhan',
+                enes: '🧑‍🔧 Enes',
+                yusuf: '🧑‍🔧 Yusuf',
+                samet: '🧑‍🔧 Samet',
+                engin: '🧑‍🔧 Engin',
+                ismail: '🧑‍🔧 İsmail',
+                mehmet: '🧑‍🔧 Mehmet',
+                onarim: '🔧 Onarım Tamamlandı',
+                phonecheck: '📱 PhoneCheck',
+                parcaBekliyor: '⚙️ Parça Bekliyor',
+                onCamDisServis: '🔨 Ön Cam Dış Servis',
+                anakartDisServis: '🔨 Anakart Dış Servis',
+                satisa: '💰 Satışa Gidecek',
+                sahiniden: '🏪 Sahibinden',
+                mediaMarkt: '🛒 Media Markt',
+                SonKullanıcı: '👤 Son Kullanıcı',
+                teslimEdilenler: '✅ Teslim Edilenler'
+              };
+              
+              if (currentList) {
+                currentStatus = `📍 Şu Anda: ${listNames[currentList] || currentList}`;
+                statusColor = '#3498db';
+              } else {
+                currentStatus = '❌ Sistemde Yok (Silinmiş/Teslim Edilmiş)';
+                statusColor = '#e74c3c';
+              }
+              
+              returnDetails.push({
+                barcode: barcode,
+                user: user,
+                targetList: targetList,
+                currentList: currentList,
+                currentStatus: currentStatus,
+                statusColor: statusColor,
+                timestamp: entry.timestamp,
+                timestampRaw: entry.timestampRaw,
+                historyEntry: entry
+              });
+              
+              break; // Aynı barkod için sadece bir kere ekle
+            }
+          }
+        }
+      }
+      
+      // Ayrıca serviceReturns tablosundan da kontrol et (mevcut sistemle uyumluluk için)
+      const serviceReturnsSnapshot = await db.ref(`servis/serviceReturns`).once('value');
+      const serviceReturnsData = serviceReturnsSnapshot.val();
+      
+      if (serviceReturnsData) {
+        for (const [barcode, returnData] of Object.entries(serviceReturnsData)) {
+          const returnTimestamp = returnData.returnDate || returnData.timestamp;
+          
+          if (returnTimestamp >= startOfPeriod && returnTimestamp <= endOfPeriod) {
+            // Bu barkod zaten history'de eklendiyse atla
+            const alreadyAdded = returnDetails.some(item => item.barcode === barcode);
+            if (alreadyAdded) continue;
+            
+            totalReturns++;
+            
+            const user = returnData.user || 'Bilinmeyen';
+            userStats[user] = (userStats[user] || 0) + 1;
+            
+            const targetList = returnData.targetList || 'Bilinmeyen';
+            targetListStats[targetList] = (targetListStats[targetList] || 0) + 1;
+            
+            // Barkodun şu anki durumunu kontrol et
+            let currentStatus = '';
+            let statusColor = '';
+            let currentList = '';
+            
+            for (const [listName, codeSet] of Object.entries(userCodes)) {
+              if (codeSet && codeSet.has(barcode)) {
+                currentList = listName;
+                break;
+              }
+            }
+            
+            const listNames = {
+              atanacak: '📋 Atanacak',
+              gokhan: '🧑‍🔧 Gökhan',
+              enes: '🧑‍🔧 Enes',
+              yusuf: '🧑‍🔧 Yusuf',
+              samet: '🧑‍🔧 Samet',
+              engin: '🧑‍🔧 Engin',
+              ismail: '🧑‍🔧 İsmail',
+              mehmet: '🧑‍🔧 Mehmet',
+              onarim: '🔧 Onarım Tamamlandı',
+              phonecheck: '📱 PhoneCheck',
+              parcaBekliyor: '⚙️ Parça Bekliyor',
+              onCamDisServis: '🔨 Ön Cam Dış Servis',
+              anakartDisServis: '🔨 Anakart Dış Servis',
+              satisa: '💰 Satışa Gidecek',
+              sahiniden: '🏪 Sahibinden',
+              mediaMarkt: '🛒 Media Markt',
+              SonKullanıcı: '👤 Son Kullanıcı',
+              teslimEdilenler: '✅ Teslim Edilenler'
+            };
+            
+            if (currentList) {
+              currentStatus = `📍 Şu Anda: ${listNames[currentList] || currentList}`;
+              statusColor = '#3498db';
+            } else {
+              currentStatus = '❌ Sistemde Yok (Silinmiş/Teslim Edilmiş)';
+              statusColor = '#e74c3c';
+            }
+            
+            returnDetails.push({
+              barcode: barcode,
+              user: user,
+              targetList: targetList,
+              currentList: currentList,
+              currentStatus: currentStatus,
+              statusColor: statusColor,
+              timestamp: returnData.returnDateReadable || new Date(returnTimestamp).toLocaleString('tr-TR'),
+              timestampRaw: returnTimestamp,
+              fromServiceReturns: true
+            });
+          }
+        }
+      }
+      
+      if (totalReturns === 0) {
+        reportResults.innerHTML = `
+          <div class="no-results">
+            📭 Seçilen tarih aralığında servise geri dönen cihaz bulunamadı.
+          </div>
+        `;
+        return;
+      }
+      
+      const dateRangeText = `${startDateInput} - ${endDateInput}`;
+      
+      // İstatistikleri hesapla
+      const activeCount = returnDetails.filter(item => item.currentList).length;
+      const deletedCount = returnDetails.filter(item => !item.currentList).length;
+      
+      let summaryHTML = `
+        <div class="report-summary">
+          <div class="summary-card">
+            <div class="label">Toplam Geri Dönüş</div>
+            <div class="value">${totalReturns}</div>
+          </div>
+          <div class="summary-card" style="background: rgba(52, 152, 219, 0.2);">
+            <div class="label">📍 Aktif Cihazlar</div>
+            <div class="value" style="color: #3498db;">${activeCount}</div>
+          </div>
+          <div class="summary-card" style="background: rgba(231, 76, 60, 0.2);">
+            <div class="label">❌ Sistemden Çıkan</div>
+            <div class="value" style="color: #e74c3c;">${deletedCount}</div>
+          </div>
+          <div class="summary-card">
+            <div class="label">Tarih Aralığı</div>
+            <div class="value" style="font-size: 16px;">${dateRangeText}</div>
+          </div>
+        </div>
+      `;
+      
+      let userStatsHTML = '<div class="user-stats"><h4>👥 Kullanıcı İstatistikleri</h4>';
+      const sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]);
+      sortedUsers.forEach(([user, count]) => {
+        userStatsHTML += `
+          <div class="user-stat-item">
+            <span class="user-stat-name">👤 ${user}</span>
+            <span class="user-stat-count">${count} geri dönüş</span>
+          </div>
+        `;
+      });
+      userStatsHTML += '</div>';
+      
+      let targetStatsHTML = '<div class="report-details"><h3>🎯 Hedef Liste Dağılımı</h3>';
+      const sortedTargets = Object.entries(targetListStats).sort((a, b) => b[1] - a[1]);
+      sortedTargets.forEach(([target, count]) => {
+        const listNames = {
+          atanacak: '📋 Atanacak',
+          gokhan: '🧑‍🔧 Gökhan',
+          enes: '🧑‍🔧 Enes',
+          yusuf: '🧑‍🔧 Yusuf',
+          samet: '🧑‍🔧 Samet',
+          engin: '🧑‍🔧 Engin',
+          ismail: '🧑‍🔧 İsmail',
+          mehmet: '🧑‍🔧 Mehmet',
+          onarim: '🔧 Onarım Tamamlandı',
+          phonecheck: '📱 PhoneCheck',
+          parcaBekliyor: '⚙️ Parça Bekliyor',
+          onCamDisServis: '🔨 Ön Cam Dış Servis',
+          anakartDisServis: '🔨 Anakart Dış Servis',
+          satisa: '💰 Satışa Gidecek',
+          sahiniden: '🏪 Sahibinden',
+          mediaMarkt: '🛒 Media Markt',
+          SonKullanıcı: '👤 Son Kullanıcı'
+        };
+        
+        const displayName = listNames[target] || `🧑‍🔧 ${target.charAt(0).toUpperCase() + target.slice(1)}`;
+        targetStatsHTML += `
+          <div class="detail-item">
+            <div class="barcode">${displayName}</div>
+            <div class="info">${count} geri dönüş</div>
+          </div>
+        `;
+      });
+      targetStatsHTML += '</div>';
+      
+      let detailsHTML = '<div class="report-details"><h3>📋 Tarihsel Geri Dönüş Listesi</h3>';
+      
+      // Filtreleme için HTML
+      const detailFiltersHTML = `
+        <div class="detail-filters">
+          <input type="text" class="detail-filter-input" id="detailBarcodeFilter" placeholder="🔍 Barkod ara...">
+          <input type="text" class="detail-filter-input" id="detailUserFilter" placeholder="👤 Kullanıcı ara...">
+          <input type="text" class="detail-filter-input" id="detailTargetFilter" placeholder="🎯 Hedef liste ara...">
+          <select class="detail-filter-input" id="detailStatusFilter">
+            <option value="">Tüm Kayıtlar</option>
+            <option value="active">📍 Sadece Aktif</option>
+            <option value="deleted">❌ Sadece Silinmiş</option>
+          </select>
+        </div>
+        <div class="filter-info" id="filterInfo">
+          Toplam ${returnDetails.length} tarihsel geri dönüş kaydı bulundu (📍 ${activeCount} Aktif, ❌ ${deletedCount} Sistemden Çıkan)
+        </div>
+        <button class="clear-filters-btn" onclick="clearDetailFilters()" style="display: none;" id="clearFiltersBtn">
+          🗑️ Filtreleri Temizle
+        </button>
+      `;
+      
+      detailsHTML += detailFiltersHTML;
+      detailsHTML += '<div class="detail-list-container" id="detailListContainer">';
+      
+      returnDetails.sort((a, b) => b.timestampRaw - a.timestampRaw).forEach(item => {
+        const listNames = {
+          atanacak: '📋 Atanacak',
+          gokhan: '🧑‍🔧 Gökhan',
+          enes: '🧑‍🔧 Enes',
+          yusuf: '🧑‍🔧 Yusuf',
+          samet: '🧑‍🔧 Samet',
+          engin: '🧑‍🔧 Engin',
+          ismail: '🧑‍🔧 İsmail',
+          mehmet: '🧑‍🔧 Mehmet',
+          onarim: '🔧 Onarım Tamamlandı',
+          phonecheck: '📱 PhoneCheck',
+          parcaBekliyor: '⚙️ Parça Bekliyor',
+          onCamDisServis: '🔨 Ön Cam Dış Servis',
+          anakartDisServis: '🔨 Anakart Dış Servis',
+          satisa: '💰 Satışa Gidecek',
+          sahiniden: '🏪 Sahibinden',
+          mediaMarkt: '🛒 Media Markt',
+          SonKullanıcı: '👤 Son Kullanıcı',
+          teslimEdilenler: '✅ Teslim Edilenler'
+        };
+        
+        const targetName = listNames[item.targetList] || `🧑‍🔧 ${item.targetList.charAt(0).toUpperCase() + item.targetList.slice(1)}`;
+        const statusType = item.currentList ? 'active' : 'deleted';
+        
+        detailsHTML += `
+          <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" 
+               data-target="${item.targetList}" data-status="${statusType}"
+               style="border-left: 4px solid ${item.statusColor};">
+            <div class="barcode">${item.barcode}</div>
+            <div class="info">🎯 Hedef: ${targetName} • 👤 ${item.user}</div>
+            <div class="info">📅 ${item.timestamp}</div>
+            <div class="info" style="color: ${item.statusColor}; font-weight: bold;">
+              ${item.currentStatus}
+            </div>
+            ${item.historyEntry ? `
+              <div class="info" style="font-size: 12px; color: #95a5a6;">
+                📝 ${item.historyEntry.from} → ${item.historyEntry.to}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      detailsHTML += '</div></div>';
+      
+      reportResults.innerHTML = `
+        ${summaryHTML}
+        ${userStatsHTML}
+        ${targetStatsHTML}
+        ${detailsHTML}
+      `;
+      
+      // Filtreleme fonksiyonunu çağır
+      setupServiceReturnFilters(returnDetails, activeCount, deletedCount);
+      
+      enableExcelExport({ 
+        isServiceReturnReport: true,
+        totalReturns,
+        activeCount,
+        deletedCount,
+        userStats,
+        targetListStats,
+        returnDetails,
+        reportDate: dateRangeText
+      });
+      
+    } catch (error) {
+      console.error('Servis geri dönüş raporu oluşturulurken hata:', error);
+      alert('Servis geri dönüş raporu oluşturulurken hata oluştu!');
+      document.getElementById('reportResults').innerHTML = `
+        <div class="no-results">
+          ❌ Servis geri dönüş raporu oluşturulurken bir hata oluştu.
+        </div>
+      `;
+    }
+  }
+
+// Service Return filtreleme fonksiyonu
+function setupServiceReturnFilters(returnDetails, activeCount, deletedCount) {
+  const barcodeFilter = document.getElementById('detailBarcodeFilter');
+  const userFilter = document.getElementById('detailUserFilter');
+  const targetFilter = document.getElementById('detailTargetFilter');
+  const statusFilter = document.getElementById('detailStatusFilter');
+  const filterInfo = document.getElementById('filterInfo');
+  const detailItems = document.querySelectorAll('.detail-item');
+  const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+  function updateClearButton() {
+    const hasFilters = barcodeFilter.value || userFilter.value || targetFilter.value || statusFilter.value;
+    clearFiltersBtn.style.display = hasFilters ? 'block' : 'none';
+  }
+
+  function applyFilters() {
+    const barcodeValue = barcodeFilter.value.toLowerCase();
+    const userValue = userFilter.value.toLowerCase();
+    const targetValue = targetFilter.value.toLowerCase();
+    const statusValue = statusFilter.value;
+
+    let visibleCount = 0;
+    let visibleActive = 0;
+    let visibleDeleted = 0;
+
+    detailItems.forEach(item => {
+      const barcode = item.getAttribute('data-barcode').toLowerCase();
+      const user = item.getAttribute('data-user').toLowerCase();
+      const target = item.getAttribute('data-target').toLowerCase();
+      const status = item.getAttribute('data-status');
+
+      const matchesBarcode = barcode.includes(barcodeValue);
+      const matchesUser = user.includes(userValue);
+      const matchesTarget = target.includes(targetValue);
+      const matchesStatus = !statusValue || status === statusValue;
+
+      if (matchesBarcode && matchesUser && matchesTarget && matchesStatus) {
+        item.classList.remove('hidden');
+        visibleCount++;
+        if (status === 'active') visibleActive++;
+        else visibleDeleted++;
+      } else {
+        item.classList.add('hidden');
+      }
+    });
+
+    filterInfo.textContent = `${visibleCount} kayıt gösteriliyor (📍 ${visibleActive} Aktif, ❌ ${visibleDeleted} Sistemden Çıkan) - Toplam: ${returnDetails.length}`;
+    updateClearButton();
+  }
+
+  [barcodeFilter, userFilter, targetFilter, statusFilter].forEach(input => {
+    input.addEventListener('input', applyFilters);
+  });
+
+  updateClearButton();
+}
 
 
+async function generateDailyReceivedReport(startDateInput, endDateInput) {
+    const startDate = new Date(startDateInput);
+    const endDate = new Date(endDateInput);
+    endDate.setHours(23, 59, 59, 999);
+    
+    if (startDate > endDate) {
+        alert('Başlangıç tarihi bitiş tarihinden büyük olamaz!');
+        return;
+    }
+    
+    const startOfPeriod = startDate.getTime();
+    const endOfPeriod = endDate.getTime();
+    
+    try {
+        const reportResults = document.getElementById('reportResults');
+        reportResults.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
+        reportResults.classList.add('active');
+        
+        let totalReceived = 0;
+        let receivedDetails = [];
+        let sourceStats = {};
+        let userStats = {};
+        
+        // Tüm günleri döngüye al
+        const currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            
+            try {
+                const snapshot = await db.ref(`dashboard/daily/${dateStr}`).once('value');
+                const dailyData = snapshot.val();
+                
+                if (dailyData && dailyData.receivedIMEIs) {
+                    Object.entries(dailyData.receivedIMEIs).forEach(([barcode, imeiData]) => {
+                        // Tarih kontrolü - timestamp varsa onu kullan
+                        const imeiTimestamp = imeiData.timestamp || new Date(dateStr).getTime();
+                        
+                        if (imeiTimestamp >= startOfPeriod && imeiTimestamp <= endOfPeriod) {
+                            totalReceived++;
+                            
+                            const source = imeiData.source || 'Bilinmeyen';
+                            sourceStats[source] = (sourceStats[source] || 0) + 1;
+                            
+                            const user = imeiData.user || 'Bilinmeyen';
+                            userStats[user] = (userStats[user] || 0) + 1;
+                            
+                            // IMEI bilgilerini topla
+                            const imeiInfo = {
+                                barcode: barcode,
+                                source: source,
+                                user: user,
+                                date: dateStr,
+                                timestamp: imeiData.timestamp ? new Date(imeiData.timestamp).toLocaleString('tr-TR') : dateStr,
+                                timestampRaw: imeiTimestamp,
+                                isServiceReturn: imeiData.isServiceReturn || false,
+                                originalTarget: imeiData.originalTarget || '',
+                                imeiDetails: 'Yükleniyor...'
+                            };
+                            
+                            receivedDetails.push(imeiInfo);
+                            
+                            // IMEI detaylarını history'den al
+                            getBarcodeHistoryDetails(barcode).then(historyDetails => {
+                                imeiInfo.imeiDetails = historyDetails;
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error(`${dateStr} tarihli veri okunurken hata:`, error);
+            }
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        // IMEI detaylarını yüklemek için biraz bekle
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (totalReceived === 0) {
+            reportResults.innerHTML = `
+                <div class="no-results">
+                    📭 Seçilen tarih aralığında teslim alınan cihaz bulunamadı.
+                </div>
+            `;
+            return;
+        }
+        
+        const dateRangeText = `${startDateInput} - ${endDateInput}`;
+        const dayCount = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        const avgPerDay = (totalReceived / dayCount).toFixed(1);
+        
+        let summaryHTML = `
+            <div class="report-summary">
+                <div class="summary-card">
+                    <div class="label">Toplam Teslim Alınan</div>
+                    <div class="value">${totalReceived}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Gün Sayısı</div>
+                    <div class="value">${dayCount}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Günlük Ortalama</div>
+                    <div class="value">${avgPerDay}</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">Tarih Aralığı</div>
+                    <div class="value" style="font-size: 16px;">${dateRangeText}</div>
+                </div>
+            </div>
+        `;
+        
+        let sourceStatsHTML = '<div class="report-details"><h3>📊 Kaynak Bazlı Dağılım</h3>';
+        const sourceNames = {
+            atanacak: '📋 Atanacak',
+            SonKullanıcı: '👤 Son Kullanıcı',
+            sahiniden: '🏪 Sahibinden',
+            mediaMarkt: '🛒 Media Markt',
+            serviceReturn: '🔄 Servise Geri Dönenler'
+        };
+        
+        Object.entries(sourceStats).sort((a, b) => b[1] - a[1]).forEach(([source, count]) => {
+            const percentage = ((count / totalReceived) * 100).toFixed(1);
+            sourceStatsHTML += `
+                <div class="detail-item">
+                    <div class="barcode">${sourceNames[source] || source}</div>
+                    <div class="info">${count} adet (%${percentage})</div>
+                </div>
+            `;
+        });
+        sourceStatsHTML += '</div>';
+        
+        let userStatsHTML = '<div class="user-stats"><h4>👥 Kullanıcı İstatistikleri</h4>';
+        const sortedUsers = Object.entries(userStats).sort((a, b) => b[1] - a[1]);
+        sortedUsers.forEach(([user, count]) => {
+            userStatsHTML += `
+                <div class="user-stat-item">
+                    <span class="user-stat-name">👤 ${user}</span>
+                    <span class="user-stat-count">${count} teslim alım</span>
+                </div>
+            `;
+        });
+        userStatsHTML += '</div>';
+        
+        let detailsHTML = '<div class="report-details"><h3>📋 Detaylı Teslim Alım Listesi (IMEI Bilgileri)</h3>';
+        
+        // Filtreleme için HTML
+        const detailFiltersHTML = `
+            <div class="detail-filters">
+                <input type="text" class="detail-filter-input" id="detailBarcodeFilter" placeholder="🔍 Barkod ara...">
+                <input type="text" class="detail-filter-input" id="detailUserFilter" placeholder="👤 Kullanıcı ara...">
+                <input type="text" class="detail-filter-input" id="detailSourceFilter" placeholder="📊 Kaynak ara...">
+                <select class="detail-filter-input" id="detailServiceReturnFilter">
+                    <option value="">Tüm Kayıtlar</option>
+                    <option value="serviceReturn">🔄 Sadece Servis Geri Dönüş</option>
+                    <option value="normal">📥 Sadece Normal Teslim</option>
+                </select>
+            </div>
+            <div class="filter-info" id="filterInfo">
+                Toplam ${receivedDetails.length} kayıt gösteriliyor
+            </div>
+            <button class="clear-filters-btn" onclick="clearDetailFilters()" style="display: none;" id="clearFiltersBtn">
+                🗑️ Filtreleri Temizle
+            </button>
+        `;
+        
+        detailsHTML += detailFiltersHTML;
+        detailsHTML += '<div class="detail-list-container" id="detailListContainer">';
+        
+        receivedDetails.sort((a, b) => b.timestampRaw - a.timestampRaw).forEach(item => {
+            const sourceName = sourceNames[item.source] || item.source;
+            const serviceReturnIcon = item.isServiceReturn ? ' 🔄' : '';
+            const serviceReturnText = item.isServiceReturn ? ` (Geri Dönüş: ${item.originalTarget || 'Bilinmeyen'})` : '';
+            
+            detailsHTML += `
+                <div class="detail-item" data-barcode="${item.barcode}" data-user="${item.user}" 
+                     data-source="${item.source}" data-servicereturn="${item.isServiceReturn ? 'serviceReturn' : 'normal'}">
+                    <div class="barcode">${item.barcode}${serviceReturnIcon}</div>
+                    <div class="info">${sourceName}${serviceReturnText} • 👤 ${item.user}</div>
+                    <div class="info">📅 ${item.timestamp}</div>
+                    <div class="info" style="font-size: 12px; color: #666; margin-top: 5px;">
+                        <strong>IMEI Geçmişi:</strong><br>
+                        ${item.imeiDetails || 'Yükleniyor...'}
+                    </div>
+                </div>
+            `;
+        });
+        detailsHTML += '</div></div>';
+        
+        reportResults.innerHTML = `
+            ${summaryHTML}
+            ${sourceStatsHTML}
+            ${userStatsHTML}
+            ${detailsHTML}
+        `;
+        
+        // Filtreleme fonksiyonunu çağır
+        setupDailyReceivedFilters(receivedDetails);
+        
+        enableExcelExport({ 
+            isDailyReceivedReport: true,
+            totalReceived,
+            dayCount,
+            avgPerDay,
+            sourceStats,
+            userStats,
+            receivedDetails,
+            reportDate: dateRangeText
+        });
+        
+    } catch (error) {
+        console.error('Günlük teslim alınan raporu oluşturulurken hata:', error);
+        alert('Günlük teslim alınan raporu oluşturulurken hata oluştu!');
+        document.getElementById('reportResults').innerHTML = `
+            <div class="no-results">
+                ❌ Günlük teslim alınan raporu oluşturulurken bir hata oluştu.
+            </div>
+        `;
+    }
+}
+
+// Yardımcı fonksiyon: Barkod geçmiş detaylarını getir
+async function getBarcodeHistoryDetails(barcode) {
+    try {
+        const snapshot = await db.ref(`servis/history/${barcode}`).once('value');
+        const historyData = snapshot.val();
+        
+        if (!historyData) {
+            return 'Geçmiş kaydı bulunamadı';
+        }
+        
+        const historyArray = Object.values(historyData).sort((a, b) => b.timestampRaw - a.timestampRaw);
+        let historyText = '';
+        
+        // Son 3 hareketi göster
+        historyArray.slice(0, 3).forEach((entry, index) => {
+            const listNames = {
+                atanacak: 'Atanacak',
+                parcaBekliyor: 'Parça Bekliyor',
+                phonecheck: 'PhoneCheck',
+                gokhan: 'Gökhan',
+                enes: 'Enes',
+                yusuf: 'Yusuf',
+                samet: 'Samet',
+                engin: 'Engin',
+                ismail: 'İsmail',
+                mehmet: 'Mehmet',
+                onarim: 'Onarım',
+                satisa: 'Satış',
+                sahiniden: 'Sahibinden',
+                mediaMarkt: 'Media Markt',
+                teslimEdilenler: 'Teslim',
+                'SİLİNDİ': 'Silindi'
+            };
+            
+            const fromName = listNames[entry.from] || entry.from;
+            const toName = listNames[entry.to] || entry.to;
+            const time = entry.timestamp ? entry.timestamp.split(' ')[1] : '';
+            
+            if (index === 0) {
+                historyText += `📍 ${toName} (${time})`;
+            } else {
+                historyText += ` ← ${fromName}`;
+            }
+        });
+        
+        return historyText || 'Geçmiş bilgisi yok';
+    } catch (error) {
+        return 'Geçmiş yüklenirken hata';
+    }
+}
+
+// Daily Received filtreleme fonksiyonu
+function setupDailyReceivedFilters(receivedDetails) {
+    const barcodeFilter = document.getElementById('detailBarcodeFilter');
+    const userFilter = document.getElementById('detailUserFilter');
+    const sourceFilter = document.getElementById('detailSourceFilter');
+    const serviceReturnFilter = document.getElementById('detailServiceReturnFilter');
+    const filterInfo = document.getElementById('filterInfo');
+    const detailItems = document.querySelectorAll('.detail-item');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+    function updateClearButton() {
+        const hasFilters = barcodeFilter.value || userFilter.value || sourceFilter.value || serviceReturnFilter.value;
+        clearFiltersBtn.style.display = hasFilters ? 'block' : 'none';
+    }
+
+    function applyFilters() {
+        const barcodeValue = barcodeFilter.value.toLowerCase();
+        const userValue = userFilter.value.toLowerCase();
+        const sourceValue = sourceFilter.value.toLowerCase();
+        const serviceReturnValue = serviceReturnFilter.value;
+
+        let visibleCount = 0;
+
+        detailItems.forEach(item => {
+            const barcode = item.getAttribute('data-barcode').toLowerCase();
+            const user = item.getAttribute('data-user').toLowerCase();
+            const source = item.getAttribute('data-source').toLowerCase();
+            const isServiceReturn = item.getAttribute('data-servicereturn');
+
+            const matchesBarcode = barcode.includes(barcodeValue);
+            const matchesUser = user.includes(userValue);
+            const matchesSource = source.includes(sourceValue);
+            const matchesServiceReturn = !serviceReturnValue || 
+                (serviceReturnValue === 'serviceReturn' && isServiceReturn === 'serviceReturn') ||
+                (serviceReturnValue === 'normal' && isServiceReturn === 'normal');
+
+            if (matchesBarcode && matchesUser && matchesSource && matchesServiceReturn) {
+                item.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+
+        filterInfo.textContent = `${visibleCount} kayıt gösteriliyor - Toplam: ${receivedDetails.length}`;
+        updateClearButton();
+    }
+
+    [barcodeFilter, userFilter, sourceFilter, serviceReturnFilter].forEach(input => {
+        input.addEventListener('input', applyFilters);
+    });
+
+    updateClearButton();
+}
 
 </script>
 
