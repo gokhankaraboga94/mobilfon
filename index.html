@@ -2,6 +2,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -4799,11 +4800,10 @@ async function incrementDeliveredCount() {
       enes: {},
       yusuf: {},
       samet: {},
- 
       engin: {},
       ismail: {},
       onCamDisServis: {},    // YENİ EKLENDİ
-  anakartDisServis: {},  // YENİ EKLENDİ
+      anakartDisServis: {},  // YENİ EKLENDİ
       mehmet: {},
       onarim: {},
       SonKullanıcı: {},
@@ -6430,7 +6430,7 @@ document.getElementById('navLogoutButton').addEventListener("click", () => {
           ismail: '🧑‍🔧 İsmail',
           mehmet: '🧑‍🔧 Mehmet',
           onarim: '🔧 Onarım Tamamlandı',
-          
+    
           satisa: '💰 Satışa Gidecek',
           sahiniden: '🏪 Sahibinden',
           mediaMarkt: '🛒 Media Markt',
@@ -6649,7 +6649,7 @@ if (name === 'teslimEdilenler' && currentUserRole !== 'admin') {
 
       const timestamp = getTimestamp();
       
-      const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim',  'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
+  const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
 const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
 
 // saveCodes fonksiyonunda (satır ~1020 civarı)
@@ -6931,58 +6931,61 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
       }, 150);
     });
 
-    function renderMiniList(name) {
-      if (!miniLists[name] || !userCodes[name]) return;
-      
-      const list = miniLists[name];
-      list.innerHTML = "";
-      userCodes[name].forEach(code => {
-        const div = document.createElement("div");
-        div.className = "mini-item";
-        
-        const specialClasses = {
-          atanacak: "waiting",
-          parcaBekliyor: "waiting",
-          phonecheck: "phonecheck",
-          onarim: "onarim",
-          satisa: "satisa",
-          sahiniden: "sahiniden",
-          mediaMarkt: "mediamarkt",
-          teslimEdilenler: "teslim"
-        };
-        
-        if (specialClasses[name]) {
-          div.classList.add(specialClasses[name]);
-        } else {
-          div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
-        }
-        
-        const timestamp = codeTimestamps[name][code] || "Tarih yok";
-        const user = codeUsers[name][code] || "";
-        let codeDisplay = code;
-        
-        const listsWithUser = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim',  'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
-        if (listsWithUser.includes(name) && user) {
-          codeDisplay = `${code} - ${user}`;
-        }
-
-        div.innerHTML = `
-          <div class="mini-item-row">
-            <span>${codeDisplay}</span>
-            <span class="status"></span>
-          </div>
-          <div class="mini-item-time">📅 ${timestamp}${user ? ' • ' + user : ''}</div>
-          ${currentUserRole === 'admin' ? `
-            <div class="mini-item-actions">
-              <button class="item-action-btn edit" onclick="openEditBarcodeModal('${code}', '${name}')">✏️ Düzenle</button>
-              <button class="item-action-btn delete" onclick="deleteBarcode('${code}', '${name}')">🗑️ Sil</button>
-            </div>
-          ` : ''}
-        `;
-        list.appendChild(div);
-      });
+   function renderMiniList(name) {
+  if (!miniLists[name] || !userCodes[name]) return;
+  
+  const list = miniLists[name];
+  list.innerHTML = "";
+  userCodes[name].forEach(code => {
+    const div = document.createElement("div");
+    div.className = "mini-item";
+    
+    const specialClasses = {
+      atanacak: "waiting",
+      parcaBekliyor: "waiting",
+      phonecheck: "phonecheck",
+      onarim: "onarim",
+      onCamDisServis: "waiting",      // YENİ EKLENDİ
+      anakartDisServis: "waiting",    // YENİ EKLENDİ
+      satisa: "satisa",
+      sahiniden: "sahiniden",
+      mediaMarkt: "mediamarkt",
+      teslimEdilenler: "teslim"
+    };
+    
+    if (specialClasses[name]) {
+      div.classList.add(specialClasses[name]);
+    } else {
+      div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
+    }
+    
+    const timestamp = codeTimestamps[name][code] || "Tarih yok";
+    const user = codeUsers[name][code] || "";
+    let codeDisplay = code;
+    
+    // ÖNEMLİ: Bu diziye yeni listeleri ekleyin
+    const listsWithUser = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+    
+    if (listsWithUser.includes(name) && user) {
+      codeDisplay = `${code} - ${user}`;
     }
 
+    div.innerHTML = `
+      <div class="mini-item-row">
+        <span>${codeDisplay}</span>
+        <span class="status"></span>
+      </div>
+      <div class="mini-item-time">📅 ${timestamp}${user ? ' • ' + user : ''}</div>
+      ${currentUserRole === 'admin' ? `
+        <div class="mini-item-actions">
+          <button class="item-action-btn edit" onclick="openEditBarcodeModal('${code}', '${name}')">✏️ Düzenle</button>
+          <button class="item-action-btn delete" onclick="deleteBarcode('${code}', '${name}')">🗑️ Sil</button>
+        </div>
+      ` : ''}
+    `;
+    list.appendChild(div);
+  });
+}
     function renderList() {
       const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet",  "engin", "ismail", "mehmet", "onarim",  "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
       
