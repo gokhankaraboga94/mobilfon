@@ -8,6 +8,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -6964,6 +6965,22 @@ async function handleServiceReturn(code, targetList) {
 }
 
 
+function renderList() {
+  const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "onarim", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
+  
+  Object.keys(userCodes).forEach(key => {
+    if (!allLists.includes(key)) {
+      allLists.push(key);
+    }
+  });
+  
+  allLists.forEach(name => renderMiniList(name));
+  
+  if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+    updateAdminStats();
+  }
+}
+
     function updateLabelAndCount(name) {
        if (!userCodes[name]) {
     console.warn(`⚠️ userCodes[${name}] tanımlı değil`);
@@ -7329,21 +7346,80 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
       }, 150);
     });
 
- function renderMiniList(name) {
-  if (!miniLists[name] || !userCodes[name]) return;
+function renderMiniList(name) {
+  // ✅ ÖNCE KONTROL: userCodes[name] var mı?
+  if (!miniLists[name] || !userCodes[name]) {
+    console.warn(`⚠️ renderMiniList: ${name} listesi bulunamadı veya userCodes tanımlı değil`);
+    return;
+  }
   
   const list = miniLists[name];
+  
+  // ✅ GÜVENLİ KONTROL: list elementi var mı?
+  if (!list) {
+    console.warn(`⚠️ renderMiniList: ${name}List elementi bulunamadı`);
+    return;
+  }
+  
   list.innerHTML = "";
   
-  // ✅ YENİ EKLENEN: Barkodları tarih/saate göre sırala
+  // ✅ TOPLU SİLME: Admin ise checkbox container ekle
+  if (currentUserRole === 'admin' && (name === 'atanacak' || name === 'teslimEdilenler')) {
+    const bulkDeleteContainer = document.createElement('div');
+    bulkDeleteContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: rgba(231, 76, 60, 0.1);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border: 2px solid #e74c3c;
+    `;
+    
+    bulkDeleteContainer.innerHTML = `
+      <input type="checkbox" id="selectAll_${name}" 
+             onchange="toggleSelectAll('${name}')"
+             style="width: 18px; height: 18px; cursor: pointer;">
+      <label for="selectAll_${name}" style="cursor: pointer; font-weight: bold; user-select: none;">Tümünü Seç</label>
+      <button onclick="deleteSelectedBarcodes('${name}')" 
+              id="bulkDeleteBtn_${name}"
+              style="
+                margin-left: auto;
+                padding: 8px 15px;
+                background: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: none;
+              "
+              onmouseover="this.style.background='#c0392b'; this.style.transform='translateY(-2px)';"
+              onmouseout="this.style.background='#e74c3c'; this.style.transform='translateY(0)';">
+        🗑️ Seçilenleri Sil (<span id="selectedCount_${name}">0</span>)
+      </button>
+    `;
+    
+    list.appendChild(bulkDeleteContainer);
+  }
+  
+  // ✅ GÜVENLİ KONTROL: userCodes[name] Set objesi mi?
+  if (!(userCodes[name] instanceof Set)) {
+    console.error(`❌ renderMiniList: userCodes[${name}] Set değil:`, userCodes[name]);
+    userCodes[name] = new Set(); // Otomatik düzelt
+  }
+  
+  // Barkodları tarih/saate göre sırala
   const codesArray = Array.from(userCodes[name]).map(code => ({
     code: code,
-    timestamp: codeTimestamps[name][code] || "Tarih yok",
-    timestampRaw: convertToTimestamp(codeTimestamps[name][code]), // Timestamp'i sayıya çevir
-    user: codeUsers[name][code] || ""
+    timestamp: codeTimestamps[name] ? (codeTimestamps[name][code] || "Tarih yok") : "Tarih yok",
+    timestampRaw: convertToTimestamp(codeTimestamps[name] ? codeTimestamps[name][code] : ""),
+    user: codeUsers[name] ? (codeUsers[name][code] || "") : ""
   }));
   
-  // En yeni üstte (timestampRaw'a göre azalan sıralama)
   codesArray.sort((a, b) => b.timestampRaw - a.timestampRaw);
   
   codesArray.forEach(item => {
@@ -7379,9 +7455,17 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
       codeDisplay = `${code} - ${item.user}`;
     }
 
+    // ✅ TOPLU SİLME: Checkbox ekleme
+    const checkboxHTML = (currentUserRole === 'admin' && (name === 'atanacak' || name === 'teslimEdilenler')) 
+      ? `<input type="checkbox" class="barcode-checkbox" data-list="${name}" data-barcode="${code}" 
+               onchange="updateBulkDeleteButton('${name}')"
+               style="width: 18px; height: 18px; cursor: pointer; margin-right: 8px;">`
+      : '';
+
     div.innerHTML = `
-      <div class="mini-item-row">
-        <span>${codeDisplay}</span>
+      <div class="mini-item-row" style="display: flex; align-items: center;">
+        ${checkboxHTML}
+        <span style="flex: 1;">${codeDisplay}</span>
         <span class="status"></span>
       </div>
       <div class="mini-item-time">📅 ${item.timestamp}${item.user ? ' • ' + item.user : ''}</div>
@@ -7396,56 +7480,143 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
   });
 }
 
-// ✅ YENİ FONKSİYON: Türkçe tarih formatını timestamp'e çevir
+
 function convertToTimestamp(dateString) {
-  if (!dateString || dateString === "Tarih yok") {
-    return 0; // En alta gönder
+  if (!dateString || dateString === "Tarih yok") return 0;
+  
+  try {
+    // Türkiye saatine göre parse et
+    const dateParts = dateString.split(' ');
+    if (dateParts.length >= 2) {
+      const datePart = dateParts[0];
+      const timePart = dateParts[1];
+      
+      const [day, month, year] = datePart.split('.');
+      const [hours, minutes, seconds] = timePart.split(':');
+      
+      // Türkiye saati (UTC+3)
+      const date = new Date(
+        parseInt(year), 
+        parseInt(month) - 1, 
+        parseInt(day),
+        parseInt(hours || 0),
+        parseInt(minutes || 0),
+        parseInt(seconds || 0)
+      );
+      
+      return date.getTime();
+    }
+  } catch (error) {
+    console.warn(`Tarih çevirme hatası: ${dateString}`, error);
   }
   
-  // Eğer zaten sayısal timestamp ise direkt döndür
-  if (typeof dateString === 'number') {
-    return dateString;
+  return Date.now(); // Fallback
+}
+// ========================================
+// ✅ YENİ FONKSİYONLAR: TOPLU SİLME İÇİN
+// ========================================
+
+// Tümünü seç/seçimi kaldır
+function toggleSelectAll(listName) {
+  const selectAllCheckbox = document.getElementById(`selectAll_${listName}`);
+  const checkboxes = document.querySelectorAll(`.barcode-checkbox[data-list="${listName}"]`);
+  
+  checkboxes.forEach(checkbox => {
+    checkbox.checked = selectAllCheckbox.checked;
+  });
+  
+  updateBulkDeleteButton(listName);
+}
+
+// Toplu silme butonunu güncelle
+function updateBulkDeleteButton(listName) {
+  const checkboxes = document.querySelectorAll(`.barcode-checkbox[data-list="${listName}"]:checked`);
+  const bulkDeleteBtn = document.getElementById(`bulkDeleteBtn_${listName}`);
+  const selectedCount = document.getElementById(`selectedCount_${listName}`);
+  const selectAllCheckbox = document.getElementById(`selectAll_${listName}`);
+  
+  if (bulkDeleteBtn && selectedCount) {
+    if (checkboxes.length > 0) {
+      bulkDeleteBtn.style.display = 'block';
+      selectedCount.textContent = checkboxes.length;
+    } else {
+      bulkDeleteBtn.style.display = 'none';
+    }
+  }
+  
+  // "Tümünü Seç" checkbox'ını güncelle
+  if (selectAllCheckbox) {
+    const allCheckboxes = document.querySelectorAll(`.barcode-checkbox[data-list="${listName}"]`);
+    selectAllCheckbox.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+  }
+}
+
+// Seçili barkodları toplu sil
+async function deleteSelectedBarcodes(listName) {
+  const checkboxes = document.querySelectorAll(`.barcode-checkbox[data-list="${listName}"]:checked`);
+  const barcodes = Array.from(checkboxes).map(cb => cb.getAttribute('data-barcode'));
+  
+  if (barcodes.length === 0) {
+    showToast('Lütfen silinecek barkodları seçin!', 'warning');
+    return;
+  }
+  
+  const confirmMessage = `${barcodes.length} adet barkodu silmek istediğinizden emin misiniz?\n\nSilinecek barkodlar:\n${barcodes.slice(0, 5).join('\n')}${barcodes.length > 5 ? '\n...' : ''}`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+  
+  const bulkDeleteBtn = document.getElementById(`bulkDeleteBtn_${listName}`);
+  if (bulkDeleteBtn) {
+    bulkDeleteBtn.disabled = true;
+    bulkDeleteBtn.innerHTML = '⏳ Siliniyor...';
   }
   
   try {
-    // Türkçe tarih formatı: "19.11.2025 14:30:45"
-    const parts = dateString.split(' ');
-    if (parts.length !== 2) return 0;
+    const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+    let deletedCount = 0;
+    let errorCount = 0;
     
-    const dateParts = parts[0].split('.');
-    const timeParts = parts[1].split(':');
-    
-    if (dateParts.length !== 3 || timeParts.length !== 3) return 0;
-    
-    const day = parseInt(dateParts[0]);
-    const month = parseInt(dateParts[1]) - 1; // JavaScript ayları 0-11 arası
-    const year = parseInt(dateParts[2]);
-    const hour = parseInt(timeParts[0]);
-    const minute = parseInt(timeParts[1]);
-    const second = parseInt(timeParts[2]);
-    
-    return new Date(year, month, day, hour, minute, second).getTime();
-  } catch (error) {
-    console.error('Tarih çevirme hatası:', dateString, error);
-    return 0;
-  }
-}
-    function renderList() {
-      const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet",  "engin", "ismail", "mehmet", "onarim",  "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
-      
-      Object.keys(userCodes).forEach(key => {
-        if (!allLists.includes(key)) {
-          allLists.push(key);
-        }
-      });
-      
-      allLists.forEach(name => renderMiniList(name));
-      
-      if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
-        updateAdminStats();
+    // Her barkodu sırayla sil
+    for (const code of barcodes) {
+      try {
+        await db.ref(`servis/${dbPath}/${code}`).remove();
+        saveBarcodeHistory(code, listName, 'TOPLU_SİLİNDİ', `${currentUserName} (Toplu Silme)`);
+        
+        userCodes[listName].delete(code);
+        delete codeTimestamps[listName][code];
+        delete codeUsers[listName][code];
+        
+        deletedCount++;
+      } catch (error) {
+        console.error(`${code} silinirken hata:`, error);
+        errorCount++;
       }
     }
-
+    
+    showToast(`✅ ${deletedCount} barkod silindi!${errorCount > 0 ? ` (${errorCount} hata)` : ''}`, 'success');
+    
+    updateLabelAndCount(listName);
+    renderList();
+    
+    // "Tümünü Seç" checkbox'ını temizle
+    const selectAllCheckbox = document.getElementById(`selectAll_${listName}`);
+    if (selectAllCheckbox) {
+      selectAllCheckbox.checked = false;
+    }
+    
+  } catch (error) {
+    console.error('Toplu silme hatası:', error);
+    showToast('Toplu silme sırasında hata oluştu!', 'error');
+  } finally {
+    if (bulkDeleteBtn) {
+      bulkDeleteBtn.disabled = false;
+      bulkDeleteBtn.innerHTML = '🗑️ Seçilenleri Sil (<span id="selectedCount_' + listName + '">0</span>)';
+      bulkDeleteBtn.style.display = 'none';
+    }
+  }
+}
 
 function updateAdminStats() {
   const totalCodesWithOnarim = new Set();
@@ -7520,6 +7691,7 @@ function loadData() {
     allKeys.forEach(name => {
       const localName = name === 'onarimTamamlandi' ? 'onarim' : name;
       
+      // ✅ GÜVENLİ BAŞLANGIÇ: userCodes[localName] yoksa oluştur
       if (!userCodes[localName]) {
         userCodes[localName] = new Set();
         codeTimestamps[localName] = {};
@@ -7536,7 +7708,13 @@ function loadData() {
       db.ref(`servis/${name}`).once("value", snap => {
         const listData = snap.val();
         
-        userCodes[localName].clear();
+        // ✅ GÜVENLİ TEMİZLEME: Set varsa temizle
+        if (userCodes[localName]) {
+          userCodes[localName].clear();
+        } else {
+          userCodes[localName] = new Set();
+        }
+        
         codeTimestamps[localName] = {};
         codeUsers[localName] = {};
         
@@ -7545,20 +7723,19 @@ function loadData() {
           if (loadedCount === totalLists) {
             dataLoaded = true;
             renderList();
-                  setTimeout(() => {
-        const allSections = [
-          'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 
-          'onCamDisServis', 'anakartDisServis', 'SonKullanıcı',
-          'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
-        ];
-        
-        allSections.forEach(section => {
-          updateLabelAndCount(section);
-        });
-        
-        setupAllSectionToggles();
-      }, 1000);
-            
+            setTimeout(() => {
+              const allSections = [
+                'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 
+                'onCamDisServis', 'anakartDisServis', 'SonKullanıcı',
+                'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
+              ];
+              
+              allSections.forEach(section => {
+                updateLabelAndCount(section);
+              });
+              
+              setupAllSectionToggles();
+            }, 1000);
           }
           updateLabelAndCount(localName);
           return;
@@ -7568,6 +7745,12 @@ function loadData() {
 
         keys.forEach(code => {
           const val = listData[code];
+          
+          // ✅ GÜVENLİ EKLEME: userCodes[localName] kontrolü
+          if (!userCodes[localName]) {
+            userCodes[localName] = new Set();
+          }
+          
           if (typeof val === 'object') {
             const user = val.user || '';
             const ts = val.ts || '';
