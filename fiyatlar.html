@@ -1,0 +1,1645 @@
+
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servis Fiyat Yönetim Sistemi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --success-color: #22c55e;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --text-dark: #1e293b;
+            --text-light: #f8fafc;
+            --text-gray: #94a3b8;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text-dark);
+            position: relative;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(138, 43, 226, 0.3), transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 105, 180, 0.2), transparent 50%);
+            z-index: -1;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Navbar - Daha modern ve profesyonel */
+        .navbar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            letter-spacing: -0.5px;
+        }
+
+        .navbar-brand::before {
+            content: "⚙️";
+            font-size: 1.75rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4);
+        }
+
+        .user-email {
+            font-size: 0.9rem;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        /* Cards - Daha temiz ve modern */
+        .card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 1.25rem;
+            padding: 2rem;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.12),
+                0 0 0 1px rgba(255, 255, 255, 0.5);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.5s ease-out;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 25px 70px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin-bottom: 1.75rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            letter-spacing: -0.5px;
+        }
+
+        .card-title::before {
+            content: "";
+            width: 5px;
+            height: 32px;
+            background: linear-gradient(180deg, var(--primary-color), var(--primary-dark));
+            border-radius: 4px;
+            box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Form Styles - Daha modern input tasarımı */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+            letter-spacing: 0.2px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            background: white;
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        input::placeholder {
+            color: #cbd5e1;
+            font-weight: 400;
+        }
+
+        /* Buttons - Daha profesyonel buton tasarımı */
+        .btn {
+            padding: 0.875rem 1.75rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.9rem;
+            width: auto;
+        }
+
+        .btn-logout {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.9rem;
+            width: auto;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.9);
+            border-color: transparent;
+        }
+
+        /* Login Page - Daha zarif giriş ekranı */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 1.5rem;
+            padding: 3rem 2.5rem;
+            box-shadow: 
+                0 30px 80px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            width: 100%;
+            max-width: 440px;
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .login-title {
+            text-align: center;
+            font-size: 2.25rem;
+            font-weight: 900;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            font-size: 1rem;
+            color: var(--text-gray);
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        /* Tables - Daha temiz tablo tasarımı */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .table-container-users {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 1rem 1.25rem;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        th {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            font-size: 0.95rem;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background: #fafbfc;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Tabs - Daha modern tab tasarımı */
+        .tabs {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem;
+            border-radius: 1rem;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            font-weight: 700;
+            color: #64748b;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .tab:hover {
+            color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.08);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Price Display - Daha şık fiyat gösterimi */
+        .price-display {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark), #8b5cf6);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 1.25rem;
+            text-align: center;
+            margin-top: 2rem;
+            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .price-display::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .price-label {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .price-amount {
+            font-size: 3.5rem;
+            font-weight: 900;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            letter-spacing: -2px;
+        }
+
+        .price-details {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.625rem 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Checkbox Group - Daha modern seçim kutuları */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            background: #f1f5f9;
+            border-color: var(--primary-light);
+            transform: translateX(5px);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 1rem;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+            flex: 1;
+            font-size: 1rem;
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        /* Alerts - Daha temiz uyarılar */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            display: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-15px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #065f46;
+            border-left: 4px solid var(--success-color);
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #991b1b;
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Form Grid */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 1.25rem;
+            padding: 2rem;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: scaleIn 0.3s ease;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-gray);
+            padding: 0.25rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: #f1f5f9;
+            color: var(--danger-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-container {
+                padding: 0 1.5rem;
+            }
+
+            .navbar-brand {
+                font-size: 1.25rem;
+            }
+
+            .user-email {
+                display: none;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .card-title {
+                font-size: 1.5rem;
+            }
+
+            .login-card {
+                padding: 2.5rem 2rem;
+            }
+
+            .login-title {
+                font-size: 2rem;
+            }
+
+            .price-amount {
+                font-size: 2.5rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                padding: 0.4rem;
+            }
+
+            .tab {
+                padding: 0.65rem 1.25rem;
+                font-size: 0.9rem;
+            }
+
+            th, td {
+                padding: 0.875rem 1rem;
+                font-size: 0.875rem;
+            }
+
+            .modal-content {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .login-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .card {
+                padding: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card">
+            <h1 class="login-title">🔧 Mobilfon Servis Giriş</h1>
+            <p class="login-subtitle">Devam etmek için hesabınıza giriş yapın</p>
+            <div id="loginAlert" class="alert"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">E-posta Adresi</label>
+                    <input type="email" id="email" placeholder="ornek@servis.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Şifre</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Giriş Yap →</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="navbar-container">
+                <div class="navbar-brand">
+                    Mobilfon Servis Fiyat Sistemi
+                </div>
+                <div class="navbar-user">
+                    <div class="user-info">
+                        <div class="user-avatar" id="userAvatar"></div>
+                        <span class="user-email" id="userEmailDisplay"></span>
+                    </div>
+                    <button class="btn btn-danger btn-logout" onclick="logout()">Çıkış</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- Admin Panel -->
+            <div id="adminPanel" class="hidden">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('users')">👥 Kullanıcı Yönetimi</button>
+                    <button class="tab" onclick="switchTab('parts')">🔧 Parça Yönetimi</button>
+                    <button class="tab" onclick="switchTab('prices')">💰 Fiyat Listesi</button>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="usersTab" class="tab-content active">
+                    <div class="card">
+                        <h2 class="card-title">Yeni Kullanıcı Ekle</h2>
+                        <div id="userAlert" class="alert"></div>
+                        <form id="addUserForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="newUserEmail">E-posta</label>
+                                    <input type="email" id="newUserEmail" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="newUserPassword">Şifre</label>
+                                    <input type="password" id="newUserPassword" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success">✓ Kullanıcı Ekle</button>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="card-title">Kullanıcı Listesi</h2>
+                        <div class="table-container table-container-users">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>E-posta</th>
+                                        <th>Oluşturulma</th>
+                                        <th>İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersList"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parts Tab -->
+                <div id="partsTab" class="tab-content">
+                    <div class="card">
+                        <h2 class="card-title">Yeni Parça Ekle</h2>
+                        <div id="partAlert" class="alert"></div>
+                        <form id="addPartForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="partBrand">Marka</label>
+                                    <input type="text" id="partBrand" placeholder="Örn: Apple" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="partModel">Model</label>
+                                    <input type="text" id="partModel" placeholder="Örn: iPhone 14" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="partName">Parça Adı</label>
+                                <input type="text" id="partName" placeholder="Örn: Ekran" required>
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="partPriceOriginal">Orijinal Fiyat (₺) <span style="color: var(--text-gray); font-weight: 400;">(İsteğe bağlı)</span></label>
+                                    <input type="number" id="partPriceOriginal" placeholder="0.00" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label for="partPriceEquivalent">Muadil Fiyat (₺)</label>
+                                    <input type="number" id="partPriceEquivalent" placeholder="0.00" step="0.01" required>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success">✓ Parça Ekle</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Prices Tab -->
+                <div id="pricesTab" class="tab-content">
+                    <div class="card">
+                        <h2 class="card-title">Fiyat Listesi</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Marka</th>
+                                        <th>Model</th>
+                                        <th>Parça</th>
+                                        <th>Orijinal Fiyat</th>
+                                        <th>Muadil Fiyat</th>
+                                        <th>İşlem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminPricesList"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Panel -->
+            <div id="userPanel" class="hidden">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchUserTab('calculate')">💰 Fiyat Hesaplama</button>
+                    <button class="tab" onclick="switchUserTab('list')">📋 Fiyat Listesi</button>
+                    <button class="tab" onclick="switchUserTab('contact')">📞 İletişim</button>
+                </div>
+
+                <!-- Calculate Tab -->
+                <div id="calculateTab" class="tab-content active">
+                    <div class="card">
+                        <h2 class="card-title">Fiyat Hesaplama</h2>
+                        <div id="userAlert" class="alert"></div>
+                        
+                        <div class="form-group">
+                            <label for="selectBrand">Marka Seçin</label>
+                            <select id="selectBrand" required>
+                                <option value="">-- Marka Seçin --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="modelGroup" style="display: none;">
+                            <label for="selectModel">Model Seçin</label>
+                            <select id="selectModel" required>
+                                <option value="">-- Model Seçin --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="partsGroup" style="display: none;">
+                            <label>Parça Seçin (En az 1, en fazla 3)</label>
+                            <div class="checkbox-group" id="partsList"></div>
+                        </div>
+
+                        <button id="calculateBtn" class="btn btn-primary" style="display: none;">💰 Fiyat Hesapla</button>
+
+                        <div id="priceResult" style="display: none;">
+                            <div class="price-display">
+                                <div class="price-label">Toplam Tutar</div>
+                                <div class="price-amount" id="totalPrice">0 ₺</div>
+                                <div class="price-details" id="priceBreakdown"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- List Tab -->
+                <div id="listTab" class="tab-content">
+                    <div class="card">
+                        <h2 class="card-title">Fiyat Listesi</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Marka</th>
+                                        <th>Model</th>
+                                        <th>Parça</th>
+                                        <th>Orijinal Fiyat</th>
+                                        <th>Muadil Fiyat</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userPricesList"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Tab -->
+                <div id="contactTab" class="tab-content">
+                    <div class="card">
+                        <h2 class="card-title">İletişim Formu</h2>
+                        <p style="margin-bottom: 2rem; color: var(--text-gray); font-size: 1rem;">
+                            Sorularınız, önerileriniz veya destek talepleriniz için bizimle iletişime geçin.
+                        </p>
+                        <div id="contactAlert" class="alert"></div>
+                        <form id="contactForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="contactName">Ad Soyad</label>
+                                    <input type="text" id="contactName" placeholder="Adınız ve Soyadınız" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="contactEmail">E-posta <span style="color: var(--text-gray); font-weight: 400;">(İsteğe bağlı)</span></label>
+                                    <input type="email" id="contactEmail" placeholder="ornek@email.com">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="contactPhone">Telefon <span style="color: var(--text-gray); font-weight: 400;">(İsteğe bağlı)</span></label>
+                                <input type="tel" id="contactPhone" placeholder="0555 123 45 67">
+                            </div>
+                            <div class="form-group">
+                                <label for="contactSubject">Konu</label>
+                                <select id="contactSubject" required>
+                                    <option value="">-- Konu Seçin --</option>
+                                    <option value="Genel Bilgi">Genel Bilgi</option>
+                                    <option value="Fiyat Talebi">Fiyat Talebi</option>
+                                    <option value="Teknik Destek">Teknik Destek</option>
+                                    <option value="Şikayet">Şikayet</option>
+                                    <option value="Öneri">Öneri</option>
+                                    <option value="Diğer">Diğer</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="contactMessage">Mesajınız</label>
+                                <textarea id="contactMessage" rows="6" placeholder="Mesajınızı buraya yazın..." required style="width: 100%; padding: 0.875rem 1rem; border: 2px solid #e2e8f0; border-radius: 0.75rem; font-size: 1rem; font-family: inherit; resize: vertical; transition: all 0.3s ease;"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">📨 Mesaj Gönder</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Part Modal -->
+    <div id="editPartModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">✏️ Parça Düzenle</h3>
+                <button class="modal-close" onclick="closeEditModal()">×</button>
+            </div>
+            <form id="editPartForm">
+                <input type="hidden" id="editPartKey">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editPartBrand">Marka</label>
+                        <input type="text" id="editPartBrand" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPartModel">Model</label>
+                        <input type="text" id="editPartModel" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editPartName">Parça Adı</label>
+                    <input type="text" id="editPartName" required>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editPartPriceOriginal">Orijinal Fiyat (₺) <span style="color: var(--text-gray); font-weight: 400;">(İsteğe bağlı)</span></label>
+                        <input type="number" id="editPartPriceOriginal" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPartPriceEquivalent">Muadil Fiyat (₺)</label>
+                        <input type="number" id="editPartPriceEquivalent" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">✓ Kaydet</button>
+                    <button type="button" class="btn btn-danger" onclick="closeEditModal()" style="flex: 1;">✗ İptal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC9UR3h7xZcZ973U44SftwIZCY5HG5mS34",
+            authDomain: "fiyatlar-a9067.firebaseapp.com",
+            databaseURL: "https://fiyatlar-a9067-default-rtdb.firebaseio.com",
+            projectId: "fiyatlar-a9067",
+            storageBucket: "fiyatlar-a9067.firebasestorage.app",
+            messagingSenderId: "636123955493",
+            appId: "1:636123955493:web:ed73e78dd9384238605acc",
+            measurementId: "G-EE3E5ML30J"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Admin UID
+        const ADMIN_UID = 'B2K8tQwrZjQaOxpy5wy8FDq6eAS2';
+
+        let currentUser = null;
+        let isAdmin = false;
+
+        // Auth State Observer
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                isAdmin = user.uid === ADMIN_UID;
+                
+                // Eğer kullanıcı veritabanında yoksa ve admin değilse çıkış yap
+                if (!isAdmin) {
+                    database.ref('users/' + user.uid).once('value', snapshot => {
+                        if (!snapshot.exists()) {
+                            // Kullanıcı silinmiş, çıkış yap
+                            auth.signOut();
+                            showAlert('loginAlert', 'Hesabınız sistem yöneticisi tarafından kaldırılmış.', 'error');
+                        } else {
+                            showMainApp();
+                        }
+                    });
+                } else {
+                    showMainApp();
+                }
+            } else {
+                showLoginPage();
+            }
+        });
+
+        // Show Alert
+        function showAlert(elementId, message, type) {
+            const alert = document.getElementById(elementId);
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Admin değilse veritabanında olup olmadığını kontrol et
+                if (user.uid !== ADMIN_UID) {
+                    const snapshot = await database.ref('users/' + user.uid).once('value');
+                    if (!snapshot.exists()) {
+                        // Kullanıcı veritabanında yok, çıkış yap
+                        await auth.signOut();
+                        showAlert('loginAlert', 'Hesabınız bulunamadı veya silinmiş. Lütfen yönetici ile iletişime geçin.', 'error');
+                    }
+                }
+            } catch (error) {
+                showAlert('loginAlert', 'Giriş başarısız: ' + error.message, 'error');
+            }
+        });
+
+        // Logout
+        function logout() {
+            auth.signOut();
+        }
+
+        // Show Pages
+        function showLoginPage() {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showMainApp() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            // Set user info
+            const avatar = document.getElementById('userAvatar');
+            const emailDisplay = document.getElementById('userEmailDisplay');
+            avatar.textContent = currentUser.email.charAt(0).toUpperCase();
+            emailDisplay.textContent = currentUser.email;
+
+            if (isAdmin) {
+                document.getElementById('adminPanel').classList.remove('hidden');
+                document.getElementById('userPanel').classList.add('hidden');
+                loadUsers();
+                loadAdminPrices();
+            } else {
+                document.getElementById('adminPanel').classList.add('hidden');
+                document.getElementById('userPanel').classList.remove('hidden');
+                loadBrands();
+                loadUserPrices();
+            }
+        }
+
+        // Tab Switching (Admin)
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('#adminPanel .tab');
+            const contents = document.querySelectorAll('#adminPanel .tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Tab Switching (User)
+        function switchUserTab(tabName) {
+            const tabs = document.querySelectorAll('#userPanel .tab');
+            const contents = document.querySelectorAll('#userPanel .tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Add User
+        document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('newUserEmail').value;
+            const password = document.getElementById('newUserPassword').value;
+
+            try {
+                const response = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + firebaseConfig.apiKey, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email, 
+                        password, 
+                        returnSecureToken: true
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.localId) {
+                    // Kullanıcıyı veritabanına kaydet
+                    await database.ref('users/' + data.localId).set({
+                        email: email,
+                        createdAt: Date.now(),
+                        createdBy: currentUser.uid
+                    });
+                    
+                    showAlert('userAlert', 'Kullanıcı başarıyla eklendi!', 'success');
+                    document.getElementById('addUserForm').reset();
+                    loadUsers();
+                } else if (data.error) {
+                    throw new Error(data.error.message);
+                } else {
+                    throw new Error('Kullanıcı eklenemedi');
+                }
+            } catch (error) {
+                showAlert('userAlert', 'Hata: ' + error.message, 'error');
+            }
+        });
+
+        // Load Users
+        function loadUsers() {
+            database.ref('users').on('value', snapshot => {
+                const tbody = document.getElementById('usersList');
+                tbody.innerHTML = '';
+
+                snapshot.forEach(child => {
+                    const user = child.val();
+                    const userId = child.key;
+                    
+                    // Admin kendisini gösterme
+                    if (userId === ADMIN_UID) return;
+                    
+                    const row = tbody.insertRow();
+                    const createdDate = new Date(user.createdAt).toLocaleDateString('tr-TR');
+                    
+                    row.innerHTML = `
+                        <td>${user.email}</td>
+                        <td>${createdDate}</td>
+                        <td>
+                            <button class="btn btn-danger btn-small" onclick="deleteUser('${userId}', '${user.email}')">🗑️ Sil</button>
+                        </td>
+                    `;
+                });
+            });
+        }
+
+        // Delete User
+        async function deleteUser(userId, email) {
+            if (confirm(`${email} adlı kullanıcıyı silmek istediğinizden emin misiniz?\n\nNot: Kullanıcı veritabanından silinecek ve bir daha giriş yapamayacaktır.`)) {
+                try {
+                    // 1. Kullanıcıyı veritabanından sil
+                    await database.ref('users/' + userId).remove();
+                    
+                    // 2. Firebase Authentication'dan silme (REST API ile)
+                    // Not: Bu işlem Firebase Admin SDK gerektirir ve client-side'dan tam olarak yapılamaz
+                    // Ancak kullanıcı veritabanından silindiği için giriş yapamayacak
+                    
+                    showAlert('userAlert', 'Kullanıcı başarıyla silindi! Artık sisteme giriş yapamayacaktır.', 'success');
+                } catch (error) {
+                    showAlert('userAlert', 'Hata: ' + error.message, 'error');
+                }
+            }
+        }
+
+        // Add Part
+        document.getElementById('addPartForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const brand = document.getElementById('partBrand').value;
+            const model = document.getElementById('partModel').value;
+            const name = document.getElementById('partName').value;
+            const priceOriginal = parseFloat(document.getElementById('partPriceOriginal').value) || null;
+            const priceEquivalent = parseFloat(document.getElementById('partPriceEquivalent').value);
+
+            try {
+                const partData = {
+                    brand,
+                    model,
+                    name,
+                    priceOriginal,
+                    priceEquivalent,
+                    createdAt: Date.now()
+                };
+
+                await database.ref('parts').push(partData);
+
+                showAlert('partAlert', 'Parça başarıyla eklendi!', 'success');
+                document.getElementById('addPartForm').reset();
+                loadAdminPrices();
+            } catch (error) {
+                showAlert('partAlert', 'Hata: ' + error.message, 'error');
+            }
+        });
+
+        // Load Admin Prices
+        function loadAdminPrices() {
+            database.ref('parts').on('value', snapshot => {
+                const tbody = document.getElementById('adminPricesList');
+                tbody.innerHTML = '';
+
+                snapshot.forEach(child => {
+                    const part = child.val();
+                    const partKey = child.key;
+                    const row = tbody.insertRow();
+                    
+                    const priceEquivalent = part.priceEquivalent || part.price || 0;
+                    const priceOriginal = part.priceOriginal || null;
+                    
+                    const originalPrice = priceOriginal ? `${priceOriginal.toFixed(2)} ₺` : '<span style="color: var(--text-gray);">-</span>';
+                    row.innerHTML = `
+                        <td>${part.brand}</td>
+                        <td>${part.model}</td>
+                        <td>${part.name}</td>
+                        <td>${originalPrice}</td>
+                        <td>${priceEquivalent.toFixed(2)} ₺</td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-warning btn-small" onclick="openEditModal('${partKey}')">✏️ Düzenle</button>
+                                <button class="btn btn-danger btn-small" onclick="deletePart('${partKey}')">🗑️ Sil</button>
+                            </div>
+                        </td>
+                    `;
+                });
+            });
+        }
+
+        // Load User Prices
+        function loadUserPrices() {
+            database.ref('parts').on('value', snapshot => {
+                const tbody = document.getElementById('userPricesList');
+                tbody.innerHTML = '';
+
+                snapshot.forEach(child => {
+                    const part = child.val();
+                    const row = tbody.insertRow();
+                    
+                    const priceEquivalent = part.priceEquivalent || part.price || 0;
+                    const priceOriginal = part.priceOriginal || null;
+                    
+                    const originalPrice = priceOriginal ? `${priceOriginal.toFixed(2)} ₺` : '<span style="color: var(--text-gray);">-</span>';
+                    row.innerHTML = `
+                        <td>${part.brand}</td>
+                        <td>${part.model}</td>
+                        <td>${part.name}</td>
+                        <td>${originalPrice}</td>
+                        <td>${priceEquivalent.toFixed(2)} ₺</td>
+                    `;
+                });
+            });
+        }
+
+        // Delete Part
+        async function deletePart(key) {
+            if (confirm('Bu parçayı silmek istediğinizden emin misiniz?')) {
+                await database.ref('parts/' + key).remove();
+                showAlert('partAlert', 'Parça silindi!', 'success');
+            }
+        }
+
+        // Open Edit Modal
+        function openEditModal(partKey) {
+            database.ref('parts/' + partKey).once('value', snapshot => {
+                const part = snapshot.val();
+                if (part) {
+                    document.getElementById('editPartKey').value = partKey;
+                    document.getElementById('editPartBrand').value = part.brand;
+                    document.getElementById('editPartModel').value = part.model;
+                    document.getElementById('editPartName').value = part.name;
+                    document.getElementById('editPartPriceOriginal').value = part.priceOriginal || '';
+                    document.getElementById('editPartPriceEquivalent').value = part.priceEquivalent || part.price || '';
+                    
+                    document.getElementById('editPartModal').classList.add('show');
+                }
+            });
+        }
+
+        // Close Edit Modal
+        function closeEditModal() {
+            document.getElementById('editPartModal').classList.remove('show');
+            document.getElementById('editPartForm').reset();
+        }
+
+        // Edit Part
+        document.getElementById('editPartForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const partKey = document.getElementById('editPartKey').value;
+            const brand = document.getElementById('editPartBrand').value;
+            const model = document.getElementById('editPartModel').value;
+            const name = document.getElementById('editPartName').value;
+            const priceOriginal = parseFloat(document.getElementById('editPartPriceOriginal').value) || null;
+            const priceEquivalent = parseFloat(document.getElementById('editPartPriceEquivalent').value);
+
+            try {
+                const updatedPartData = {
+                    brand,
+                    model,
+                    name,
+                    priceOriginal,
+                    priceEquivalent,
+                    updatedAt: Date.now()
+                };
+
+                await database.ref('parts/' + partKey).update(updatedPartData);
+
+                showAlert('partAlert', 'Parça başarıyla güncellendi!', 'success');
+                closeEditModal();
+                loadAdminPrices();
+            } catch (error) {
+                showAlert('partAlert', 'Hata: ' + error.message, 'error');
+            }
+        });
+
+        // Load Brands for User
+        function loadBrands() {
+            database.ref('parts').on('value', snapshot => {
+                const brands = new Set();
+                snapshot.forEach(child => {
+                    brands.add(child.val().brand);
+                });
+
+                const select = document.getElementById('selectBrand');
+                select.innerHTML = '<option value="">-- Marka Seçin --</option>';
+                brands.forEach(brand => {
+                    const option = document.createElement('option');
+                    option.value = brand;
+                    option.textContent = brand;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // Brand Selection
+        document.getElementById('selectBrand').addEventListener('change', function() {
+            const brand = this.value;
+            if (!brand) {
+                document.getElementById('modelGroup').style.display = 'none';
+                document.getElementById('partsGroup').style.display = 'none';
+                document.getElementById('calculateBtn').style.display = 'none';
+                document.getElementById('priceResult').style.display = 'none';
+                return;
+            }
+
+            database.ref('parts').once('value', snapshot => {
+                const models = new Set();
+                snapshot.forEach(child => {
+                    const part = child.val();
+                    if (part.brand.toLowerCase() === brand.toLowerCase()) {
+                        models.add(part.model);
+                    }
+                });
+
+                const select = document.getElementById('selectModel');
+                select.innerHTML = '<option value="">-- Model Seçin --</option>';
+                models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model;
+                    option.textContent = model;
+                    select.appendChild(option);
+                });
+
+                document.getElementById('modelGroup').style.display = 'block';
+                document.getElementById('partsGroup').style.display = 'none';
+                document.getElementById('calculateBtn').style.display = 'none';
+                document.getElementById('priceResult').style.display = 'none';
+            });
+        });
+
+        // Model Selection
+        document.getElementById('selectModel').addEventListener('change', function() {
+            const brand = document.getElementById('selectBrand').value;
+            const model = this.value;
+            
+            if (!model) {
+                document.getElementById('partsGroup').style.display = 'none';
+                document.getElementById('calculateBtn').style.display = 'none';
+                document.getElementById('priceResult').style.display = 'none';
+                return;
+            }
+
+            database.ref('parts').once('value', snapshot => {
+                const parts = [];
+                snapshot.forEach(child => {
+                    const part = child.val();
+                    if (part.brand.toLowerCase() === brand.toLowerCase() && 
+                        part.model.toLowerCase() === model.toLowerCase()) {
+                        parts.push({ key: child.key, ...part });
+                    }
+                });
+
+                const container = document.getElementById('partsList');
+                container.innerHTML = '';
+                parts.forEach(part => {
+                    const priceEquivalent = part.priceEquivalent || part.price || 0;
+                    const priceOriginal = part.priceOriginal || null;
+                    
+                    if (priceOriginal) {
+                        const divOriginal = document.createElement('div');
+                        divOriginal.className = 'checkbox-item';
+                        divOriginal.innerHTML = `
+                            <input type="checkbox" id="part_${part.key}_original" value="${part.key}" data-price="${priceOriginal}" data-type="original" onchange="validatePartSelection()">
+                            <label for="part_${part.key}_original" style="margin: 0; cursor: pointer; flex: 1;">
+                                ${part.name} - <strong style="color: #16a34a;">🟢 Orijinal:</strong> ${priceOriginal.toFixed(2)} ₺
+                            </label>
+                        `;
+                        container.appendChild(divOriginal);
+                        
+                        const divEquivalent = document.createElement('div');
+                        divEquivalent.className = 'checkbox-item';
+                        divEquivalent.innerHTML = `
+                            <input type="checkbox" id="part_${part.key}_equivalent" value="${part.key}" data-price="${priceEquivalent}" data-type="equivalent" onchange="validatePartSelection()">
+                            <label for="part_${part.key}_equivalent" style="margin: 0; cursor: pointer; flex: 1;">
+                                ${part.name} - <strong style="color: #f59e0b;">🟡 Muadil:</strong> ${priceEquivalent.toFixed(2)} ₺
+                            </label>
+                        `;
+                        container.appendChild(divEquivalent);
+                    } else {
+                        const div = document.createElement('div');
+                        div.className = 'checkbox-item';
+                        div.innerHTML = `
+                            <input type="checkbox" id="part_${part.key}_equivalent" value="${part.key}" data-price="${priceEquivalent}" data-type="equivalent" onchange="validatePartSelection()">
+                            <label for="part_${part.key}_equivalent" style="margin: 0; cursor: pointer; flex: 1;">
+                                ${part.name} - <strong style="color: #f59e0b;">🟡 Muadil:</strong> ${priceEquivalent.toFixed(2)} ₺
+                            </label>
+                        `;
+                        container.appendChild(div);
+                    }
+                });
+
+                document.getElementById('partsGroup').style.display = 'block';
+                document.getElementById('calculateBtn').style.display = 'block';
+                document.getElementById('priceResult').style.display = 'none';
+            });
+        });
+
+        // Validate Part Selection
+        function validatePartSelection() {
+            const checkboxes = document.querySelectorAll('#partsList input[type="checkbox"]');
+            const checked = Array.from(checkboxes).filter(cb => cb.checked);
+            
+            if (checked.length > 3) {
+                checkboxes.forEach(cb => {
+                    if (!cb.checked) cb.disabled = true;
+                });
+            } else {
+                checkboxes.forEach(cb => cb.disabled = false);
+            }
+        }
+
+        // Calculate Price
+        document.getElementById('calculateBtn').addEventListener('click', async function() {
+            const checkboxes = document.querySelectorAll('#partsList input[type="checkbox"]:checked');
+            
+            if (checkboxes.length === 0) {
+                showAlert('userAlert', 'Lütfen en az 1 parça seçin!', 'error');
+                return;
+            }
+
+            let total = 0;
+            const breakdown = [];
+
+            checkboxes.forEach(cb => {
+                const price = parseFloat(cb.getAttribute('data-price'));
+                const type = cb.getAttribute('data-type');
+                const label = cb.nextElementSibling.textContent.trim();
+                
+                total += price;
+                breakdown.push({ name: label, price: price });
+            });
+
+            document.getElementById('totalPrice').textContent = total.toFixed(2) + ' ₺';
+            
+            const detailsDiv = document.getElementById('priceBreakdown');
+            detailsDiv.innerHTML = breakdown.map(item => `
+                <div class="price-item">
+                    <span>${item.name}</span>
+                    <span>${item.price.toFixed(2)} ₺</span>
+                </div>
+            `).join('');
+
+            document.getElementById('priceResult').style.display = 'block';
+        });
+
+        // Contact Form Submit
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const contactData = {
+                name: document.getElementById('contactName').value,
+                email: document.getElementById('contactEmail').value,
+                phone: document.getElementById('contactPhone').value,
+                subject: document.getElementById('contactSubject').value,
+                message: document.getElementById('contactMessage').value,
+                userId: currentUser.uid,
+                userEmail: currentUser.email,
+                timestamp: Date.now(),
+                createdAt: new Date().toLocaleString('tr-TR')
+            };
+
+            try {
+                await database.ref('contacts').push(contactData);
+                showAlert('contactAlert', 'Mesajınız başarıyla gönderildi! En kısa sürede size dönüş yapacağız.', 'success');
+                document.getElementById('contactForm').reset();
+            } catch (error) {
+                showAlert('contactAlert', 'Hata: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
