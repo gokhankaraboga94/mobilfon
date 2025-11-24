@@ -2,6 +2,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -1953,7 +1954,7 @@
         // Mail Gönderme Yardımcı Fonksiyonu
 async function sendEmailNotification(toRole, subject, detailMsg) {
     const emails = {
-        'ibrahim': 'sinan.turkel@mobilfon.com',
+        'ibrahim': 'gokhan.karaboga@mobilfon.com', 
         'mahmut': ['yunus.ozden@mobilfon.com', 'reyhan.yakut@mobilfon.com']
     };
 
@@ -1964,10 +1965,10 @@ async function sendEmailNotification(toRole, subject, detailMsg) {
         return;
     }
 
-    // Eğer targetEmail bir dizi ise, her birine mail gönder
     const emailList = Array.isArray(targetEmail) ? targetEmail : [targetEmail];
     
     for (const email of emailList) {
+        // EmailJS parametreleri
         const templateParams = {
             to_email: email,
             subject: subject,
@@ -1975,10 +1976,17 @@ async function sendEmailNotification(toRole, subject, detailMsg) {
         };
 
         try {
-            await emailjs.send('service_bxuddpn', 'template_7u5h8op', templateParams);
-            console.log('Mail başarıyla gönderildi:', email);
+            console.log('Mail gönderiliyor:', email);
+            // BURAYA DİKKAT EDİN: Service ID ve Template ID doğru yerleşmeli
+            // 1. Parametre: Service ID (service_bxuddpn)
+            // 2. Parametre: Template ID (template_jl5821o)
+            const response = await emailjs.send('service_bxuddpn', 'template_7u5h8op', templateParams);
+            
+            console.log('Mail başarıyla gönderildi!', response.status, response.text);
         } catch (error) {
             console.error('Mail gönderme hatası:', error);
+            // Hata detayını ekrana bas
+            alert(`Mail gönderilemedi. Hata: ${JSON.stringify(error)}`);
         }
     }
 }
