@@ -702,7 +702,7 @@
 <script type="text/javascript">
    (function(){
       // BURAYA EmailJS'den aldığın Public Key'i yaz
-      emailjs.init("wOBxpRyC1mGP3GIvQ");
+      emailjs.init("y6qbBnWL3IJJChB4T");
    })();
 </script>
 
@@ -1951,10 +1951,9 @@
 
         // Mail Gönderme Yardımcı Fonksiyonu
 async function sendEmailNotification(toRole, subject, detailMsg) {
-    // Rollerin gerçek mail adreslerini buraya tanımla
     const emails = {
-        'ibrahim': 'ibrahim.duz@turnacioglu.com.tr', // Gerçek mail adresi olmalı
-        'mahmut': 'yunus.ozden@mobilfon.com'  // Gerçek mail adresi olmalı
+        'ibrahim': 'ibrahim.duz@turnacioglu.com.tr',
+        'mahmut': ['yunus.ozden@mobilfon.com', 'reyhan.yakut@mobilfon.com']
     };
 
     const targetEmail = emails[toRole];
@@ -1964,18 +1963,22 @@ async function sendEmailNotification(toRole, subject, detailMsg) {
         return;
     }
 
-    const templateParams = {
-        to_email: targetEmail,
-        subject: subject,
-        message: detailMsg
-    };
+    // Eğer targetEmail bir dizi ise, her birine mail gönder
+    const emailList = Array.isArray(targetEmail) ? targetEmail : [targetEmail];
+    
+    for (const email of emailList) {
+        const templateParams = {
+            to_email: email,
+            subject: subject,
+            message: detailMsg
+        };
 
-    // 'service_xxx' ve 'template_xxx' kısımlarını EmailJS'den aldıklarınla değiştir
-    try {
-        await emailjs.send('service_ir6y58a', 'template_j1qjuy7', templateParams);
-        console.log('Mail başarıyla gönderildi:', targetEmail);
-    } catch (error) {
-        console.error('Mail gönderme hatası:', error);
+        try {
+            await emailjs.send('service_bxuddpn', 'template_7u5h8op', templateParams);
+            console.log('Mail başarıyla gönderildi:', email);
+        } catch (error) {
+            console.error('Mail gönderme hatası:', error);
+        }
     }
 }
 
