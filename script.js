@@ -15,14 +15,21 @@ function showMainView() {
     isNavigationInProgress = true;
     
     try {
-        // Ana sayfayı göster
-        document.getElementById('mainLayout').style.display = 'flex';
-        document.getElementById('adminPanel').style.display = 'block';
+        // ✅ TÜM PANELLERİ ÖNCE GİZLE
+        document.getElementById('warehousePanel').style.display = 'none';
+        document.getElementById('userManagement').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'none';
         
-        // ========================================
-        // YENİ EKLENEN: Dashboard'ı da göster (admin ise)
-        // ========================================
-    if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+        // ✅ ANA LAYOUT'U GÖSTER
+        document.getElementById('mainLayout').style.display = 'flex';
+        
+        // ✅ ADMIN PANEL - SADECE ADMIN VE SEMI-ADMIN
+        if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+            document.getElementById('adminPanel').style.display = 'block';
+        }
+        
+        // ✅ DASHBOARD - SADECE ADMIN VE SEMI-ADMIN
+        if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
             document.getElementById('dashboardPanel').style.display = 'block';
             updateDashboardDate();
             loadDashboardStats();
@@ -30,14 +37,17 @@ function showMainView() {
             document.getElementById('dashboardPanel').style.display = 'none';
         }
         
-        document.getElementById('userManagement').style.display = 'none';
-        document.getElementById('warehousePanel').style.display = 'none';
-        
         if (document.getElementById('reportsModal').classList.contains('active')) {
             closeReportsModalWithoutNavigation();
         }
         
         updateNavButtons('main');
+        
+        // ✅ ÖNEMLİ: Input listener'ları yeniden başlat
+        setTimeout(() => {
+            reinitializeAllInputListeners();
+            console.log('✅ Ana sayfaya geçildi, input listener\'lar yeniden başlatıldı');
+        }, 100);
     } finally {
         isNavigationInProgress = false;
     }
@@ -63,12 +73,14 @@ function showUserManagement() {
     isNavigationInProgress = true;
     
     try {
-        // Kullanıcı yönetimini göster
-         document.getElementById('dashboardPanel').style.display = 'none';
+        // ✅ TÜM DİĞER PANELLERİ GİZLE
+        document.getElementById('dashboardPanel').style.display = 'none';
         document.getElementById('mainLayout').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'none';
-        document.getElementById('userManagement').style.display = 'block';
         document.getElementById('warehousePanel').style.display = 'none';
+        
+        // ✅ SADECE KULLANICI YÖNETİMİNİ GÖSTER
+        document.getElementById('userManagement').style.display = 'block';
         
         // Modal'ları kapat
         if (document.getElementById('reportsModal').classList.contains('active')) {
@@ -133,8 +145,7 @@ function openAccounting() {
 function toggleWarehouseButton() {
     const warehouseBtn = document.getElementById('warehouseViewBtn');
     if (warehouseBtn) {
-        // Depocu veya enes kullanıcısına göster
-        warehouseBtn.style.display = (currentUserRole === 'warehouse' || currentUserName === 'enes') ? 'block' : 'none';
+        warehouseBtn.style.display = (currentUserRole === 'warehouse') ? 'block' : 'none';
     }
 }
 
@@ -2774,8 +2785,7 @@ async function incrementDeliveredCount() {
     }
 
     async function loadWarehouseOrders() {
-    // Yetki kontrolü - depocu veya enes
-    if (currentUserRole !== 'warehouse' && currentUserName !== 'enes') return;
+      if (currentUserRole !== 'warehouse') return;
       
       try {
         const snapshot = await db.ref('partOrders').once('value');
@@ -3688,26 +3698,7 @@ auth.onAuthStateChanged(async user => {
     currentUserName = name;
     
     await loadTechnicianSections();
-     if (user.email === 'enes@mobilfon.com') {
-        const userSnapshot = await db.ref(`users/${user.uid}`).once('value');
-        if (userSnapshot.exists()) {
-            // Kullanıcı varsa rolünü güncelle
-            await db.ref(`users/${user.uid}`).update({
-                role: 'warehouse',
-                updatedAt: Date.now()
-            });
-        } else {
-            // Kullanıcı yoksa oluştur
-            await db.ref(`users/${user.uid}`).set({
-                email: 'enes@mobilfon.com',
-                role: 'warehouse',
-                createdAt: Date.now(),
-                createdBy: 'System'
-            });
-        }
-    }
     
-    // MEVCUT KOD - admin kontrolü
     if (user.email === 'admin@servis.com') {
       const adminSnapshot = await db.ref(`users/${user.uid}`).once('value');
       if (!adminSnapshot.exists()) {
@@ -3718,9 +3709,10 @@ auth.onAuthStateChanged(async user => {
           createdBy: 'System'
         });
       }
-}
+    }
     
- if (user.email === 'depo@mobilfon.com') {
+    // Depocu kontrolü
+    if (user.email === 'depo@mobilfon.com') {
       const depocuSnapshot = await db.ref(`users/${user.uid}`).once('value');
       if (!depocuSnapshot.exists()) {
         await db.ref(`users/${user.uid}`).set({
@@ -3731,7 +3723,7 @@ auth.onAuthStateChanged(async user => {
         });
       }
     }
-
+    
     try {
       const userSnapshot = await db.ref(`users/${user.uid}`).once('value');
       const userData = userSnapshot.val();
@@ -3749,17 +3741,30 @@ auth.onAuthStateChanged(async user => {
             addSyncButtonToNav();
         }, 1500);
         
+        // ✅ ADMIN DOĞRUDAN ANA SAYFAYI GÖRSÜN
         setTimeout(() => showMainView(), 100);
       } else if (user.email === 'depo@mobilfon.com') {
         currentUserRole = 'warehouse';
         currentUserPermissions = null;
         document.getElementById('navUserInfo').style.display = 'flex';
-        // DEPOCU İÇİN DOĞRU PANELİ GÖSTER
+        // DEPOCU İÇİN İLK GİRİŞTE WAREHOUSE PANELİNİ GÖSTER
         setTimeout(() => showWarehouseView(), 100);
       } else if (userData && userData.role) {
-        currentUserRole = userData.role;
+        // ✅ ÖZEL DURUM: Enes'in rolü yanlışlıkla warehouse ise düzelt
+        if (name === 'enes' && userData.role === 'warehouse') {
+          console.warn('⚠️ Enes kullanıcısının rolü yanlışlıkla warehouse! Editor olarak düzeltiliyor...');
+          currentUserRole = 'editor';
+          // Firebase'de de düzelt
+          db.ref(`users/${user.uid}/role`).set('editor');
+        } else {
+          currentUserRole = userData.role;
+        }
+        
         currentUserPermissions = userData.permissions || null;
         document.getElementById('navUserInfo').style.display = 'flex';
+        
+        // ✅ DEPO DIŞINDA HERKES ANA SAYFAYI GÖRSÜN
+        setTimeout(() => showMainView(), 100);
       } else {
         if (name === 'admin') {
           currentUserRole = 'admin';
@@ -3772,6 +3777,9 @@ auth.onAuthStateChanged(async user => {
         }
         currentUserPermissions = null;
         document.getElementById('navUserInfo').style.display = 'flex';
+        
+        // ✅ YENİ EKLENEN: Bu kullanıcılar için de ana sayfayı göster
+        setTimeout(() => showMainView(), 100);
       }
       
       // Role config (DEPOCU EKLENDİ)
@@ -3794,7 +3802,7 @@ auth.onAuthStateChanged(async user => {
         },
         'editor': {
           icon: '✏️',
-          text: name.charAt(0).toUpperCase() + name.slice(1),
+          text: `${name.charAt(0).toUpperCase() + name.slice(1)} (Düzenleyici)`,
           gradient: 'linear-gradient(135deg, #667eea, #764ba2)',
           showAdminPanel: false,
           showUserManagement: false,
@@ -3831,16 +3839,29 @@ auth.onAuthStateChanged(async user => {
       
       document.getElementById('navUserName').textContent = `${config.icon} ${config.text}`;
       
-      document.getElementById('adminPanel').style.display = config.showAdminPanel ? 'block' : 'none';
-      document.getElementById('userManagement').style.display = config.showUserManagement ? 'block' : 'none';
+      // ✅ TÜM PANELLERİ ÖNCE GİZLE
+      document.getElementById('adminPanel').style.display = 'none';
+      document.getElementById('userManagement').style.display = 'none';
+      document.getElementById('warehousePanel').style.display = 'none';
+      document.getElementById('mainLayout').style.display = 'none';
+      document.getElementById('dashboardPanel').style.display = 'none';
+      
+      // ✅ SADECE İLGİLİ PANELLERİ GÖSTER
+      if (config.showAdminPanel) {
+        document.getElementById('adminPanel').style.display = 'block';
+      }
+      if (config.showUserManagement) {
+        document.getElementById('userManagement').style.display = 'block';
+      }
+      
       document.getElementById('adminNav').style.display = 'flex';
       
-      // DEPOCU PANEL KONTROLÜ
+      // ✅ DEPOCU İÇİN ÖZEL KONTROL - SADECE WAREHOUSE PANEL
       if (currentUserRole === 'warehouse') {
         document.getElementById('warehousePanel').style.display = 'block';
+        document.getElementById('mainLayout').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'none';
         loadWarehouseOrders();
-      } else {
-        document.getElementById('warehousePanel').style.display = 'none';
       }
       
       // Dashboard kontrolü
@@ -3868,16 +3889,7 @@ auth.onAuthStateChanged(async user => {
         });
       }
       
-      // Başlangıç görünümünü ayarla
-   if (config.showNav) {
-    setTimeout(() => {
-        if (currentUserRole === 'warehouse' || currentUserName === 'enes') {
-            showWarehouseView();
-        } else {
-            showMainView();
-        }
-    }, 100);
-}
+      // ✅ Başlangıç görünümü artık yukarıda her rol için ayrı ayrı ayarlanıyor
       
     } catch (error) {
       console.error('Kullanıcı rolü alınırken hata:', error);
@@ -3939,21 +3951,24 @@ auth.onAuthStateChanged(async user => {
 
 
 function showWarehouseView() {
+    // ✅ SADECE DEPOCU ERİŞEBİLİR
+    if (currentUserRole !== 'warehouse') {
+        console.warn('⚠️ Bu panele sadece depocu kullanıcısı erişebilir!');
+        showToast('Bu panele sadece depocu kullanıcısı erişebilir!', 'error');
+        return;
+    }
+    
     if (isNavigationInProgress) return;
     isNavigationInProgress = true;
     
     try {
-        // Yetki kontrolü - depocu veya enes kullanıcısı
-        if (currentUserRole !== 'warehouse' && currentUserName !== 'enes') {
-            showToast('Depo paneline erişim yetkiniz yok!', 'error');
-            return;
-        }
-        
-        // Depo panelini göster, diğer panelleri gizle
+        // ✅ TÜM DİĞER PANELLERİ GİZLE
         document.getElementById('mainLayout').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'none';
         document.getElementById('dashboardPanel').style.display = 'none';
         document.getElementById('userManagement').style.display = 'none';
+        
+        // ✅ SADECE WAREHOUSE PANELİNİ GÖSTER
         document.getElementById('warehousePanel').style.display = 'block';
         
         // Modal'ları kapat
@@ -4460,6 +4475,64 @@ function renderList() {
   const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
   db.ref(`servis/${dbPath}/adet`).set(count);
 }
+
+    // ========================================
+    // YENİ EKLENEN: INPUT LISTENER'LARI YENİDEN BAŞLATMA FONKSİYONU
+    // ========================================
+    function reinitializeAllInputListeners() {
+      console.log('🔄 Tüm input listener\'lar yeniden başlatılıyor...');
+      
+      // Tüm bölüm isimleri
+      const allSections = [
+        'atanacak', 'parcaBekliyor', 'phonecheck', 
+        'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet',
+        'onarim', 'onCamDisServis', 'anakartDisServis', 
+        'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
+      ];
+      
+      allSections.forEach(section => {
+        const inputElement = inputs[section];
+        
+        if (inputElement) {
+          // Eski event listener'ı kaldır ve yeni ekle
+          const newInput = inputElement.cloneNode(true);
+          if (inputElement.parentNode) {
+            inputElement.parentNode.replaceChild(newInput, inputElement);
+            
+            // inputs objesini güncelle
+            inputs[section] = newInput;
+            
+            // Yeni listener ekle
+            newInput.addEventListener("input", () => {
+              if (section === "scanner" || section === "search") return;
+              saveCodes(section, newInput.value);
+            });
+            
+            console.log(`✅ ${section} input listener yenilendi`);
+          }
+        }
+      });
+      
+      // Dinamik teknisyen bölümleri için de listener'ları yenile
+      Object.keys(inputs).forEach(key => {
+        if (!allSections.includes(key) && key !== 'scanner' && key !== 'search' && key !== 'searchNormal') {
+          const inputElement = inputs[key];
+          if (inputElement) {
+            const newInput = inputElement.cloneNode(true);
+            if (inputElement.parentNode) {
+              inputElement.parentNode.replaceChild(newInput, inputElement);
+              inputs[key] = newInput;
+              
+              newInput.addEventListener("input", () => {
+                saveCodes(key, newInput.value);
+              });
+              
+              console.log(`✅ ${key} (dinamik teknisyen) input listener yenilendi`);
+            }
+          }
+        }
+      });
+    }
 
     function saveCodes(name, value) {
       if (isUpdating || !dataLoaded) return;
