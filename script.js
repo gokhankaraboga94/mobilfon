@@ -2355,7 +2355,7 @@ async function restoreDashboard() {
   const confirmation = confirm(
     '♻️ DASHBOARD GERİ YÜKLEME\n\n' +
     'Bu işlem şunları yapacak:\n\n' +
-    '✅ Database\'deki tüm kayıtları tarayacak\n' +
+    '✅ Tüm history kayıtlarını tarayacak\n' +
     '✅ Bugünkü teslim alınan cihazları yeniden sayacak\n' +
     '✅ Bugünkü teslim edilen cihazları yeniden sayacak\n' +
     '✅ Kaynak dağılımını yeniden hesaplayacak\n\n' +
@@ -2370,8 +2370,12 @@ async function restoreDashboard() {
   try {
     const todayDate = getTodayDateString();
     const todayTimestamp = new Date(todayDate).getTime();
+    const todayEndTimestamp = todayTimestamp + (24 * 60 * 60 * 1000); // Günün sonu
     
-    // 1️⃣ BUGÜN TESLİM ALINAN CİHAZLARI HESAPLA
+    console.log('📅 Bugün:', todayDate);
+    console.log('⏰ Timestamp aralığı:', todayTimestamp, '-', todayEndTimestamp);
+    
+    // 1️⃣ TÜM HISTORY KAYITLARINI TARA
     const receivedIMEIs = new Set();
     const sourceCounts = {
       atanacak: 0,
@@ -2381,51 +2385,109 @@ async function restoreDashboard() {
       serviceReturn: 0
     };
     
-    // Dashboard source kayıtlarından yeniden oluştur
-    const dashboardSnapshot = await db.ref(`dashboard/daily/${todayDate}/receivedIMEIs`).once('value');
-    const receivedData = dashboardSnapshot.val();
+    // Tüm history kayıtlarını çek
+    const allHistorySnapshot = await db.ref('servis/history').once('value');
+    const allHistory = allHistorySnapshot.val();
     
-    if (receivedData) {
-      Object.keys(receivedData).forEach(imei => {
-        receivedIMEIs.add(imei);
-        const source = receivedData[imei].source;
-        if (sourceCounts.hasOwnProperty(source)) {
-          sourceCounts[source]++;
-        }
+    if (allHistory) {
+      console.log('📚 History kayıtları taranıyor...');
+      
+      Object.keys(allHistory).forEach(imei => {
+        const imeiHistory = allHistory[imei];
+        const entries = Object.values(imeiHistory);
+        
+        // Bu IMEI bugün ilk kez sisteme girmiş mi kontrol et
+        entries.forEach(entry => {
+          if (entry.timestampRaw && entry.timestampRaw >= todayTimestamp && entry.timestampRaw < todayEndTimestamp) {
+            // Bugün yapılan işlem
+            
+            // Eğer bir kaynak listesine (atanacak, SonKullanıcı, etc.) eklenmiş ve "from" değeri "Yeni Ekleme" ise
+            // Bu cihaz bugün teslim alınmış demektir
+            if (entry.from === 'Yeni Ekleme' || !entry.from) {
+              const targetList = entry.to;
+              
+              // Dashboard kaynak listelerinden birine eklenmişse
+              if (['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'].includes(targetList)) {
+                receivedIMEIs.add(imei);
+                sourceCounts[targetList]++;
+                console.log(`✅ Teslim alındı: ${imei} → ${targetList}`);
+              }
+            }
+            
+            // Servise geri dönenler için özel kontrol
+            if (entry.to === 'serviceReturn' || (entry.from && entry.to && entry.to !== 'teslimEdilenler')) {
+              // Eğer cihaz daha önce teslim edilmişse ve bugün tekrar servise gelmişse
+              const wasDeliveredBefore = entries.some(e => 
+                e.to === 'teslimEdilenler' && 
+                e.timestampRaw < entry.timestampRaw
+              );
+              
+              if (wasDeliveredBefore) {
+                receivedIMEIs.add(imei);
+                sourceCounts.serviceReturn++;
+                console.log(`🔄 Servise geri döndü: ${imei}`);
+              }
+            }
+          }
+        });
       });
     }
+    
+    console.log('📊 Teslim Alınan Sonuçları:', {
+      totalReceived: receivedIMEIs.size,
+      sources: sourceCounts
+    });
     
     // 2️⃣ BUGÜN TESLİM EDİLEN CİHAZLARI HESAPLA
     let deliveredCount = 0;
-    const teslimEdilenlerSnapshot = await db.ref('servis/teslimEdilenler').once('value');
-    const teslimEdilenlerData = teslimEdilenlerSnapshot.val();
     
-    if (teslimEdilenlerData) {
-      // History kayıtlarından bugün teslim edilenleri bul
-      const historyPromises = Object.keys(teslimEdilenlerData).map(async (imei) => {
-        const historySnapshot = await db.ref(`servis/history/${imei}`).once('value');
-        const history = historySnapshot.val();
-        
-        if (history) {
-          const entries = Object.values(history);
-          const lastDelivered = entries
-            .filter(entry => entry.to === 'teslimEdilenler')
-            .sort((a, b) => b.timestampRaw - a.timestampRaw)[0];
-          
-          if (lastDelivered && lastDelivered.timestampRaw >= todayTimestamp) {
-            return true;
-          }
-        }
-        return false;
-      });
+    if (allHistory) {
+      console.log('📤 Teslim edilenler taranıyor...');
       
-      const results = await Promise.all(historyPromises);
-      deliveredCount = results.filter(Boolean).length;
+      Object.keys(allHistory).forEach(imei => {
+        const imeiHistory = allHistory[imei];
+        const entries = Object.values(imeiHistory);
+        
+        // Bu IMEI bugün teslim edilmiş mi kontrol et
+        const deliveredToday = entries.some(entry => 
+          entry.to === 'teslimEdilenler' && 
+          entry.timestampRaw >= todayTimestamp && 
+          entry.timestampRaw < todayEndTimestamp
+        );
+        
+        if (deliveredToday) {
+          deliveredCount++;
+          console.log(`✅ Teslim edildi: ${imei}`);
+        }
+      });
     }
+    
+    console.log('📊 Teslim Edilen Sayısı:', deliveredCount);
     
     // 3️⃣ DATABASE'İ GÜNCELLE
     const updates = {};
-    updates[`dashboard/daily/${todayDate}/receivedIMEIs`] = receivedData || {};
+    
+    // ReceivedIMEIs'i yeniden oluştur
+    const receivedIMEIsObject = {};
+    receivedIMEIs.forEach(imei => {
+      // Her IMEI için kaynak bilgisini history'den bul
+      if (allHistory && allHistory[imei]) {
+        const entries = Object.values(allHistory[imei]);
+        const firstEntry = entries
+          .filter(e => e.timestampRaw >= todayTimestamp && e.timestampRaw < todayEndTimestamp)
+          .sort((a, b) => a.timestampRaw - b.timestampRaw)[0];
+        
+        if (firstEntry) {
+          receivedIMEIsObject[imei] = {
+            source: firstEntry.to,
+            timestamp: firstEntry.timestampRaw,
+            user: firstEntry.user || 'unknown'
+          };
+        }
+      }
+    });
+    
+    updates[`dashboard/daily/${todayDate}/receivedIMEIs`] = receivedIMEIsObject;
     updates[`dashboard/daily/${todayDate}/deliveredCount`] = deliveredCount;
     updates[`dashboard/daily/${todayDate}/sources`] = sourceCounts;
     
@@ -2458,9 +2520,10 @@ async function restoreDashboard() {
     
   } catch (error) {
     console.error('❌ Dashboard geri yüklenirken hata:', error);
-    showToast('❌ Dashboard geri yüklenirken bir hata oluştu!', 'error');
+    showToast('❌ Dashboard geri yüklenirken bir hata oluştu: ' + error.message, 'error');
   }
 }
+
 
 // Dashboard görünümünü göster/gizle
 
