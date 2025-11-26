@@ -2344,6 +2344,124 @@ async function incrementDeliveredCount() {
   }
 }
 
+// ♻️ DASHBOARD GERİ YÜKLEME FONKSİYONU
+// Dashboard verilerini database'den yeniden hesaplayıp geri yükler
+async function restoreDashboard() {
+  if (currentUserRole !== 'admin') {
+    showToast('❌ Bu işlem sadece admin yetkisi gerektirir!', 'error');
+    return;
+  }
+  
+  const confirmation = confirm(
+    '♻️ DASHBOARD GERİ YÜKLEME\n\n' +
+    'Bu işlem şunları yapacak:\n\n' +
+    '✅ Database\'deki tüm kayıtları tarayacak\n' +
+    '✅ Bugünkü teslim alınan cihazları yeniden sayacak\n' +
+    '✅ Bugünkü teslim edilen cihazları yeniden sayacak\n' +
+    '✅ Kaynak dağılımını yeniden hesaplayacak\n\n' +
+    'Dashboard verileri güncel hale gelecek.\n\n' +
+    'Devam etmek istiyor musunuz?'
+  );
+  
+  if (!confirmation) return;
+  
+  showToast('🔄 Dashboard geri yükleniyor, lütfen bekleyin...', 'info');
+  
+  try {
+    const todayDate = getTodayDateString();
+    const todayTimestamp = new Date(todayDate).getTime();
+    
+    // 1️⃣ BUGÜN TESLİM ALINAN CİHAZLARI HESAPLA
+    const receivedIMEIs = new Set();
+    const sourceCounts = {
+      atanacak: 0,
+      SonKullanıcı: 0,
+      sahiniden: 0,
+      mediaMarkt: 0,
+      serviceReturn: 0
+    };
+    
+    // Dashboard source kayıtlarından yeniden oluştur
+    const dashboardSnapshot = await db.ref(`dashboard/daily/${todayDate}/receivedIMEIs`).once('value');
+    const receivedData = dashboardSnapshot.val();
+    
+    if (receivedData) {
+      Object.keys(receivedData).forEach(imei => {
+        receivedIMEIs.add(imei);
+        const source = receivedData[imei].source;
+        if (sourceCounts.hasOwnProperty(source)) {
+          sourceCounts[source]++;
+        }
+      });
+    }
+    
+    // 2️⃣ BUGÜN TESLİM EDİLEN CİHAZLARI HESAPLA
+    let deliveredCount = 0;
+    const teslimEdilenlerSnapshot = await db.ref('servis/teslimEdilenler').once('value');
+    const teslimEdilenlerData = teslimEdilenlerSnapshot.val();
+    
+    if (teslimEdilenlerData) {
+      // History kayıtlarından bugün teslim edilenleri bul
+      const historyPromises = Object.keys(teslimEdilenlerData).map(async (imei) => {
+        const historySnapshot = await db.ref(`servis/history/${imei}`).once('value');
+        const history = historySnapshot.val();
+        
+        if (history) {
+          const entries = Object.values(history);
+          const lastDelivered = entries
+            .filter(entry => entry.to === 'teslimEdilenler')
+            .sort((a, b) => b.timestampRaw - a.timestampRaw)[0];
+          
+          if (lastDelivered && lastDelivered.timestampRaw >= todayTimestamp) {
+            return true;
+          }
+        }
+        return false;
+      });
+      
+      const results = await Promise.all(historyPromises);
+      deliveredCount = results.filter(Boolean).length;
+    }
+    
+    // 3️⃣ DATABASE'İ GÜNCELLE
+    const updates = {};
+    updates[`dashboard/daily/${todayDate}/receivedIMEIs`] = receivedData || {};
+    updates[`dashboard/daily/${todayDate}/deliveredCount`] = deliveredCount;
+    updates[`dashboard/daily/${todayDate}/sources`] = sourceCounts;
+    
+    await db.ref().update(updates);
+    
+    // 4️⃣ LOKAL DEĞİŞKENLERİ GÜNCELLE
+    dailyReceivedIMEIs = receivedIMEIs;
+    dailyDeliveredCount = deliveredCount;
+    
+    // 5️⃣ UI'I GÜNCELLE
+    await loadDashboardStats();
+    
+    showToast(
+      '✅ Dashboard başarıyla geri yüklendi!\n\n' +
+      `📥 Teslim Alınan: ${receivedIMEIs.size}\n` +
+      `📤 Teslim Edilen: ${deliveredCount}\n` +
+      `📋 Atanacak: ${sourceCounts.atanacak}\n` +
+      `👤 SonKullanıcı: ${sourceCounts.SonKullanıcı}\n` +
+      `🏪 Sahibinden: ${sourceCounts.sahiniden}\n` +
+      `🛒 Media Markt: ${sourceCounts.mediaMarkt}\n` +
+      `🔄 Servise Geri Dönen: ${sourceCounts.serviceReturn}`,
+      'success'
+    );
+    
+    console.log('✅ Dashboard geri yüklendi:', {
+      receivedCount: receivedIMEIs.size,
+      deliveredCount,
+      sources: sourceCounts
+    });
+    
+  } catch (error) {
+    console.error('❌ Dashboard geri yüklenirken hata:', error);
+    showToast('❌ Dashboard geri yüklenirken bir hata oluştu!', 'error');
+  }
+}
+
 // Dashboard görünümünü göster/gizle
 
 
@@ -3732,6 +3850,7 @@ auth.onAuthStateChanged(async user => {
         currentUserRole = 'admin';
         document.getElementById('userManagementBtn').style.display = (currentUserRole === 'admin') ? 'block' : 'none';
         document.getElementById('resetDashboardBtn').style.display = 'block';
+        document.getElementById('restoreDashboardBtn').style.display = 'inline-block';
         currentUserPermissions = null;
         document.getElementById('adminNav').style.display = 'flex';
         document.getElementById('navUserInfo').style.display = 'flex';
