@@ -4165,7 +4165,8 @@ document.getElementById('navLogoutButton').addEventListener("click", () => {
         inputs.onarim.placeholder = '🔒 Sadece Yusuf düzenleyebilir - Görüntüleme modu';
       }
 
-      if (currentUserRole === 'admin') {
+      // Teslim Edilenler: admin, mehmet ve samet erişebilir
+      if (currentUserRole === 'admin' || currentUserName === 'mehmet' || currentUserName === 'samet') {
   inputs.teslimEdilenler.disabled = false;
   inputs.teslimEdilenler.style.opacity = '1';
   inputs.teslimEdilenler.style.cursor = 'text';
@@ -4174,7 +4175,7 @@ document.getElementById('navLogoutButton').addEventListener("click", () => {
   inputs.teslimEdilenler.disabled = true;
   inputs.teslimEdilenler.style.opacity = '0.6';
   inputs.teslimEdilenler.style.cursor = 'not-allowed';
-  inputs.teslimEdilenler.placeholder = '🔒 Sadece Admin düzenleyebilir - Görüntüleme modu';
+  inputs.teslimEdilenler.placeholder = '🔒 Sadece Admin, Mehmet ve Samet düzenleyebilir - Görüntüleme modu';
 }
       
       if (currentUserRole === 'viewer') {
@@ -4556,9 +4557,9 @@ function renderList() {
       if (name === 'onarim' && currentUserName !== 'yusuf') {
         return;
       }
-// ✅ DEĞİŞTİRİLDİ: Sadece admin kullanıcıları teslim edilenler alanına veri girebilir
-if (name === 'teslimEdilenler' && currentUserRole !== 'admin') {
-  showToast('Sadece admin kullanıcıları teslim edilenler listesine veri girebilir!', 'warning');
+// ✅ DEĞİŞTİRİLDİ: Admin, mehmet ve samet kullanıcıları teslim edilenler alanına veri girebilir
+if (name === 'teslimEdilenler' && currentUserRole !== 'admin' && currentUserName !== 'mehmet' && currentUserName !== 'samet') {
+  showToast('Sadece admin, mehmet ve samet kullanıcıları teslim edilenler listesine veri girebilir!', 'warning');
   return;
 }
       
