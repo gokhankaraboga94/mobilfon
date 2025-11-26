@@ -2394,7 +2394,9 @@ async function restoreDashboard() {
       
       Object.keys(allHistory).forEach(imei => {
         const imeiHistory = allHistory[imei];
-        const entries = Object.values(imeiHistory);
+        const entries = Object.values(imeiHistory).sort((a, b) => a.timestampRaw - b.timestampRaw);
+        
+        let alreadyCountedAsReceived = false;
         
         // Bu IMEI bugün ilk kez sisteme girmiş mi kontrol et
         entries.forEach(entry => {
@@ -2403,33 +2405,41 @@ async function restoreDashboard() {
             
             // Eğer bir kaynak listesine (atanacak, SonKullanıcı, etc.) eklenmiş ve "from" değeri "Yeni Ekleme" ise
             // Bu cihaz bugün teslim alınmış demektir
-            if (entry.from === 'Yeni Ekleme' || !entry.from) {
+            if ((entry.from === 'Yeni Ekleme' || !entry.from) && !alreadyCountedAsReceived) {
               const targetList = entry.to;
               
               // Dashboard kaynak listelerinden birine eklenmişse
               if (['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'].includes(targetList)) {
                 receivedIMEIs.add(imei);
                 sourceCounts[targetList]++;
+                alreadyCountedAsReceived = true;
                 console.log(`✅ Teslim alındı: ${imei} → ${targetList}`);
-              }
-            }
-            
-            // Servise geri dönenler için özel kontrol
-            if (entry.to === 'serviceReturn' || (entry.from && entry.to && entry.to !== 'teslimEdilenler')) {
-              // Eğer cihaz daha önce teslim edilmişse ve bugün tekrar servise gelmişse
-              const wasDeliveredBefore = entries.some(e => 
-                e.to === 'teslimEdilenler' && 
-                e.timestampRaw < entry.timestampRaw
-              );
-              
-              if (wasDeliveredBefore) {
-                receivedIMEIs.add(imei);
-                sourceCounts.serviceReturn++;
-                console.log(`🔄 Servise geri döndü: ${imei}`);
               }
             }
           }
         });
+        
+        // Servise geri dönenler için özel kontrol - BU IMEI İÇİN BİR KEZ KONTROL ET
+        if (!alreadyCountedAsReceived) {
+          // Cihaz daha önce teslim edilmiş mi?
+          const wasDeliveredBefore = entries.some(e => 
+            e.to === 'teslimEdilenler' && 
+            e.timestampRaw < todayTimestamp
+          );
+          
+          // Bugün servise geri mi döndü?
+          const returnedToday = entries.some(e => 
+            e.from === 'teslimEdilenler' && 
+            e.timestampRaw >= todayTimestamp && 
+            e.timestampRaw < todayEndTimestamp
+          );
+          
+          if (wasDeliveredBefore && returnedToday) {
+            receivedIMEIs.add(imei);
+            sourceCounts.serviceReturn++;
+            console.log(`🔄 Servise geri döndü: ${imei}`);
+          }
+        }
       });
     }
     
