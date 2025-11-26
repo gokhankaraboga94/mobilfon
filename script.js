@@ -2559,6 +2559,128 @@ async function restoreDashboard() {
     const auth = firebase.auth();
     const db = firebase.database();
 
+    // ========================================
+    // İNTERNET BAĞLANTISI KONTROLÜ
+    // ========================================
+    let isConnected = true;
+    let connectionCheckInterval = null;
+    const connectionWarning = document.getElementById('connectionWarning');
+    const connectionStatus = document.getElementById('connectionStatus');
+
+    // Firebase bağlantı durumunu izle
+    const connectedRef = db.ref('.info/connected');
+    connectedRef.on('value', (snap) => {
+      if (snap.val() === true) {
+        handleConnectionRestored();
+      } else {
+        handleConnectionLost();
+      }
+    });
+
+    function handleConnectionLost() {
+      if (isConnected) {
+        isConnected = false;
+        console.error('❌ İnternet bağlantısı kesildi!');
+        
+        // Uyarı ekranını göster
+        connectionWarning.style.display = 'flex';
+        
+        // Tüm input'ları kilitle
+        lockAllInputs();
+        
+        // Durum mesajını güncelle
+        updateConnectionStatus('❌ Bağlantı kesildi! Lütfen internet bağlantınızı kontrol edin.');
+        
+        // Toast bildirimi
+        showToast('❌ İNTERNET BAĞLANTISI KESİLDİ! Sistem kullanılamaz.', 'error');
+      }
+    }
+
+    function handleConnectionRestored() {
+      if (!isConnected) {
+        isConnected = true;
+        console.log('✅ İnternet bağlantısı yeniden kuruldu!');
+        
+        // Uyarı ekranını gizle
+        setTimeout(() => {
+          connectionWarning.style.display = 'none';
+        }, 2000);
+        
+        // Input'ları aç
+        unlockAllInputs();
+        
+        // Durum mesajını güncelle
+        updateConnectionStatus('✅ Bağlantı yeniden kuruldu! Sistem kullanıma hazır.');
+        
+        // Toast bildirimi
+        showToast('✅ Bağlantı yeniden kuruldu! Sistem aktif.', 'success');
+        
+        // Verileri yeniden yükle
+        setTimeout(() => {
+          location.reload();
+        }, 3000);
+      }
+    }
+
+    function updateConnectionStatus(message) {
+      if (connectionStatus) {
+        connectionStatus.textContent = message;
+      }
+    }
+
+    function lockAllInputs() {
+      console.log('🔒 Tüm input alanları kilitleniyor...');
+      
+      // Tüm textarea'ları kilitle
+      Object.values(inputs).forEach(input => {
+        if (input) {
+          input.disabled = true;
+          input.style.opacity = '0.3';
+          input.style.cursor = 'not-allowed';
+          input.style.background = '#2c3e50';
+          input.placeholder = '🔒 BAĞLANTI KESİLDİ - KULLANILAMAZ';
+        }
+      });
+      
+      // Tüm butonları kilitle
+      const allButtons = document.querySelectorAll('button');
+      allButtons.forEach(button => {
+        button.disabled = true;
+        button.style.opacity = '0.3';
+        button.style.cursor = 'not-allowed';
+      });
+    }
+
+    function unlockAllInputs() {
+      console.log('🔓 Input alanları açılıyor...');
+      
+      // Rol bazlı izinleri yeniden uygula
+      applyRoleBasedPermissions();
+      
+      // Tüm butonları aç
+      const allButtons = document.querySelectorAll('button');
+      allButtons.forEach(button => {
+        button.disabled = false;
+        button.style.opacity = '1';
+        button.style.cursor = 'pointer';
+      });
+    }
+
+    // Sayfa yüklendiğinde bağlantıyı kontrol et
+    window.addEventListener('online', () => {
+      console.log('🌐 Tarayıcı online oldu');
+      updateConnectionStatus('🔄 Bağlantı kontrol ediliyor...');
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('📡 Tarayıcı offline oldu');
+      handleConnectionLost();
+    });
+
+    // ========================================
+    // DEVAM EDEN KOD
+    // ========================================
+
     const loginScreen = document.getElementById("loginScreen");
     const appContainer = document.getElementById("appContainer");
     const userInfo = document.getElementById("userInfo");
