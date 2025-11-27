@@ -2597,6 +2597,17 @@ async function restoreDashboard() {
         // Uyarı ekranını göster
         connectionWarning.style.display = 'flex';
         
+        // KIRMIZI TEMA - Bağlantı Kesildi
+        const warningBox = document.getElementById('connectionWarningBox');
+        const connectionIcon = document.getElementById('connectionIcon');
+        const connectionTitle = document.getElementById('connectionTitle');
+        const connectionMessage = document.getElementById('connectionMessage');
+        
+        if (warningBox) warningBox.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+        if (connectionIcon) connectionIcon.textContent = '📡❌';
+        if (connectionTitle) connectionTitle.textContent = 'İNTERNET BAĞLANTISI KESİLDİ!';
+        if (connectionMessage) connectionMessage.innerHTML = 'Database bağlantısı kurulamadı.<br><strong>Lütfen sistemi kullanmayın!</strong><br>Girdiğiniz veriler kaydedilmeyecektir.';
+        
         // Durum mesajını güncelle
         updateConnectionStatus('❌ Bağlantı kesildi! Lütfen internet bağlantınızı kontrol edin.');
         
@@ -2622,14 +2633,19 @@ async function restoreDashboard() {
         // Uyarı ekranını göster (yeşil)
         connectionWarning.style.display = 'flex';
         
-        // Durum mesajını güncelle - Yeşil arka plan
-        updateConnectionStatus('✅ Bağlantı kuruldu! Sayfa yenileniyor...');
+        // YEŞİL TEMA - Bağlantı Kuruldu
+        const warningBox = document.getElementById('connectionWarningBox');
+        const connectionIcon = document.getElementById('connectionIcon');
+        const connectionTitle = document.getElementById('connectionTitle');
+        const connectionMessage = document.getElementById('connectionMessage');
         
-        // Uyarı ekranının arka planını yeşil yap
-        const warningBox = connectionWarning.querySelector('div');
-        if (warningBox) {
-          warningBox.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
-        }
+        if (warningBox) warningBox.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
+        if (connectionIcon) connectionIcon.textContent = '✅📡';
+        if (connectionTitle) connectionTitle.textContent = 'BAĞLANTI KURULDU!';
+        if (connectionMessage) connectionMessage.innerHTML = 'İnternet bağlantısı yeniden sağlandı.<br><strong>Sayfa yenileniyor...</strong><br>Verileriniz güncellenecek.';
+        
+        // Durum mesajını güncelle
+        updateConnectionStatus('✅ Bağlantı kuruldu! Sayfa yenileniyor...');
         
         // Toast bildirimi
         showToast('✅ Bağlantı yeniden kuruldu! Sayfa 3 saniye içinde yenilenecek...', 'success');
