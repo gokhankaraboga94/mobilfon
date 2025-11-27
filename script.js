@@ -2563,7 +2563,7 @@ async function restoreDashboard() {
     // İNTERNET BAĞLANTISI KONTROLÜ
     // ========================================
     let isConnected = true;
-    let connectionCheckInterval = null;
+    let connectionInitialized = false; // İlk bağlantı kuruldu mu?
     const connectionWarning = document.getElementById('connectionWarning');
     const connectionStatus = document.getElementById('connectionStatus');
 
@@ -2571,9 +2571,20 @@ async function restoreDashboard() {
     const connectedRef = db.ref('.info/connected');
     connectedRef.on('value', (snap) => {
       if (snap.val() === true) {
-        handleConnectionRestored();
+        // İlk bağlantı
+        if (!connectionInitialized) {
+          connectionInitialized = true;
+          isConnected = true;
+          console.log('✅ Firebase bağlantısı kuruldu');
+        } else {
+          // Bağlantı yeniden kuruldu
+          handleConnectionRestored();
+        }
       } else {
-        handleConnectionLost();
+        // Bağlantı kesildi (sadece daha önce kurulmuşsa uyar)
+        if (connectionInitialized) {
+          handleConnectionLost();
+        }
       }
     });
 
@@ -2581,18 +2592,24 @@ async function restoreDashboard() {
       if (isConnected) {
         isConnected = false;
         console.error('❌ İnternet bağlantısı kesildi!');
+        console.error('⏰ 3 saniye uyarı gösterilecek, ardından uyarı kalkacak ve sistem sessizce kilitlenecek...');
         
         // Uyarı ekranını göster
         connectionWarning.style.display = 'flex';
-        
-        // Tüm input'ları kilitle
-        lockAllInputs();
         
         // Durum mesajını güncelle
         updateConnectionStatus('❌ Bağlantı kesildi! Lütfen internet bağlantınızı kontrol edin.');
         
         // Toast bildirimi
-        showToast(' İNTERNET BAĞLANTISI KONTROL EDİLİYOR! Sistem kullanılamaz.', 'error');
+        showToast('❌ İNTERNET BAĞLANTISI KESİLDİ! Sistem kilitlenecek...', 'error');
+        
+        // 3 saniye sonra uyarıyı KALDIR ve input'ları kilitle
+        setTimeout(() => {
+          connectionWarning.style.display = 'none'; // Uyarıyı kapat
+          lockAllInputs(); // Alanları kilitle
+          console.error('🔒 Uyarı kaldırıldı. Tüm input alanları kilitlendi!');
+          console.error('📡 İnternet bağlantısı bekleniyor...');
+        }, 3000);
       }
     }
 
@@ -2600,22 +2617,35 @@ async function restoreDashboard() {
       if (!isConnected) {
         isConnected = true;
         console.log('✅ İnternet bağlantısı yeniden kuruldu!');
+        console.log('🔄 Sayfa 3 saniye içinde yenilenecek...');
         
-        // Uyarı ekranını gizle
-        setTimeout(() => {
-          connectionWarning.style.display = 'none';
-        }, 2000);
+        // Uyarı ekranını göster (yeşil)
+        connectionWarning.style.display = 'flex';
         
-        // Input'ları aç
-        unlockAllInputs();
+        // Durum mesajını güncelle - Yeşil arka plan
+        updateConnectionStatus('✅ Bağlantı kuruldu! Sayfa yenileniyor...');
         
-        // Durum mesajını güncelle
-        updateConnectionStatus('✅ Bağlantı yeniden kuruldu! Sistem kullanıma hazır.');
+        // Uyarı ekranının arka planını yeşil yap
+        const warningBox = connectionWarning.querySelector('div');
+        if (warningBox) {
+          warningBox.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
+        }
         
         // Toast bildirimi
-        showToast('✅ Bağlantı yeniden kuruldu! Sistem aktif.', 'success');
+        showToast('✅ Bağlantı yeniden kuruldu! Sayfa 3 saniye içinde yenilenecek...', 'success');
         
-        // Verileri yeniden yükle
+        // 3 saniye sonra sayfa yenileme
+        let countdown = 3;
+        const countdownInterval = setInterval(() => {
+          countdown--;
+          updateConnectionStatus(`✅ Bağlantı kuruldu! Sayfa ${countdown} saniye içinde yenilenecek...`);
+          
+          if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            updateConnectionStatus('🔄 Sayfa yenileniyor...');
+          }
+        }, 1000);
+        
         setTimeout(() => {
           location.reload();
         }, 3000);
@@ -2666,15 +2696,15 @@ async function restoreDashboard() {
       });
     }
 
-    // Sayfa yüklendiğinde bağlantıyı kontrol et
+    // Browser online/offline event'leri - sadece console log
     window.addEventListener('online', () => {
       console.log('🌐 Tarayıcı online oldu');
-      updateConnectionStatus('🔄 Bağlantı kontrol ediliyor...');
+      // Firebase zaten kendi kontrol ediyor, ekstra işlem gerekmiyor
     });
 
     window.addEventListener('offline', () => {
       console.log('📡 Tarayıcı offline oldu');
-      handleConnectionLost();
+      // Firebase zaten kendi kontrol ediyor, burada tekrar çağırmaya gerek yok
     });
 
     // ========================================
