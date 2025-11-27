@@ -2592,7 +2592,7 @@ async function restoreDashboard() {
         updateConnectionStatus('❌ Bağlantı kesildi! Lütfen internet bağlantınızı kontrol edin.');
         
         // Toast bildirimi
-        showToast('❌ İNTERNET BAĞLANTISI KESİLDİ! Sistem kullanılamaz.', 'error');
+        showToast(' İNTERNET BAĞLANTISI KONTROL EDİLİYOR! Sistem kullanılamaz.', 'error');
       }
     }
 
