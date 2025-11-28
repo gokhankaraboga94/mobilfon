@@ -4212,9 +4212,7 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('navUserInfo').style.display = 'flex';
         
         
-           setTimeout(() => {
-            addSyncButtonToNav();
-        }, 1500);
+    
         
         // ✅ DATA SYNC AUTO CHECK BAŞLAT (SADECE ADMIN)
         setTimeout(() => {
