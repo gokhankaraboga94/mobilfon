@@ -1,5 +1,14 @@
 // ========================================
 // ========================================
+// DATA SYNC VERIFICATION SYSTEM
+// ========================================
+let dataSyncCheckInterval = null;
+let lastDataSyncCheck = null;
+let dataSyncMismatches = [];
+const DATA_SYNC_CHECK_INTERVAL = 5 * 60 * 1000; // 5 dakika
+
+// ========================================
+// ========================================
 // NAVIGATION FUNCTIONS
 // ========================================
 
@@ -99,6 +108,28 @@ function showUserManagement() {
     }
 }
 
+function showSystemLogs() {
+    if (currentUserRole !== 'admin') {
+        alert('Bu özelliğe sadece admin erişebilir!');
+        return;
+    }
+    
+    // Modal'ı aç
+    document.getElementById('systemLogsModal').style.display = 'flex';
+    
+    // Bugünün tarihini varsayılan olarak ayarla
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('logsEndDate').value = today;
+    
+    // Başlangıç tarihi: 7 gün önce
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    document.getElementById('logsStartDate').value = weekAgo.toISOString().split('T')[0];
+    
+    // Navigasyon butonlarını güncelle
+    updateNavButtons('systemLogs');
+}
+
   function closeReportsModal() {
     document.getElementById('reportsModal').classList.remove('active');
     disableExcelExport();
@@ -114,9 +145,10 @@ function updateNavButtons(activeButton) {
         'main': document.getElementById('mainViewBtn'),
         'reports': document.getElementById('reportsBtn'),
         'users': document.getElementById('userManagementBtn'),
-        'warehouse': document.getElementById('warehouseViewBtn'), // YENİ EKLENDİ
+        'warehouse': document.getElementById('warehouseViewBtn'),
         'priceList': document.getElementById('priceListBtn'),
-        'accounting': document.getElementById('accountingBtn')
+        'accounting': document.getElementById('accountingBtn'),
+        'systemLogs': document.getElementById('systemLogsBtn')
     };
     
     // Tüm butonlardan active class'ını kaldır
@@ -4089,7 +4121,8 @@ auth.onAuthStateChanged(async user => {
       
       if (user.email === 'admin@servis.com') {
         currentUserRole = 'admin';
-        document.getElementById('userManagementBtn').style.display = (currentUserRole === 'admin') ? 'block' : 'none';
+        document.getElementById('userManagementBtn').style.display = 'block';
+        document.getElementById('systemLogsBtn').style.display = 'block'; // Sistem Logları butonu
         document.getElementById('resetDashboardBtn').style.display = 'block';
         document.getElementById('restoreDashboardBtn').style.display = 'inline-block';
         currentUserPermissions = null;
@@ -4100,6 +4133,12 @@ auth.onAuthStateChanged(async user => {
            setTimeout(() => {
             addSyncButtonToNav();
         }, 1500);
+        
+        // ✅ DATA SYNC AUTO CHECK BAŞLAT (SADECE ADMIN)
+        setTimeout(() => {
+          startDataSyncAutoCheck();
+          console.log('✅ Data Sync Otomatik Kontrol Sistemi Başlatıldı');
+        }, 3000);
         
         // ✅ ADMIN DOĞRUDAN ANA SAYFAYI GÖRSÜN
         setTimeout(() => showMainView(), 100);
@@ -5610,7 +5649,12 @@ function loadData() {
           return;
         }
 
-        const keys = Object.keys(listData).filter(k => k !== "eslesenler" && k !== "adet");
+        const keys = Object.keys(listData).filter(k => {
+          // eslesenler ve adet'i atla
+          if (k === "eslesenler" || k === "adet") return false;
+          // Sadece 15 haneli barkodları al
+          return /^\d{15}$/.test(k);
+        });
 
         keys.forEach(code => {
           const val = listData[code];
@@ -6958,4 +7002,808 @@ function setupDailyReceivedFilters(receivedDetails) {
     });
 
     updateClearButton();
+}
+// ========================================
+// DATA SYNC VERIFICATION SYSTEM - CORE FUNCTIONS
+// ========================================
+
+// Otomatik kontrol sistemini başlat (sadece admin için)
+function startDataSyncAutoCheck() {
+  if (currentUserRole !== 'admin') {
+    console.log('🔒 Data Sync Auto Check: Sadece admin erişebilir');
+    return;
+  }
+  
+  console.log('✅ Data Sync Auto Check başlatıldı - Her 5 dakikada kontrol edilecek');
+  
+  // İlk kontrolü 30 saniye sonra yap
+  setTimeout(() => {
+    performDataSyncCheck(false); // false = sessiz kontrol (bildirim gösterme)
+  }, 30000);
+  
+  // 5 dakikada bir otomatik kontrol
+  dataSyncCheckInterval = setInterval(() => {
+    performDataSyncCheck(false);
+  }, DATA_SYNC_CHECK_INTERVAL);
+}
+
+// Otomatik kontrol sistemini durdur
+function stopDataSyncAutoCheck() {
+  if (dataSyncCheckInterval) {
+    clearInterval(dataSyncCheckInterval);
+    dataSyncCheckInterval = null;
+    console.log('⏹️ Data Sync Auto Check durduruldu');
+  }
+}
+
+// Veri kontrolü yap
+async function performDataSyncCheck(showNotification = false) {
+  if (currentUserRole !== 'admin') return;
+  
+  try {
+    console.log('🔍 Veri senkronizasyon kontrolü başlatılıyor...');
+    lastDataSyncCheck = new Date();
+    dataSyncMismatches = [];
+    
+    // 1. TÜM LİSTELERİN SAYIM KONTROLÜ
+    const listNames = [
+      'atanacak', 'parcaBekliyor', 'phonecheck',
+      'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet',
+      'onarim', 'onCamDisServis', 'anakartDisServis',
+      'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'
+    ];
+    
+    for (const listName of listNames) {
+      // Frontend'deki barkodlar
+      const frontendCodes = userCodes[listName] ? Array.from(userCodes[listName]) : [];
+      const frontendCount = frontendCodes.length;
+      
+      // Database path mapping - onarim -> onarimTamamlandi
+      const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+      
+      // Database'deki barkodlar - SADECE 15 HANELİ
+      const dbSnapshot = await db.ref(`servis/${dbPath}`).once('value');
+      const dbData = dbSnapshot.val();
+      
+      let dbCodes = [];
+      if (dbData) {
+        // Sadece 15 haneli barkodları al
+        dbCodes = Object.keys(dbData).filter(key => /^\d{15}$/.test(key));
+      }
+      
+      const dbCount = dbCodes.length;
+      
+      // SADECE GERÇEK FARKLARI TESPIT ET
+      if (frontendCount !== dbCount) {
+        // Eksik ve fazla barkodları bul
+        const frontendSet = new Set(frontendCodes);
+        const dbSet = new Set(dbCodes);
+        
+        const missingInFrontend = dbCodes.filter(code => !frontendSet.has(code));
+        const missingInDB = frontendCodes.filter(code => !dbSet.has(code));
+        
+        // Sadece gerçekten eksik/fazla varsa rapor et
+        if (missingInFrontend.length > 0 || missingInDB.length > 0) {
+          const difference = Math.abs(frontendCount - dbCount);
+          
+          dataSyncMismatches.push({
+            type: 'count_mismatch',
+            listName: listName,
+            frontendCount: frontendCount,
+            dbCount: dbCount,
+            difference: difference,
+            severity: difference > 10 ? 'high' : 'medium',
+            missingInFrontend: missingInFrontend.slice(0, 5),
+            missingInDB: missingInDB.slice(0, 5),
+            totalMissingInFrontend: missingInFrontend.length,
+            totalMissingInDB: missingInDB.length
+          });
+          
+          console.warn(`⚠️ ${listName}: Frontend=${frontendCount}, DB=${dbCount}, Fark=${difference}`);
+          if (missingInFrontend.length > 0) {
+            console.warn(`   📍 DB'de olup Frontend'de olmayan: ${missingInFrontend.length} adet`);
+          }
+          if (missingInDB.length > 0) {
+            console.warn(`   📍 Frontend'de olup DB'de olmayan: ${missingInDB.length} adet`);
+          }
+        } else {
+          // Sayılar farklı ama barkodlar aynı - bu normal olabilir
+          console.info(`ℹ️ ${listName}: Sayı farkı var (${frontendCount} vs ${dbCount}) ama barkodlar aynı - ignore`);
+        }
+      }
+    }
+    
+    // 2. DASHBOARD İSTATİSTİKLERİNİ KONTROL ET
+    const today = new Date().toISOString().split('T')[0];
+    const dashboardSnapshot = await db.ref(`dashboard/daily/${today}`).once('value');
+    const dashboardData = dashboardSnapshot.val();
+    
+    if (dashboardData) {
+      // Bugün Teslim Alınan - receivedIMEIs object'inden say
+      const dbReceivedIMEIs = dashboardData.receivedIMEIs || {};
+      const dbReceivedCount = Object.keys(dbReceivedIMEIs).filter(key => /^\d{15}$/.test(key)).length;
+      
+      const frontendReceivedElement = document.getElementById('dashboardTeslimAlinan');
+      const frontendReceivedCount = frontendReceivedElement ? parseInt(frontendReceivedElement.textContent) || 0 : 0;
+      
+      // Gerçek fark var mı kontrol et
+      if (dbReceivedCount !== frontendReceivedCount) {
+        const receivedDiff = Math.abs(dbReceivedCount - frontendReceivedCount);
+        
+        dataSyncMismatches.push({
+          type: 'dashboard_mismatch',
+          field: 'Bugün Teslim Alınan',
+          frontendValue: frontendReceivedCount,
+          dbValue: dbReceivedCount,
+          difference: receivedDiff,
+          severity: receivedDiff > 10 ? 'high' : 'medium'
+        });
+        console.warn(`⚠️ Dashboard Teslim Alınan: Frontend=${frontendReceivedCount}, DB=${dbReceivedCount}, Fark=${receivedDiff}`);
+      }
+      
+      // Bugün Teslim Edilen - deliveredCount field'ını kullan (direkt sayı)
+      const dbDeliveredCount = dashboardData.deliveredCount || 0;
+      const frontendDeliveredElement = document.getElementById('dashboardTeslimEdilen');
+      const frontendDeliveredCount = frontendDeliveredElement ? parseInt(frontendDeliveredElement.textContent) || 0 : 0;
+      
+      // Gerçek fark var mı kontrol et
+      if (dbDeliveredCount !== frontendDeliveredCount) {
+        const deliveredDiff = Math.abs(dbDeliveredCount - frontendDeliveredCount);
+        
+        dataSyncMismatches.push({
+          type: 'dashboard_mismatch',
+          field: 'Bugün Teslim Edilen',
+          frontendValue: frontendDeliveredCount,
+          dbValue: dbDeliveredCount,
+          difference: deliveredDiff,
+          severity: deliveredDiff > 10 ? 'high' : 'medium'
+        });
+        console.warn(`⚠️ Dashboard Teslim Edilen: Frontend=${frontendDeliveredCount}, DB=${dbDeliveredCount}, Fark=${deliveredDiff}`);
+      }
+    }
+    
+    // 3. SONUÇLARI GÖSTER
+    if (dataSyncMismatches.length > 0) {
+      console.warn(`⚠️ ${dataSyncMismatches.length} adet veri uyumsuzluğu tespit edildi!`);
+      if (showNotification) {
+        showDataSyncNotification();
+      } else {
+        // Sessiz modda sadece bildirim göster
+        updateDataSyncNotificationBadge();
+      }
+    } else {
+      console.log('✅ Tüm veriler senkronize - Uyumsuzluk yok');
+      hideDataSyncNotification();
+    }
+    
+  } catch (error) {
+    console.error('❌ Veri senkronizasyon kontrolünde hata:', error);
+  }
+}
+
+// Bildirim göster
+function showDataSyncNotification() {
+  if (currentUserRole !== 'admin') return;
+  
+  const notification = document.getElementById('dataSyncNotification');
+  const countElement = document.getElementById('dataSyncCount');
+  
+  if (notification && countElement) {
+    countElement.textContent = dataSyncMismatches.length;
+    notification.style.display = 'block';
+  }
+}
+
+// Bildirim gizle
+function hideDataSyncNotification() {
+  const notification = document.getElementById('dataSyncNotification');
+  if (notification) {
+    notification.style.display = 'none';
+  }
+}
+
+// Bildirim sayısını güncelle
+function updateDataSyncNotificationBadge() {
+  if (currentUserRole !== 'admin') return;
+  
+  const countElement = document.getElementById('dataSyncCount');
+  if (countElement && dataSyncMismatches.length > 0) {
+    countElement.textContent = dataSyncMismatches.length;
+    showDataSyncNotification();
+  }
+}
+
+// Data Sync Modal'ı aç
+function openDataSyncModal() {
+  if (currentUserRole !== 'admin') {
+    alert('Bu özelliğe sadece admin erişebilir!');
+    return;
+  }
+  
+  const modal = document.getElementById('dataSyncModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    displayDataSyncResults();
+  }
+}
+
+// Data Sync Modal'ı kapat
+function closeDataSyncModal() {
+  const modal = document.getElementById('dataSyncModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Sonuçları göster
+function displayDataSyncResults() {
+  const resultsContainer = document.getElementById('dataSyncResults');
+  const lastCheckElement = document.getElementById('lastSyncCheck');
+  const fixAllBtn = document.getElementById('fixAllDataBtn');
+  
+  if (!resultsContainer) return;
+  
+  // Son kontrol zamanını güncelle
+  if (lastCheckElement && lastDataSyncCheck) {
+    lastCheckElement.textContent = lastDataSyncCheck.toLocaleString('tr-TR');
+  }
+  
+  if (dataSyncMismatches.length === 0) {
+    resultsContainer.innerHTML = `
+      <div style="text-align: center; padding: 40px; background: rgba(46, 204, 113, 0.2); border-radius: 12px; border: 2px solid #2ecc71;">
+        <div style="font-size: 60px; margin-bottom: 15px;">✅</div>
+        <h3 style="color: #2ecc71; margin-bottom: 10px;">Tüm Veriler Senkronize!</h3>
+        <p style="opacity: 0.8;">Database ile frontend verileri tamamen eşleşiyor.</p>
+      </div>
+    `;
+    if (fixAllBtn) fixAllBtn.disabled = true;
+    return;
+  }
+  
+  // Uyumsuzlukları listele
+  let html = `
+    <div style="margin-bottom: 20px; padding: 15px; background: rgba(231, 76, 60, 0.2); border-radius: 8px; border-left: 4px solid #e74c3c;">
+      <h3 style="margin: 0 0 10px 0; color: #e74c3c;">⚠️ ${dataSyncMismatches.length} Adet Uyumsuzluk Tespit Edildi</h3>
+      <p style="margin: 0; opacity: 0.9;">Aşağıdaki uyumsuzlukları inceleyip düzeltebilirsiniz.</p>
+    </div>
+  `;
+  
+  const listNameMap = {
+    atanacak: '📋 Atanacak',
+    parcaBekliyor: '⚙️ Parça Bekliyor',
+    phonecheck: '📱 PhoneCheck',
+    gokhan: '🧑‍🔧 Gökhan',
+    enes: '🧑‍🔧 Enes',
+    yusuf: '🧑‍🔧 Yusuf',
+    samet: '🧑‍🔧 Samet',
+    engin: '🧑‍🔧 Engin',
+    ismail: '🧑‍🔧 İsmail',
+    mehmet: '🧑‍🔧 Mehmet',
+    onarim: '🔧 Onarım Tamamlandı',
+    onCamDisServis: '🔨 Ön Cam Dış Servis',
+    anakartDisServis: '🔨 Anakart Dış Servis',
+    satisa: '💰 Satışa Gidecek',
+    sahiniden: '🏪 Sahibinden',
+    mediaMarkt: '🛒 Media Markt',
+    SonKullanıcı: '👤 Son Kullanıcı',
+    teslimEdilenler: '✅ Teslim Edilenler'
+  };
+  
+  dataSyncMismatches.forEach((mismatch, index) => {
+    const severityColor = mismatch.severity === 'high' ? '#e74c3c' : '#f39c12';
+    const severityIcon = mismatch.severity === 'high' ? '🔴' : '🟡';
+    
+    if (mismatch.type === 'count_mismatch') {
+      const listLabel = listNameMap[mismatch.listName] || mismatch.listName;
+      
+      // Detaylı bilgi varsa göster
+      let detailsHTML = '';
+      if (mismatch.missingInFrontend || mismatch.missingInDB) {
+        detailsHTML = `
+          <div style="margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 12px;">
+            <strong>🔍 Detaylı Analiz:</strong><br>
+        `;
+        
+        if (mismatch.totalMissingInFrontend > 0) {
+          detailsHTML += `
+            <div style="margin-top: 8px; padding: 8px; background: rgba(46, 204, 113, 0.1); border-left: 3px solid #2ecc71; border-radius: 4px;">
+              <strong>✅ DB'de var, Frontend'de yok:</strong> ${mismatch.totalMissingInFrontend} adet<br>
+              ${mismatch.missingInFrontend.length > 0 ? `
+                <div style="margin-top: 5px; font-family: monospace; font-size: 11px; opacity: 0.9;">
+                  ${mismatch.missingInFrontend.join(', ')}
+                  ${mismatch.totalMissingInFrontend > 5 ? `<br><em>... ve ${mismatch.totalMissingInFrontend - 5} adet daha</em>` : ''}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+        
+        if (mismatch.totalMissingInDB > 0) {
+          detailsHTML += `
+            <div style="margin-top: 8px; padding: 8px; background: rgba(231, 76, 60, 0.1); border-left: 3px solid #e74c3c; border-radius: 4px;">
+              <strong>❌ Frontend'de var, DB'de yok:</strong> ${mismatch.totalMissingInDB} adet<br>
+              ${mismatch.missingInDB.length > 0 ? `
+                <div style="margin-top: 5px; font-family: monospace; font-size: 11px; opacity: 0.9;">
+                  ${mismatch.missingInDB.join(', ')}
+                  ${mismatch.totalMissingInDB > 5 ? `<br><em>... ve ${mismatch.totalMissingInDB - 5} adet daha</em>` : ''}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }
+        
+        detailsHTML += '</div>';
+      }
+      
+      html += `
+        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid ${severityColor};">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="font-size: 16px;">${severityIcon} ${listLabel}</strong>
+            <span style="font-size: 12px; opacity: 0.7;">Liste Sayım Uyumsuzluğu</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <div style="background: rgba(52, 152, 219, 0.2); padding: 10px; border-radius: 6px;">
+              <div style="font-size: 12px; opacity: 0.8;">Frontend</div>
+              <div style="font-size: 20px; font-weight: bold;">${mismatch.frontendCount}</div>
+            </div>
+            <div style="background: rgba(46, 204, 113, 0.2); padding: 10px; border-radius: 6px;">
+              <div style="font-size: 12px; opacity: 0.8;">Database (Gerçek)</div>
+              <div style="font-size: 20px; font-weight: bold;">${mismatch.dbCount}</div>
+            </div>
+            <div style="background: rgba(231, 76, 60, 0.2); padding: 10px; border-radius: 6px;">
+              <div style="font-size: 12px; opacity: 0.8;">Fark</div>
+              <div style="font-size: 20px; font-weight: bold;">${mismatch.difference}</div>
+            </div>
+          </div>
+          ${detailsHTML}
+        </div>
+      `;
+    } else if (mismatch.type === 'dashboard_mismatch') {
+      html += `
+        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid ${severityColor};">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="font-size: 16px;">${severityIcon} ${mismatch.field}</strong>
+            <span style="font-size: 12px; opacity: 0.7;">Dashboard Uyumsuzluğu</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <div style="background: rgba(52, 152, 219, 0.2); padding: 10px; border-radius: 6px;">
+              <div style="font-size: 12px; opacity: 0.8;">Frontend</div>
+              <div style="font-size: 20px; font-weight: bold;">${mismatch.frontendValue}</div>
+            </div>
+            <div style="background: rgba(46, 204, 113, 0.2); padding: 10px; border-radius: 6px;">
+              <div style="font-size: 12px; opacity: 0.8;">Database</div>
+              <div style="font-size: 20px; font-weight: bold;">${mismatch.dbValue}</div>
+            </div>
+            <div style="background: rgba(231, 76, 60, 0.2); padding: 10px; border-radius: 6px;">
+              <div style="font-size: 12px; opacity: 0.8;">Fark</div>
+              <div style="font-size: 20px; font-weight: bold;">${mismatch.difference}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  });
+  
+  resultsContainer.innerHTML = html;
+  
+  // Düzeltme butonunu aktif et
+  if (fixAllBtn) {
+    fixAllBtn.disabled = false;
+  }
+}
+
+// Tüm uyumsuzlukları düzelt
+async function fixAllDataMismatches() {
+  if (currentUserRole !== 'admin') {
+    alert('Bu işlemi sadece admin yapabilir!');
+    return;
+  }
+  
+  if (dataSyncMismatches.length === 0) {
+    alert('Düzeltilecek uyumsuzluk bulunamadı!');
+    return;
+  }
+  
+  // ŞİFRE KONTROLÜ
+  const enteredPassword = prompt('⚠️ GÜVENLİK KONTROLÜ\n\nBu işlem tüm verileri düzeltecek.\nDevam etmek için yetkilendirme şifresini girin:');
+  
+  if (enteredPassword === null) {
+    // Kullanıcı iptal etti
+    return;
+  }
+  
+  if (enteredPassword !== '6262') {
+    // Yanlış şifre denemesini logla
+    const failedAttemptLog = {
+      timestamp: new Date().toISOString(),
+      user: currentUserName || 'Admin',
+      action: 'data_sync_fix_failed',
+      reason: 'wrong_password',
+      attemptedPassword: enteredPassword // Güvenlik için kaydedilir
+    };
+    
+    try {
+      await db.ref('logs/dataSync/failedAttempts').push(failedAttemptLog);
+    } catch (error) {
+      console.error('Failed attempt log error:', error);
+    }
+    
+    alert('❌ YANLIŞ ŞİFRE!\n\nYetkilendirme şifresi hatalı. İşlem iptal edildi.');
+    showToast('❌ Yanlış şifre girdiniz!', 'error');
+    return;
+  }
+  
+  // Şifre doğru, devam et
+  const confirmMsg = `${dataSyncMismatches.length} adet uyumsuzluk düzeltilecek.\n\n⚠️ Bu işlem:\n- Database verilerini referans alacak\n- Frontend'i database ile senkronize edecek\n- Tüm sayımları yeniden yükleyecek\n\nDevam etmek istiyor musunuz?`;
+  
+  if (!confirm(confirmMsg)) return;
+  
+  try {
+    showToast('🔄 Veri düzeltme başlatılıyor...', 'info');
+    
+    let fixedCount = 0;
+    
+    for (const mismatch of dataSyncMismatches) {
+      if (mismatch.type === 'count_mismatch') {
+        // Liste verilerini database'den yeniden yükle
+        const listName = mismatch.listName;
+        
+        // Database path mapping - onarim -> onarimTamamlandi
+        const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+        
+        const snapshot = await db.ref(`servis/${dbPath}`).once('value');
+        const dbData = snapshot.val();
+        
+        // Frontend'i güncelle - SADECE 15 HANELİ BARKODLARI AL
+        if (dbData) {
+          // Önce sadece 15 haneli barkodları filtrele
+          const validBarcodes = Object.keys(dbData).filter(key => /^\d{15}$/.test(key));
+          
+          userCodes[listName] = new Set(validBarcodes);
+          codeTimestamps[listName] = {};
+          codeUsers[listName] = {};
+          
+          validBarcodes.forEach(code => {
+            const value = dbData[code];
+            if (typeof value === 'object' && value !== null) {
+              codeTimestamps[listName][code] = value.timestamp || value;
+              codeUsers[listName][code] = value.user || null;
+            } else {
+              codeTimestamps[listName][code] = value;
+              codeUsers[listName][code] = null;
+            }
+          });
+          
+          updateLabelAndCount(listName);
+        }
+        
+        fixedCount++;
+      } else if (mismatch.type === 'dashboard_mismatch') {
+        // Dashboard verilerini yeniden yükle
+        await loadDashboardStats();
+        fixedCount++;
+      }
+    }
+    
+    // UI'ı yenile
+    renderList();
+    
+    // Log kaydet
+    const logData = {
+      timestamp: new Date().toISOString(),
+      user: currentUserName || 'Admin',
+      action: 'data_sync_fix',
+      fixedCount: fixedCount,
+      mismatches: dataSyncMismatches,
+      authorizedWithPassword: true, // Şifre ile yetkilendirildi
+      passwordUsed: '6262' // Hangi şifre kullanıldı
+    };
+    
+    await db.ref('logs/dataSync').push(logData);
+    
+    showToast(`✅ ${fixedCount} adet uyumsuzluk başarıyla düzeltildi!`, 'success');
+    
+    // Yeniden kontrol et
+    await performDataSyncCheck(false);
+    displayDataSyncResults();
+    
+  } catch (error) {
+    console.error('❌ Veri düzeltme hatası:', error);
+    alert('Veri düzeltilirken bir hata oluştu!');
+  }
+}
+
+// Manuel kontrol başlat
+async function forceDataSyncCheck() {
+  if (currentUserRole !== 'admin') return;
+  
+  const resultsContainer = document.getElementById('dataSyncResults');
+  if (resultsContainer) {
+    resultsContainer.innerHTML = `
+      <div style="text-align: center; padding: 40px;">
+        <div style="display: inline-block; width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px;">Veriler kontrol ediliyor...</p>
+      </div>
+    `;
+  }
+  
+  await performDataSyncCheck(true);
+  displayDataSyncResults();
+}
+
+// ========================================
+// SYSTEM LOGS FUNCTIONS
+// ========================================
+
+let currentLogsData = [];
+
+function closeSystemLogsModal() {
+  document.getElementById('systemLogsModal').style.display = 'none';
+}
+
+function clearLogsFilters() {
+  document.getElementById('logsUserFilter').value = '';
+  document.getElementById('logsImeiFilter').value = '';
+  document.getElementById('logsListFilter').value = '';
+  
+  // Tarihleri sıfırla
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('logsEndDate').value = today;
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  document.getElementById('logsStartDate').value = weekAgo.toISOString().split('T')[0];
+}
+
+async function loadSystemLogs() {
+  const startDate = document.getElementById('logsStartDate').value;
+  const endDate = document.getElementById('logsEndDate').value;
+  const userFilter = document.getElementById('logsUserFilter').value.toLowerCase();
+  const imeiFilter = document.getElementById('logsImeiFilter').value.trim();
+  const listFilter = document.getElementById('logsListFilter').value;
+  
+  if (!startDate || !endDate) {
+    alert('Lütfen başlangıç ve bitiş tarihlerini seçin!');
+    return;
+  }
+  
+  const resultsContainer = document.getElementById('systemLogsResults');
+  const statsContainer = document.getElementById('logsStats');
+  const exportBtn = document.getElementById('exportLogsBtn');
+  
+  // Loading göster
+  resultsContainer.innerHTML = `
+    <div style="text-align: center; padding: 40px;">
+      <div style="display: inline-block; width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <p style="margin-top: 20px;">Loglar yükleniyor...</p>
+    </div>
+  `;
+  
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    
+    const startTimestamp = start.getTime();
+    const endTimestamp = end.getTime();
+    
+    // Tüm IMEI geçmişlerini çek
+    const historySnapshot = await db.ref('servis/history').once('value');
+    const historyData = historySnapshot.val();
+    
+    if (!historyData) {
+      resultsContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+          <div style="font-size: 60px; margin-bottom: 20px;">📋</div>
+          <p>Seçilen tarih aralığında log bulunamadı.</p>
+        </div>
+      `;
+      statsContainer.style.display = 'none';
+      exportBtn.disabled = true;
+      return;
+    }
+    
+    // Logları filtrele ve topla
+    const logs = [];
+    
+    Object.entries(historyData).forEach(([imei, imeiHistory]) => {
+      // IMEI filtresi varsa kontrol et
+      if (imeiFilter && imei !== imeiFilter) return;
+      
+      Object.values(imeiHistory).forEach(entry => {
+        // Tarih kontrolü
+        if (entry.timestampRaw < startTimestamp || entry.timestampRaw > endTimestamp) return;
+        
+        // Kullanıcı filtresi
+        if (userFilter && !entry.user.toLowerCase().includes(userFilter)) return;
+        
+        // Liste filtresi
+        if (listFilter && entry.to !== listFilter && entry.from !== listFilter) return;
+        
+        logs.push({
+          imei: imei,
+          from: entry.from,
+          to: entry.to,
+          user: entry.user,
+          timestamp: entry.timestamp,
+          timestampRaw: entry.timestampRaw
+        });
+      });
+    });
+    
+    // Tarihe göre sırala (en yeni en üstte)
+    logs.sort((a, b) => b.timestampRaw - a.timestampRaw);
+    
+    currentLogsData = logs;
+    
+    if (logs.length === 0) {
+      resultsContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+          <div style="font-size: 60px; margin-bottom: 20px;">🔍</div>
+          <p>Seçilen filtrelere uygun log bulunamadı.</p>
+        </div>
+      `;
+      statsContainer.style.display = 'none';
+      exportBtn.disabled = true;
+      return;
+    }
+    
+    // İstatistikleri göster
+    document.getElementById('logsTotalCount').textContent = logs.length;
+    statsContainer.style.display = 'block';
+    exportBtn.disabled = false;
+    
+    // Logları göster
+    displayLogs(logs);
+    
+  } catch (error) {
+    console.error('Loglar yüklenirken hata:', error);
+    resultsContainer.innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #e74c3c;">
+        <div style="font-size: 60px; margin-bottom: 20px;">❌</div>
+        <p>Loglar yüklenirken bir hata oluştu!</p>
+      </div>
+    `;
+    statsContainer.style.display = 'none';
+    exportBtn.disabled = true;
+  }
+}
+
+function displayLogs(logs) {
+  const resultsContainer = document.getElementById('systemLogsResults');
+  
+  const listNames = {
+    atanacak: '📋 Atanacak',
+    parcaBekliyor: '⚙️ Parça Bekliyor',
+    phonecheck: '📱 PhoneCheck',
+    gokhan: '🧑‍🔧 Gökhan',
+    enes: '🧑‍🔧 Enes',
+    yusuf: '🧑‍🔧 Yusuf',
+    samet: '🧑‍🔧 Samet',
+    engin: '🧑‍🔧 Engin',
+    ismail: '🧑‍🔧 İsmail',
+    mehmet: '🧑‍🔧 Mehmet',
+    onarim: '🔧 Onarım Tamamlandı',
+    onCamDisServis: '🔨 Ön Cam Dış Servis',
+    anakartDisServis: '🔨 Anakart Dış Servis',
+    satisa: '💰 Satışa Gidecek',
+    sahiniden: '🏪 Sahibinden',
+    mediaMarkt: '🛒 Media Markt',
+    SonKullanıcı: '👤 Son Kullanıcı',
+    teslimEdilenler: '✅ Teslim Edilenler',
+    'SİLİNDİ': '🗑️ Silindi',
+    'TOPLU_SİLİNDİ': '🗑️ Toplu Silindi',
+    'SENKRONİZASYON_SİLİNDİ': '🔄 Senkronizasyon Silindi',
+    'Yeni Ekleme': '➕ Yeni Ekleme'
+  };
+  
+  let html = '<div style="display: grid; gap: 10px;">';
+  
+  logs.forEach((log, index) => {
+    const fromName = listNames[log.from] || log.from;
+    const toName = listNames[log.to] || log.to;
+    
+    // Renk belirleme
+    let borderColor = '#3498db';
+    if (log.to.includes('SİLİNDİ')) borderColor = '#e74c3c';
+    else if (log.to === 'teslimEdilenler') borderColor = '#2ecc71';
+    else if (log.from === 'Yeni Ekleme') borderColor = '#9b59b6';
+    
+    html += `
+      <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; border-left: 4px solid ${borderColor};">
+        <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 15px; align-items: center;">
+          <div style="font-family: monospace; font-size: 14px; color: #ffd700; font-weight: bold;">
+            ${log.imei}
+          </div>
+          <div>
+            <div style="font-size: 13px; margin-bottom: 5px;">
+              <span style="opacity: 0.8;">${fromName}</span>
+              <span style="margin: 0 8px;">→</span>
+              <span style="font-weight: bold;">${toName}</span>
+            </div>
+            <div style="font-size: 12px; opacity: 0.7;">
+              👤 ${log.user} • 🕒 ${log.timestamp}
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 11px; opacity: 0.5;">
+            #${index + 1}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  
+  resultsContainer.innerHTML = html;
+}
+
+function exportLogsToExcel() {
+  if (currentLogsData.length === 0) {
+    alert('Dışa aktarılacak log bulunamadı!');
+    return;
+  }
+  
+  const listNames = {
+    atanacak: 'Atanacak',
+    parcaBekliyor: 'Parça Bekliyor',
+    phonecheck: 'PhoneCheck',
+    gokhan: 'Gökhan',
+    enes: 'Enes',
+    yusuf: 'Yusuf',
+    samet: 'Samet',
+    engin: 'Engin',
+    ismail: 'İsmail',
+    mehmet: 'Mehmet',
+    onarim: 'Onarım Tamamlandı',
+    onCamDisServis: 'Ön Cam Dış Servis',
+    anakartDisServis: 'Anakart Dış Servis',
+    satisa: 'Satışa Gidecek',
+    sahiniden: 'Sahibinden',
+    mediaMarkt: 'Media Markt',
+    SonKullanıcı: 'Son Kullanıcı',
+    teslimEdilenler: 'Teslim Edilenler',
+    'SİLİNDİ': 'Silindi',
+    'TOPLU_SİLİNDİ': 'Toplu Silindi',
+    'SENKRONİZASYON_SİLİNDİ': 'Senkronizasyon Silindi',
+    'Yeni Ekleme': 'Yeni Ekleme'
+  };
+  
+  // Excel için veri hazırla
+  const excelData = currentLogsData.map((log, index) => {
+    return {
+      'Sıra': index + 1,
+      'IMEI': log.imei,
+      'Nereden': listNames[log.from] || log.from,
+      'Nereye': listNames[log.to] || log.to,
+      'Kullanıcı': log.user,
+      'Tarih': log.timestamp
+    };
+  });
+  
+  // Worksheet oluştur
+  const ws = XLSX.utils.json_to_sheet(excelData);
+  
+  // Kolon genişlikleri
+  ws['!cols'] = [
+    { wch: 8 },  // Sıra
+    { wch: 18 }, // IMEI
+    { wch: 25 }, // Nereden
+    { wch: 25 }, // Nereye
+    { wch: 15 }, // Kullanıcı
+    { wch: 20 }  // Tarih
+  ];
+  
+  // Workbook oluştur
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sistem Logları');
+  
+  // Dosya adı
+  const startDate = document.getElementById('logsStartDate').value;
+  const endDate = document.getElementById('logsEndDate').value;
+  const fileName = `Sistem_Loglari_${startDate}_${endDate}.xlsx`;
+  
+  // İndir
+  XLSX.writeFile(wb, fileName);
+  
+  showToast(`📊 ${currentLogsData.length} adet log Excel'e aktarıldı!`, 'success');
 }
