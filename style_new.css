@@ -454,6 +454,7 @@ body::before {
     backdrop-filter: blur(20px) saturate(180%);
     border-radius: var(--radius-md);
     padding: 15px;
+    margin-top: 20px;
     margin-bottom: 20px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: var(--shadow-lg);
@@ -3074,6 +3075,7 @@ button[id*="Btn"] {
     /* Dashboard Panel - Mobile Adjustments */
     .dashboard-panel {
         padding: 12px;
+        margin-top: 15px;
         margin-bottom: 15px;
     }
 
