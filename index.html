@@ -7,8 +7,8 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <!-- ORIGINAL: <style> -->
-  <link rel="stylesheet" href="style.css"> <!-- ORIGINAL: </style> -->
+  <!-- ULTRA PROFESSIONAL DESIGN -->
+  <link rel="stylesheet" href="style_new.css">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -33,7 +33,7 @@
     </div>
   </div>
 
-  <div class="conflict-notification" id="conflictNotification" onclick="openSyncModalFromNotification()">
+  <div class="conflict-notification" id="conflictNotification" onclick="openSyncModalFromNotification()" style="display: none;">
   <div class="conflict-notification-header">
     ⚠️ Çakışma Tespit Edildi!
   </div>
@@ -44,7 +44,7 @@
 </div>
 
 <!-- DATA SYNC VERIFICATION NOTIFICATION (SADECE ADMIN) -->
-<div class="data-sync-notification" id="dataSyncNotification" onclick="openDataSyncModal()">
+<div class="data-sync-notification" id="dataSyncNotification" onclick="openDataSyncModal()" style="display: none;">
   <div class="data-sync-notification-header">
     🔄 Veri Uyumsuzluğu Tespit Edildi!
   </div>
@@ -70,7 +70,7 @@
     </div>
     
     <!-- MEVCUT NAV-BUTTONS DIV'İNDEN SONRA, NAV-SEARCH'TEN ÖNCE -->
-<button onclick="openResetDashboardModal()" id="resetDashboardBtn" style="display: none; padding: 10px 15px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+<button onclick="openResetDashboardModal()" id="resetDashboardBtn" class="reset-dashboard-btn">
     🔄 Dashboard Sıfırla
 </button>
 
@@ -790,7 +790,7 @@
     
     <!-- PARÇA SİPARİŞ BUTONU (TEKNİSYENLER İÇİN) -->
     <button id="partOrderButton" class="part-order-button" style="display: none;" onclick="openPartOrderModal()">
-      🔧
+      🔧 Parça Sipariş Et
     </button>
   </div>
 
