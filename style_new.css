@@ -3075,14 +3075,14 @@ button[id*="Btn"] {
     /* Dashboard Panel - Mobile Adjustments */
     .dashboard-panel {
         padding: 12px;
-        margin-top: 15px;
+        margin-top: 20px;
         margin-bottom: 15px;
     }
 
     .dashboard-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 10px;
     }
 
     .dashboard-header h2 {
@@ -3124,7 +3124,7 @@ button[id*="Btn"] {
     /* Conflict Notifications - Mobile */
     .conflict-notification,
     .data-sync-notification {
-        top: 90px;
+        top: 140px;
         right: 10px;
         left: 10px;
         max-width: calc(100% - 20px);
@@ -3132,7 +3132,7 @@ button[id*="Btn"] {
     }
 
     .data-sync-notification {
-        top: 180px;
+        top: 230px;
     }
 
     .conflict-notification-header,
@@ -3175,9 +3175,9 @@ button[id*="Btn"] {
         margin-top: 8px;
     }
 
-    /* Body Padding Adjustment */
+    /* Body Padding Adjustment - Increased for mobile to prevent overlap */
     body {
-        padding: 120px 15px 20px 15px;
+        padding: 180px 15px 20px 15px;
     }
 }
 
@@ -3194,12 +3194,17 @@ button[id*="Btn"] {
 
     .conflict-notification,
     .data-sync-notification {
-        top: 80px;
+        top: 150px;
         padding: 10px 14px;
     }
 
     .data-sync-notification {
-        top: 160px;
+        top: 240px;
+    }
+
+    /* Extra padding for very small screens */
+    body {
+        padding: 200px 12px 20px 12px;
     }
 }
 
