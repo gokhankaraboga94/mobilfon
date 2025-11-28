@@ -43,6 +43,17 @@
   </div>
 </div>
 
+<!-- DATA SYNC VERIFICATION NOTIFICATION (SADECE ADMIN) -->
+<div class="data-sync-notification" id="dataSyncNotification" onclick="openDataSyncModal()">
+  <div class="data-sync-notification-header">
+    🔄 Veri Uyumsuzluğu Tespit Edildi!
+  </div>
+  <div class="data-sync-notification-body">
+    <span class="data-sync-notification-count" id="dataSyncCount">0</span> adet uyumsuzluk bulundu.
+    <br><strong>Tıklayarak inceleyin ve düzeltin →</strong>
+  </div>
+</div>
+
 <!-- ADMIN NAV BAR -->
 <div class="admin-nav" id="adminNav">
   <div class="nav-title">Mobilfon Teknik Servis Cihaz Takip Sistemi</div>
@@ -51,6 +62,7 @@
     <div class="nav-buttons">
       <button onclick="showMainView()" id="mainViewBtn">🏠 Ana Sayfa</button>
       <button onclick="showReportsView()" id="reportsBtn">📊 Raporlar</button>
+      <button onclick="showSystemLogs()" id="systemLogsBtn" style="display: none;">📋 Sistem Logları</button>
       <button onclick="openPriceList()" id="priceListBtn">💰 Fiyat Listesi Sistemi</button>
       <button onclick="openAccounting()" id="accountingBtn">📒 Muhasebe Sistemi</button>
       <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı Yönetimi</button>
@@ -814,6 +826,119 @@
     <div class="modal-buttons">
       <button class="modal-button secondary" onclick="closeSyncModal()">İptal</button>
       <button class="modal-button primary" onclick="fixAllConflicts()" id="fixAllBtn" disabled>🔄 Tüm Çakışmaları Düzelt</button>
+    </div>
+  </div>
+</div>
+
+<!-- DATA SYNC VERIFICATION MODAL (SADECE ADMIN) -->
+<div class="modal-overlay" id="dataSyncModal">
+  <div class="modal" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+    <h2>🔄 Veri Doğrulama ve Senkronizasyon</h2>
+    <div class="data-sync-info" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <p style="margin: 0; font-size: 14px;">
+        ⏱️ <strong>Son Kontrol:</strong> <span id="lastSyncCheck">-</span><br>
+        🔍 <strong>Kontrol Aralığı:</strong> Her 5 dakika<br>
+        📊 <strong>Kontrol Edilen Listeler:</strong> Tüm listeler ve Dashboard verileri
+      </p>
+    </div>
+    
+    <div class="sync-results" id="dataSyncResults">
+      <div style="text-align: center; padding: 20px;">
+        <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p>Veriler kontrol ediliyor...</p>
+      </div>
+    </div>
+    
+    <div class="modal-buttons">
+      <button class="modal-button secondary" onclick="closeDataSyncModal()">Kapat</button>
+      <button class="modal-button primary" onclick="fixAllDataMismatches()" id="fixAllDataBtn" disabled>
+        ✅ Tüm Uyumsuzlukları Düzelt
+      </button>
+      <button class="modal-button" onclick="forceDataSyncCheck()" style="background: #3498db;">
+        🔄 Yeniden Kontrol Et
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SYSTEM LOGS MODAL (SADECE ADMIN) -->
+<div class="modal-overlay" id="systemLogsModal">
+  <div class="modal" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+    <h2>📋 Sistem Logları</h2>
+    
+    <!-- Filtreler -->
+    <div class="logs-filters" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div>
+          <label style="display: block; margin-bottom: 5px; font-size: 13px;">📅 Başlangıç Tarihi</label>
+          <input type="date" id="logsStartDate" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 5px; font-size: 13px;">📅 Bitiş Tarihi</label>
+          <input type="date" id="logsEndDate" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 5px; font-size: 13px;">👤 Kullanıcı</label>
+          <input type="text" id="logsUserFilter" placeholder="Tümü" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 5px; font-size: 13px;">📦 IMEI</label>
+          <input type="text" id="logsImeiFilter" placeholder="15 haneli IMEI" maxlength="15" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
+        </div>
+        <div>
+          <label style="display: block; margin-bottom: 5px; font-size: 13px;">📋 Liste</label>
+          <select id="logsListFilter" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
+            <option value="">Tümü</option>
+            <option value="atanacak">📋 Atanacak</option>
+            <option value="parcaBekliyor">⚙️ Parça Bekliyor</option>
+            <option value="phonecheck">📱 PhoneCheck</option>
+            <option value="onarim">🔧 Onarım Tamamlandı</option>
+            <option value="gokhan">🧑‍🔧 Gökhan</option>
+            <option value="enes">🧑‍🔧 Enes</option>
+            <option value="yusuf">🧑‍🔧 Yusuf</option>
+            <option value="samet">🧑‍🔧 Samet</option>
+            <option value="engin">🧑‍🔧 Engin</option>
+            <option value="ismail">🧑‍🔧 İsmail</option>
+            <option value="mehmet">🧑‍🔧 Mehmet</option>
+            <option value="onCamDisServis">🔨 Ön Cam Dış Servis</option>
+            <option value="anakartDisServis">🔨 Anakart Dış Servis</option>
+            <option value="satisa">💰 Satışa Gidecek</option>
+            <option value="sahiniden">🏪 Sahibinden</option>
+            <option value="mediaMarkt">🛒 Media Markt</option>
+            <option value="SonKullanıcı">👤 Son Kullanıcı</option>
+            <option value="teslimEdilenler">✅ Teslim Edilenler</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+          <button onclick="loadSystemLogs()" style="width: 100%; padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            🔍 Logları Yükle
+          </button>
+        </div>
+      </div>
+      <div style="margin-top: 10px; text-align: right;">
+        <button onclick="clearLogsFilters()" style="padding: 6px 12px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+          🗑️ Filtreleri Temizle
+        </button>
+      </div>
+    </div>
+    
+    <!-- İstatistikler -->
+    <div id="logsStats" style="display: none; background: rgba(46, 204, 113, 0.2); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2ecc71;">
+      <strong>📊 Toplam: <span id="logsTotalCount">0</span> işlem</strong>
+    </div>
+    
+    <!-- Loglar -->
+    <div id="systemLogsResults" style="max-height: 500px; overflow-y: auto;">
+      <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+        📋 Filtre seçip "Logları Yükle" butonuna tıklayın
+      </div>
+    </div>
+    
+    <div class="modal-buttons" style="margin-top: 20px;">
+      <button class="modal-button secondary" onclick="closeSystemLogsModal()">Kapat</button>
+      <button class="modal-button" onclick="exportLogsToExcel()" id="exportLogsBtn" disabled style="background: #27ae60;">
+        📊 Excel'e Aktar
+      </button>
     </div>
   </div>
 </div>
