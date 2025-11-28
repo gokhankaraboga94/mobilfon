@@ -2626,6 +2626,67 @@ color: #fff;
   }
 }
 
+/* DATA SYNC NOTIFICATION STYLES */
+.data-sync-notification {
+  position: fixed;
+  top: 240px; /* Conflict notification'ın altında */
+  right: 20px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.5);
+  z-index: 9998;
+  display: none;
+  animation: dataSyncPulse 2s ease-in-out infinite;
+  min-width: 280px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+@keyframes dataSyncPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 6px 20px rgba(243, 156, 18, 0.5); }
+  50% { transform: scale(1.05); box-shadow: 0 8px 25px rgba(243, 156, 18, 0.7); }
+}
+
+.data-sync-notification:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(243, 156, 18, 0.7);
+}
+
+.data-sync-notification-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.data-sync-notification-body {
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.95;
+}
+
+.data-sync-notification-count {
+  display: inline-block;
+  background: rgba(255,255,255,0.3);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+  margin: 0 3px;
+}
+
+@media (max-width: 768px) {
+  .data-sync-notification {
+    top: 180px;
+    right: 10px;
+    left: 10px;
+    min-width: unset;
+  }
+}
+
 /* İNTERNET BAĞLANTISI UYARISI ANİMASYONU */
 @keyframes pulse {
   0%, 100% {
