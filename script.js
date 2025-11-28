@@ -1905,15 +1905,24 @@ setInterval(checkMidnightReset, 30000); // 30 saniye
 
 // Senkronizasyon modalını aç
 function openSyncModal() {
-    document.getElementById('syncModal').classList.add('active');
+    console.log('🔄 openSyncModal called');
+    const modal = document.getElementById('syncModal');
+    console.log('Sync modal element:', modal);
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex'; // Force display
+        console.log('Modal class list:', modal.classList);
+    }
     analyzeSyncIssues();
 }
 
 // Senkronizasyon modalını kapat
 function closeSyncModal() {
+    console.log('❌ closeSyncModal called');
     const modal = document.getElementById('syncModal');
     if (modal) {
         modal.classList.remove('active');
+        modal.style.display = 'none';
     }
 }
 
@@ -2096,10 +2105,14 @@ function getListPriority(lists) {
 
 // Tüm çakışmaları düzelt
 async function fixAllConflicts() {
+    console.log('🔄 fixAllConflicts called');
     const fixAllBtn = document.getElementById('fixAllBtn');
     const syncResults = document.getElementById('syncResults');
     
-    if (!fixAllBtn || !syncResults) return;
+    if (!fixAllBtn || !syncResults) {
+        console.log('❌ Button or results not found', fixAllBtn, syncResults);
+        return;
+    }
     
     fixAllBtn.disabled = true;
     fixAllBtn.innerHTML = '🔄 Düzeltiliyor...';
@@ -3132,44 +3145,71 @@ async function restoreDashboard() {
       const isReady = order.status === 'ready';
       const card = document.createElement('div');
       card.className = `part-order-card ${isReady ? 'ready' : ''}`;
-      card.style.marginBottom = '12px';
+      card.style.marginBottom = '15px';
       
-      let partsHTML = '<div class="part-order-parts">';
+      // Status badge
+      const statusBadge = isReady 
+        ? '<span class="order-status ready">✅ Hazır</span>'
+        : '<span class="order-status pending">⏳ Bekliyor</span>';
+      
+      // Parts list with status
+      let partsHTML = '<div class="order-parts"><div class="order-parts-title">🔧 İstenen Parçalar:</div><div class="order-parts-list">';
       order.parts.forEach(part => {
-        const partClass = part.status === 'available' ? 'available' : 
-                         part.status === 'unavailable' ? 'unavailable' : 'pending';
         const icon = part.status === 'available' ? '✅' : 
                     part.status === 'unavailable' ? '❌' : '⏳';
-        partsHTML += `<div class="part-tag ${partClass}">${icon} ${part.name}</div>`;
+        const statusClass = part.status === 'available' ? 'available' : 
+                           part.status === 'unavailable' ? 'unavailable' : 'pending';
+        partsHTML += `<span class="part-tag ${statusClass}">${icon} ${part.name}</span>`;
       });
-      partsHTML += '</div>';
-      
-      // Müşteri bilgisi varsa göster
-      const customerInfo = order.customer ? `<div class="part-order-customer">👤 ${order.customer}</div>` : '';
-      
-      // Statü bilgisi varsa göster
-      const statusInfo = order.statusField ? `<div class="part-order-info">📊 Statü: ${order.statusField}</div>` : '';
-      
-      // Hizmet bilgisi varsa göster
-      const serviceInfo = order.service ? `<div class="part-order-info">🔧 Hizmet: ${order.service}</div>` : '';
-      
-      // Not bilgisi varsa göster
-      const noteInfo = order.note ? `<div class="part-order-note">📝 Not: ${order.note}</div>` : '';
+      partsHTML += '</div></div>';
       
       card.innerHTML = `
-        <div class="part-order-card-header">
-          <div class="part-order-barcode">${order.barcode}</div>
-          <div class="part-order-status ${isReady ? 'ready' : 'pending'}">
-            ${isReady ? '✅ Hazır' : '⏳ Bekliyor'}
+        <div class="order-header">
+          <div class="order-barcode">${order.barcode}</div>
+          ${statusBadge}
+        </div>
+        
+        <div class="order-body">
+          <div class="order-field">
+            <div class="order-field-label">Model</div>
+            <div class="order-field-value">📱 ${order.model}</div>
+          </div>
+          
+          ${order.customer ? `
+            <div class="order-field">
+              <div class="order-field-label">Müşteri/Bayi</div>
+              <div class="order-field-value">👤 ${order.customer}</div>
+            </div>
+          ` : ''}
+          
+          ${order.statusField ? `
+            <div class="order-field">
+              <div class="order-field-label">Statü</div>
+              <div class="order-field-value">📊 ${order.statusField}</div>
+            </div>
+          ` : ''}
+          
+          ${order.service ? `
+            <div class="order-field">
+              <div class="order-field-label">Hizmet</div>
+              <div class="order-field-value">🔧 ${order.service}</div>
+            </div>
+          ` : ''}
+          
+          <div class="order-field">
+            <div class="order-field-label">Tarih</div>
+            <div class="order-field-value">📅 ${order.timestampReadable}</div>
           </div>
         </div>
-        <div class="part-order-model">📱 ${order.model}</div>
-        ${customerInfo}
-        ${statusInfo}
-        ${serviceInfo}
-        ${noteInfo}
+        
+        ${order.note ? `
+          <div class="order-note">
+            <div class="order-field-label">Not</div>
+            <div class="order-field-value">📝 ${order.note}</div>
+          </div>
+        ` : ''}
+        
         ${partsHTML}
-        <div class="part-order-time">📅 ${order.timestampReadable}</div>
       `;
       
       return card;
@@ -3253,49 +3293,77 @@ async function restoreDashboard() {
     function createWarehouseOrderCard(orderId, order, isPending) {
       const card = document.createElement('div');
       card.className = 'warehouse-order-card';
-      card.style.borderLeftColor = isPending ? '#f39c12' : '#2ecc71';
-      if (!isPending) {
-        card.style.opacity = '0.8';
-        card.style.background = 'linear-gradient(135deg, rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6))';
-      }
+      card.style.borderLeft = `4px solid ${isPending ? '#f39c12' : '#2ecc71'}`;
       
-      let partsHTML = '<div class="warehouse-parts-list">';
-      order.parts.forEach((part, index) => {
-        partsHTML += `
-          <div class="warehouse-part-item-simple">
-            <span class="warehouse-part-name">• ${part.name}</span>
-          </div>
-        `;
+      // Status badge
+      const statusBadge = isPending 
+        ? '<span class="order-status pending">⏳ Bekliyor</span>'
+        : '<span class="order-status ready">✅ Hazır</span>';
+      
+      // Parts list
+      let partsHTML = '<div class="order-parts"><div class="order-parts-title">🔧 İstenen Parçalar:</div><div class="order-parts-list">';
+      order.parts.forEach((part) => {
+        partsHTML += `<span class="part-tag">${part.name}</span>`;
       });
-      partsHTML += '</div>';
-      
-      // Müşteri bilgisi varsa göster
-      const customerInfo = order.customer ? `<div class="warehouse-order-customer">👤 Müşteri/Bayi: ${order.customer}</div>` : '';
-      
-      // Statü bilgisi varsa göster
-      const statusInfo = order.statusField ? `<div class="warehouse-order-info">📊 Statü: ${order.statusField}</div>` : '';
-      
-      // Hizmet bilgisi varsa göster
-      const serviceInfo = order.service ? `<div class="warehouse-order-info">🔧 Hizmet: ${order.service}</div>` : '';
-      
-      // Not bilgisi varsa göster
-      const noteInfo = order.note ? `<div class="warehouse-order-note">📝 Not: ${order.note}</div>` : '';
+      partsHTML += '</div></div>';
       
       card.innerHTML = `
-        <div class="warehouse-order-header">
-          <div class="warehouse-order-barcode">${order.barcode}</div>
-          <div class="warehouse-order-tech">👤 ${order.technician}</div>
+        <div class="order-header">
+          <div class="order-barcode">${order.barcode}</div>
+          ${statusBadge}
         </div>
-        <div class="warehouse-order-model">📱 ${order.model}</div>
-        ${customerInfo}
-        ${statusInfo}
-        ${serviceInfo}
-        ${noteInfo}
+        
+        <div class="order-body">
+          <div class="order-field">
+            <div class="order-field-label">Model</div>
+            <div class="order-field-value">📱 ${order.model}</div>
+          </div>
+          
+          ${order.customer ? `
+            <div class="order-field">
+              <div class="order-field-label">Müşteri/Bayi</div>
+              <div class="order-field-value">👤 ${order.customer}</div>
+            </div>
+          ` : ''}
+          
+          ${order.statusField ? `
+            <div class="order-field">
+              <div class="order-field-label">Statü</div>
+              <div class="order-field-value">📊 ${order.statusField}</div>
+            </div>
+          ` : ''}
+          
+          ${order.service ? `
+            <div class="order-field">
+              <div class="order-field-label">Hizmet</div>
+              <div class="order-field-value">🔧 ${order.service}</div>
+            </div>
+          ` : ''}
+          
+          <div class="order-field">
+            <div class="order-field-label">Teknisyen</div>
+            <div class="order-field-value">👤 ${order.technician}</div>
+          </div>
+          
+          <div class="order-field">
+            <div class="order-field-label">Tarih</div>
+            <div class="order-field-value">📅 ${order.timestampReadable}</div>
+          </div>
+        </div>
+        
+        ${order.note ? `
+          <div class="order-note">
+            <div class="order-field-label">Not</div>
+            <div class="order-field-value">📝 ${order.note}</div>
+          </div>
+        ` : ''}
+        
         ${partsHTML}
-        <div class="warehouse-order-actions">
+        
+        <div class="order-actions">
           ${isPending ? `
             <button class="warehouse-action-btn ready" onclick="markOrderReady('${orderId}')">
-              ✅ Hazır
+              ✅ Hazır Olarak İşaretle
             </button>
           ` : `
             <button class="warehouse-action-btn ready" disabled style="opacity: 0.5; cursor: not-allowed;">
@@ -3303,10 +3371,9 @@ async function restoreDashboard() {
             </button>
           `}
           <button class="warehouse-action-btn cancel" onclick="cancelOrder('${orderId}')">
-            🗑️ İptal
+            🗑️ İptal Et
           </button>
         </div>
-        <div class="warehouse-order-time">📅 ${order.timestampReadable}</div>
       `;
       
       return card;
@@ -3584,8 +3651,14 @@ async function restoreDashboard() {
     // USER EDIT FUNCTIONS
     // ========================================
     function openEditUserModal(uid, userData) {
+      console.log('✏️ openEditUserModal called', uid, userData);
       editingUserId = uid;
-      document.getElementById('editUserModal').classList.add('active');
+      const modal = document.getElementById('editUserModal');
+      console.log('Edit user modal element:', modal);
+      if (modal) {
+          modal.classList.add('active');
+          modal.style.display = 'flex'; // Force display
+      }
       document.getElementById('editUserEmail').textContent = userData.email;
       document.getElementById('editUserRole').value = userData.role || 'viewer';
       
@@ -3598,7 +3671,12 @@ async function restoreDashboard() {
     }
 
     function closeEditUserModal() {
-      document.getElementById('editUserModal').classList.remove('active');
+      console.log('❌ closeEditUserModal called');
+      const modal = document.getElementById('editUserModal');
+      if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+      }
       editingUserId = null;
     }
 
@@ -3655,7 +3733,11 @@ async function restoreDashboard() {
     }
 
     async function saveEditedUser() {
-      if (!editingUserId) return;
+      console.log('💾 saveEditedUser called', editingUserId);
+      if (!editingUserId) {
+        console.log('❌ No editingUserId');
+        return;
+      }
       
       const newRole = document.getElementById('editUserRole').value;
       
@@ -4687,7 +4769,7 @@ document.getElementById('navLogoutButton').addEventListener("click", () => {
           'SİLİNDİ': '🗑️ Silindi'
         };
 
-        let historyHTML = '<h4>📜 Geçmiş Hareketler</h4>';
+        let historyHTML = '<div class="history-header"><h4>📜 Geçmiş Hareketler</h4></div><div class="history-timeline">';
         
         historyArray.forEach((entry, index) => {
           const fromName = listNames[entry.from] || `🧑‍🔧 ${entry.from.charAt(0).toUpperCase() + entry.from.slice(1)}`;
@@ -4695,16 +4777,27 @@ document.getElementById('navLogoutButton').addEventListener("click", () => {
           const isCurrent = index === 0;
           
           historyHTML += `
-            <div class="history-item ${isCurrent ? 'current' : ''}">
-              <span class="history-action">
-                ${isCurrent ? '📍 Şu Anda: ' : '↪️ '} ${fromName} → ${toName}
-              </span>
-              <span class="history-user">👤 ${entry.user || 'Bilinmeyen'}</span>
-              <span class="history-time">🕒 ${entry.timestamp}</span>
+            <div class="history-card ${isCurrent ? 'history-current' : ''}">
+              <div class="history-card-header">
+                ${isCurrent ? '<span class="history-badge current">📍 Şu Anda</span>' : '<span class="history-badge past">↪️ Geçmiş</span>'}
+              </div>
+              <div class="history-card-body">
+                <div class="history-route">
+                  <span class="history-from">${fromName}</span>
+                  <span class="history-arrow">→</span>
+                  <span class="history-to">${toName}</span>
+                </div>
+                <div class="history-meta">
+                  <span class="history-user">👤 ${entry.user || 'Bilinmeyen'}</span>
+                  <span class="history-time">🕒 ${entry.timestamp}</span>
+                </div>
+                ${entry.reason ? `<div class="history-reason">📝 ${entry.reason}</div>` : ''}
+              </div>
             </div>
           `;
         });
         
+        historyHTML += '</div>';
         historyLog.innerHTML = historyHTML;
         historyLog.style.display = 'block';
       } catch (error) {
@@ -5192,7 +5285,7 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
           'SİLİNDİ': '🗑️ Silindi'
         };
 
-        let historyHTML = '<h4>📜 Geçmiş Hareketler</h4>';
+        let historyHTML = '<div class="history-header"><h4>📜 Geçmiş Hareketler</h4></div><div class="history-timeline">';
         
         historyArray.forEach((entry, index) => {
           const fromName = listNames[entry.from] || `🧑‍🔧 ${entry.from.charAt(0).toUpperCase() + entry.from.slice(1)}`;
@@ -5200,16 +5293,27 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
           const isCurrent = index === 0;
           
           historyHTML += `
-            <div class="history-item ${isCurrent ? 'current' : ''}">
-              <span class="history-action">
-                ${isCurrent ? '📍 Şu Anda: ' : '↪️ '} ${fromName} → ${toName}
-              </span>
-              <span class="history-user">👤 ${entry.user || 'Bilinmeyen'}</span>
-              <span class="history-time">🕒 ${entry.timestamp}</span>
+            <div class="history-card ${isCurrent ? 'history-current' : ''}">
+              <div class="history-card-header">
+                ${isCurrent ? '<span class="history-badge current">📍 Şu Anda</span>' : '<span class="history-badge past">↪️ Geçmiş</span>'}
+              </div>
+              <div class="history-card-body">
+                <div class="history-route">
+                  <span class="history-from">${fromName}</span>
+                  <span class="history-arrow">→</span>
+                  <span class="history-to">${toName}</span>
+                </div>
+                <div class="history-meta">
+                  <span class="history-user">👤 ${entry.user || 'Bilinmeyen'}</span>
+                  <span class="history-time">🕒 ${entry.timestamp}</span>
+                </div>
+                ${entry.reason ? `<div class="history-reason">📝 ${entry.reason}</div>` : ''}
+              </div>
             </div>
           `;
         });
         
+        historyHTML += '</div>';
         historyLog.innerHTML = historyHTML;
         historyLog.style.display = 'block';
       } catch (error) {
@@ -5349,8 +5453,14 @@ function renderMiniList(name) {
       SonKullanıcı: "waiting"
     };
     
+    // Teknisyen listesi kontrol - gokhan, yusuf, enes, samet, engin, mehmet, ismail
+    const technicianLists = ['gokhan', 'yusuf', 'enes', 'samet', 'engin', 'mehmet', 'ismail'];
+    
     if (specialClasses[name]) {
       div.classList.add(specialClasses[name]);
+    } else if (technicianLists.includes(name)) {
+      // Teknisyen listelerinde: tarandıysa yeşil (matched), taranmadıysa kırmızı (unmatched)
+      div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
     } else {
       div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
     }
@@ -6011,17 +6121,31 @@ function showFullBarcodeDetails(barcode) {
 
 
 function openResetDashboardModal() {
+    console.log('🔄 openResetDashboardModal called');
     // Modal'ı aç ve mevcut değerleri göster
+    const modal = document.getElementById('resetDashboardModal');
+    console.log('Modal element:', modal);
     document.getElementById('resetTeslimAlinan').textContent = dailyReceivedIMEIs.size;
     document.getElementById('resetTeslimEdilen').textContent = dailyDeliveredCount;
-    document.getElementById('resetDashboardModal').classList.add('active');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex'; // Force display
+        console.log('Modal class list:', modal.classList);
+        console.log('Modal style display:', modal.style.display);
+    }
 }
 
 function closeResetDashboardModal() {
-    document.getElementById('resetDashboardModal').classList.remove('active');
+    console.log('❌ closeResetDashboardModal called');
+    const modal = document.getElementById('resetDashboardModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
 }
 
 async function confirmResetDashboard() {
+    console.log('✅ confirmResetDashboard called');
     const todayDate = getTodayDateString();
     
     try {
@@ -6188,7 +6312,12 @@ function showConflictNotification(count) {
   
   if (notification && countElement) {
     countElement.textContent = count;
-    notification.style.display = 'block';
+    // Sadece çakışma varsa göster
+    if (count > 0) {
+      notification.style.display = 'block';
+    } else {
+      notification.style.display = 'none';
+    }
   }
 }
 
@@ -7190,7 +7319,12 @@ function showDataSyncNotification() {
   
   if (notification && countElement) {
     countElement.textContent = dataSyncMismatches.length;
-    notification.style.display = 'block';
+    // Sadece uyumsuzluk varsa göster
+    if (dataSyncMismatches.length > 0) {
+      notification.style.display = 'block';
+    } else {
+      notification.style.display = 'none';
+    }
   }
 }
 
