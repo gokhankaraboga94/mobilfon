@@ -1,953 +1,3036 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teknik Servis Cihaz Takip Sistemi</title>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <!-- ULTRA PROFESSIONAL DESIGN -->
-  <link rel="stylesheet" href="style_new.css">
+/* ========================================
+   🌟 MOBILFON TEKNİK SERVİS - ULTRA PROFESYONEL TASARIM
+   Modern, Şık ve Kullanıcı Dostu Arayüz
+   ======================================== */
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+/* ========================================
+   GLOBAL STYLES & RESET
+   ======================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-</head>
-<body>
-  <!-- TOAST CONTAINER -->
-  <div class="toast-container" id="toastContainer"></div> 
-
-  <!-- İNTERNET BAĞLANTISI UYARISI -->
-  <div id="connectionWarning" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 99999; justify-content: center; align-items: center; flex-direction: column;">
-    <div id="connectionWarningBox" style="background: linear-gradient(135deg, #e74c3c, #c0392b); padding: 40px 60px; border-radius: 20px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); max-width: 600px; animation: pulse 2s infinite;">
-      <div id="connectionIcon" style="font-size: 80px; margin-bottom: 20px;">📡❌</div>
-      <h1 id="connectionTitle" style="font-size: 32px; margin-bottom: 15px; color: #fff;">İNTERNET BAĞLANTISI KESİLDİ!</h1>
-      <p id="connectionMessage" style="font-size: 18px; margin-bottom: 20px; color: #ecf0f1;">
-        Database bağlantısı kurulamadı.<br>
-        <strong>Lütfen sistemi kullanmayın!</strong><br>
-        Girdiğiniz veriler kaydedilmeyecektir.
-      </p>
-      <div id="connectionStatus" style="font-size: 16px; color: #f39c12; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 10px;">
-        🔄 Bağlantı kontrol ediliyor...
-      </div>
-    </div>
-  </div>
-
-  <div class="conflict-notification" id="conflictNotification" onclick="openSyncModalFromNotification()" style="display: none;">
-  <div class="conflict-notification-header">
-    ⚠️ Çakışma Tespit Edildi!
-  </div>
-  <div class="conflict-notification-body">
-    <span class="conflict-notification-count" id="conflictCount">0</span> adet liste çakışması bulundu.
-    <br><strong>Tıklayarak düzeltin →</strong>
-  </div>
-</div>
-
-<!-- DATA SYNC VERIFICATION NOTIFICATION (SADECE ADMIN) -->
-<div class="data-sync-notification" id="dataSyncNotification" onclick="openDataSyncModal()" style="display: none;">
-  <div class="data-sync-notification-header">
-    🔄 Veri Uyumsuzluğu Tespit Edildi!
-  </div>
-  <div class="data-sync-notification-body">
-    <span class="data-sync-notification-count" id="dataSyncCount">0</span> adet uyumsuzluk bulundu.
-    <br><strong>Tıklayarak inceleyin ve düzeltin →</strong>
-  </div>
-</div>
-
-<!-- ADMIN NAV BAR -->
-<div class="admin-nav" id="adminNav">
-  <div class="nav-title">Mobilfon Teknik Servis Cihaz Takip Sistemi</div>
-  <div class="nav-content">
-    <!-- MEVCUT BUTONLAR -->
-    <div class="nav-buttons">
-      <button onclick="showMainView()" id="mainViewBtn">🏠 Ana Sayfa</button>
-      <button onclick="showReportsView()" id="reportsBtn">📊 Raporlar</button>
-      <button onclick="showSystemLogs()" id="systemLogsBtn" style="display: none;">📋 Sistem Logları</button>
-      <button onclick="openPriceList()" id="priceListBtn">💰 Fiyat Listesi Sistemi</button>
-      <button onclick="openAccounting()" id="accountingBtn">📒 Muhasebe Sistemi</button>
-      <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı Yönetimi</button>
-      
-    </div>
+:root {
+    /* Modern Color Palette - LIGHTENED */
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --dark-gradient: linear-gradient(135deg, #1a1f3a 0%, #2d3561 50%, #3d4a7a 100%);
     
-    <!-- MEVCUT NAV-BUTTONS DIV'İNDEN SONRA, NAV-SEARCH'TEN ÖNCE -->
-<button onclick="openResetDashboardModal()" id="resetDashboardBtn" class="reset-dashboard-btn">
-    🔄 Dashboard Sıfırla
-</button>
-
-    <!-- YENİ EKLENEN ARAMA ALANI -->
-    <div class="nav-search">
-      <input type="text" id="navSearchInput" placeholder="🔍 Barkod ara..." maxlength="15">
-      <div id="navSearchResult" class="nav-search-result"></div>
-    </div>
+    /* Glass Effect Colors - LIGHTENED */
+    --glass-bg: rgba(255, 255, 255, 0.15);
+    --glass-border: rgba(255, 255, 255, 0.25);
+    --glass-shadow: rgba(0, 0, 0, 0.1);
     
-    <!-- MEVCUT USER INFO -->
-    <div class="nav-user-info" id="navUserInfo" style="display: none;">
-      <span class="nav-user-name" id="navUserName">👤 Kullanıcı</span>
-      <button class="nav-logout-button" id="navLogoutButton">Çıkış</button>
-    </div>
-  </div>
-</div>
-
-
-
-
-<!-- REPORTS MODAL -->
-<div class="reports-modal" id="reportsModal">
-  <div class="reports-content">
-    <div class="reports-header">
-      <h2>📊 Günlük Raporlar</h2>
-      <!-- close-reports butonunu güncelleyin -->
-      <button class="close-reports" onclick="closeReportsModalWithoutNavigation()">✕</button>
-    </div>
+    /* Text Colors */
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.85);
+    --text-dark: #2c3e50;
     
-<div class="report-filters">
-  <div class="filter-group">
-    <label>📅 Başlangıç Tarihi</label>
-    <input type="date" id="reportStartDate">
-  </div>
-  
-  <div class="filter-group">
-    <label>📅 Bitiş Tarihi</label>
-    <input type="date" id="reportEndDate">
-  </div>
-      
-      <div class="filter-group">
-        <label>📋 Liste Seçin</label>
-        <select id="reportList">
- <option value="">Tümü</option>
-  <option value="partOrders">🔧 Teknisyen Adetleri/Parça İstekleri</option>
-  <option value="atanacak">📋 Atanacak</option>
-  <option value="parcaBekliyor">⚙️ Parça Bekliyor</option>
-  <option value="phonecheck">📱 PhoneCheck</option>
-  <option value="gokhan">🧑‍🔧 Gökhan</option>
-  <option value="enes">🧑‍🔧 Enes</option>
-  <option value="yusuf">🧑‍🔧 Yusuf</option>
-  <option value="samet">🧑‍🔧 Samet</option>
-
-  <option value="engin">🧑‍🔧 Engin</option>
-  <option value="ismail">🧑‍🔧 İsmail</option>
-  <option value="mehmet">🧑‍🔧 Mehmet</option>
-  <option value="onarim">🔧 Onarım Tamamlandı</option>
-  <option value="onCamDisServis">🔨 Ön Cam Dış Servis</option>      <!-- YENİ EKLENDİ -->
-  <option value="anakartDisServis">🔨 Anakart Dış Servis</option>  <!-- YENİ EKLENDİ -->
-  <option value="satisa">💰 Satışa Gidecek</option>
-  <option value="SonKullanıcı">SonKullanıcı</option>
-  <option value="sahiniden">🏪 Sahibinden</option>
-  <option value="mediaMarkt">🛒 Media Markt</option>
-  <option value="teslimEdilenler">✅ Teslim Edilenler</option>
-   <option value="serviceReturn">🔄 Servise Geri Dönenler</option>
-    <option value="dailyReceived">📥 Bugün Teslim Alınan</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Bu butonu report-filters'ın hemen altına ekleyin -->
-<button class="clear-filters-btn" onclick="clearDetailFilters()" style="display: none;" id="clearFiltersBtn">
-  🗑️ Filtreleri Temizle
-</button>
+    /* Spacing */
+    --spacing-xs: 8px;
+    --spacing-sm: 12px;
+    --spacing-md: 20px;
+    --spacing-lg: 30px;
+    --spacing-xl: 40px;
     
-    <button class="generate-report-btn" onclick="generateReport()">
-      📊 Rapor Oluştur
-    </button>
-
-    <button class="export-excel-btn" onclick="exportToExcel()" id="exportExcelBtn" disabled>
-  📊 Excel'e Aktar
-</button>
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
     
-    <div class="report-results" id="reportResults">
-      <!-- Results will be displayed here -->
-    </div>
-  </div>
-</div>
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.25);
+}
 
-  <!-- MODAL FOR USER MANAGEMENT (ADD) -->
-  <div class="modal-overlay" id="addUserModal">
-    <div class="modal">
-      <h2>➕ Yeni Kullanıcı Ekle</h2>
-      <input type="email" id="newUserEmail" class="modal-input" placeholder="E-posta adresi (örn: ahmet@servis.com)">
-      <input type="password" id="newUserPassword" class="modal-input" placeholder="Şifre (min. 6 karakter)">
-      <select id="newUserRole" class="modal-input" onchange="handleRoleChange()">
-        <option value="viewer">👁️ Görüntüleyici (Viewer)</option>
-        <option value="editor">✏️ Düzenleyici (Editor)</option>
-        <option value="semi-admin">👔 Yarı Admin (Semi-Admin)</option>
-        <option value="technician">🔧 Teknisyen (Technician)</option>
-        <option value="warehouse">📦 Depocu (Warehouse)</option>
-      </select>
-      
-      <!-- Teknisyen İzinleri -->
-      <div id="technicianPermissions" style="display: none;">
-        <h3 style="margin: 15px 0 10px 0; font-size: 16px;">🔑 Teknisyen İzinleri</h3>
-        <div class="permissions-grid" id="permissionsGrid"></div>
-      </div>
-      
-      <div class="modal-buttons">
-        <button class="modal-button secondary" onclick="closeAddUserModal()">İptal</button>
-        <button class="modal-button primary" onclick="addNewUser()">Kullanıcı Ekle</button>
-      </div>
-    </div>
-  </div>
+body {
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 140px 30px 30px 30px;
+    background: var(--dark-gradient);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
 
-  <!-- MODAL FOR USER MANAGEMENT (EDIT) -->
-  <div class="modal-overlay" id="editUserModal">
-    <div class="modal">
-      <h2>✏️ Kullanıcı Düzenle</h2>
-      <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-        <strong>Email:</strong> <span id="editUserEmail"></span>
-      </div>
-      <select id="editUserRole" class="modal-input" onchange="handleEditRoleChange()">
-        <option value="viewer">👁️ Görüntüleyici (Viewer)</option>
-        <option value="editor">✏️ Düzenleyici (Editor)</option>
-        <option value="semi-admin">👔 Yarı Admin (Semi-Admin)</option>
-        <option value="technician">🔧 Teknisyen (Technician)</option>
-        <option value="warehouse">📦 Depocu (Warehouse)</option>
-      </select>
-      
-      <!-- Teknisyen İzinleri -->
-      <div id="editTechnicianPermissions" style="display: none;">
-        <h3 style="margin: 15px 0 10px 0; font-size: 16px;">🔑 Teknisyen İzinleri</h3>
-        <div class="permissions-grid" id="editPermissionsGrid"></div>
-      </div>
-      
-      <div class="modal-buttons">
-        <button class="modal-button secondary" onclick="closeEditUserModal()">İptal</button>
-        <button class="modal-button primary" onclick="saveEditedUser()">Kaydet</button>
-      </div>
-    </div>
-  </div>
+/* Animated Background - LIGHTENED */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(245, 87, 108, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(79, 172, 254, 0.25) 0%, transparent 50%);
+    animation: backgroundMove 20s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
 
-  <!-- MODAL FOR EDIT BARCODE -->
-  <div class="modal-overlay" id="editBarcodeModal">
-    <div class="modal">
-      <h2>✏️ Barkod Düzenle</h2>
-      <input type="text" id="editBarcodeInput" class="modal-input" placeholder="Yeni barkod (15 haneli)" maxlength="15">
-      <div class="modal-buttons">
-        <button class="modal-button secondary" onclick="closeEditBarcodeModal()">İptal</button>
-        <button class="modal-button primary" onclick="saveEditedBarcode()">Kaydet</button>
-      </div>
-    </div>
-  </div>
+@keyframes backgroundMove {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+}
 
-  <!-- MODAL FOR PART ORDER (TECHNICIAN) -->
-  <div class="modal-overlay" id="partOrderModal">
-    <div class="modal">
-      <h2>🔧 Parça Sipariş Et</h2>
-      <div class="part-order-form">
-        <div>
-          <label>15 Haneli Barkod:</label>
-          <input type="text" id="partOrderBarcode" class="modal-input" placeholder="Örn: 123456789012345" maxlength="15">
-        </div>
-        
-        <div>
-          <label>Cihaz Modeli:</label>
-          <select id="partOrderModel" class="modal-input">
-            <option value="">-- Model Seçiniz --</option>
-            <option value="İPHONE 11">İPHONE 11</option>
-            <option value="İPHONE 11 PRO">İPHONE 11 PRO</option>
-            <option value="İPHONE 11 PRO MAX">İPHONE 11 PRO MAX</option>
-            <option value="İPHONE 12">İPHONE 12</option>
-            <option value="İPHONE 12 MİNİ">İPHONE 12 MİNİ</option>
-            <option value="İPHONE 12 PRO">İPHONE 12 PRO</option>
-            <option value="İPHONE 12 PROMAX">İPHONE 12 PROMAX</option>
-            <option value="İPHONE 13">İPHONE 13</option>
-            <option value="İPHONE 13 MİNİ">İPHONE 13 MİNİ</option>
-            <option value="İPHONE 13 PRO">İPHONE 13 PRO</option>
-            <option value="İPHONE 13 PROMAX">İPHONE 13 PROMAX</option>
-            <option value="İPHONE 14">İPHONE 14</option>
-            <option value="İPHONE 14 PLUS">İPHONE 14 PLUS</option>
-            <option value="İPHONE 14 PRO">İPHONE 14 PRO</option>
-            <option value="İPHONE 14 PROMAX">İPHONE 14 PROMAX</option>
-            <option value="İPHONE 15">İPHONE 15</option>
-            <option value="İPHONE 15 PLUS">İPHONE 15 PLUS</option>
-            <option value="İPHONE 15 PRO">İPHONE 15 PRO</option>
-            <option value="İPHONE 15 PROMAX">İPHONE 15 PROMAX</option>
-            <option value="İPHONE 16">İPHONE 16</option>
-            <option value="İPHONE 16 PRO">İPHONE 16 PRO</option>
-            <option value="İPHONE 16 PROMAX">İPHONE 16 PROMAX</option>
-            <option value="İPHONE X">İPHONE X</option>
-            <option value="İPHONE XR">İPHONE XR</option>
-            <option value="İPHONE XS">İPHONE XS</option>
-            <option value="İPHONE XS MAX">İPHONE XS MAX</option>
-            <option value="İPHONE 8 PLUS">İPHONE 8 PLUS</option>
-            <option value="İPHONE SE 2020">İPHONE SE 2020</option>
-            <option value="LG">LG</option>
-            <option value="Mİ 10 LİTE">Mİ 10 LİTE</option>
-            <option value="REALME C21">REALME C21</option>
-            <option value="REDMİ 12">REDMİ 12</option>
-            <option value="REDMİ 12PRO">REDMİ 12PRO</option>
-            <option value="REDMİ 13">REDMİ 13</option>
-            <option value="SAMSUNG A03">SAMSUNG A03</option>
-            <option value="SAMSUNG A06">SAMSUNG A06</option>
-            <option value="SAMSUNG A12">SAMSUNG A12</option>
-            <option value="SAMSUNG A13">SAMSUNG A13</option>
-            <option value="SAMSUNG A14">SAMSUNG A14</option>
-            <option value="SAMSUNG A23">SAMSUNG A23</option>
-            <option value="SAMSUNG A24">SAMSUNG A24</option>
-            <option value="SAMSUNG A34">SAMSUNG A34</option>
-            <option value="SAMSUNG A35">SAMSUNG A35</option>
-            <option value="SAMSUNG A52">SAMSUNG A52</option>
-            <option value="SAMSUNG A53">SAMSUNG A53</option>
-            <option value="SAMSUNG A54">SAMSUNG A54</option>
-            <option value="SAMSUNG A72">SAMSUNG A72</option>
-            <option value="SAMSUNG A73">SAMSUNG A73</option>
-            <option value="SAMSUNG M51">SAMSUNG M51</option>
-            <option value="SAMSUNG NOTE 20 ULTRA">SAMSUNG NOTE 20 ULTRA</option>
-            <option value="SAMSUNG NOTE 3">SAMSUNG NOTE 3</option>
-            <option value="SAMSUNG S20">SAMSUNG S20</option>
-            <option value="SAMSUNG S20 FE">SAMSUNG S20 FE</option>
-            <option value="SAMSUNG S20 ULTRA">SAMSUNG S20 ULTRA</option>
-            <option value="SAMSUNG S21 FE">SAMSUNG S21 FE</option>
-            <option value="SAMSUNG S21 PLUS">SAMSUNG S21 PLUS</option>
-            <option value="SAMSUNG S21 ULTRA">SAMSUNG S21 ULTRA</option>
-            <option value="SAMSUNG S22">SAMSUNG S22</option>
-            <option value="SAMSUNG S22+">SAMSUNG S22+</option>
-            <option value="SAMSUNG S22 ULTRA">SAMSUNG S22 ULTRA</option>
-            <option value="SAMSUNG S23">SAMSUNG S23</option>
-            <option value="SAMSUNG S23 PLUS">SAMSUNG S23 PLUS</option>
-            <option value="SAMSUNG S23 FE">SAMSUNG S23 FE</option>
-            <option value="SAMSUNG S23 ULTRA">SAMSUNG S23 ULTRA</option>
-            <option value="SAMSUNG S24">SAMSUNG S24</option>
-            <option value="SAMSUNG S24 PLUS">SAMSUNG S24 PLUS</option>
-            <option value="SAMSUNG S24 ULTRA">SAMSUNG S24 ULTRA</option>
-            <option value="OMİX X400">OMİX X400</option>
-          </select>
-        </div>
-        
-        <div>
-          <label>Müşteri / Bayi (İsteğe Bağlı):</label>
-          <select id="partOrderCustomer" class="modal-input">
-            <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-            <option value="TEŞHİS">TEŞHİS</option>
-            <option value="SAHİBİNDEN">SAHİBİNDEN</option>
-            <option value="DEPO">DEPO</option>
-            <option value="YENİLİYO">YENİLİYO</option>
-            <option value="MEDİAMARKT">MEDİAMARKT</option>
-            <option value="LETGO">LETGO</option>
-            <option value="TURKCELL">TURKCELL</option>
-            <option value="TELEKOM">TELEKOM</option>
-            <option value="BAYER">BAYER</option>
-            <option value="SATIŞ">SATIŞ</option>
-            <option value="KALİTE KONTROL">KALİTE KONTROL</option>
-            <option value="YÖNETİM">YÖNETİM</option>
-            <option value="BİGBOSS">BİGBOSS</option>
-            <option value="MUHASEBE">MUHASEBE</option>
-            <option value="YAZILIM">YAZILIM</option>
-            <option value="SON KULLANICI">SON KULLANICI</option>
-            <option value="DIŞ SERVİS">DIŞ SERVİS</option>
-            <option value="FİRMA İÇİ ÇALIŞAN">FİRMA İÇİ ÇALIŞAN</option>
-            <option value="KARGO">KARGO</option>
-            <option value="HEPSİBURADA">HEPSİBURADA</option>
-          </select>
-        </div>
-        
-        <div>
-          <label>Statü (İsteğe Bağlı):</label>
-          <select id="partOrderStatus" class="modal-input">
-            <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-            <option value="ÜRETİME UYGUN DEĞİL">ÜRETİME UYGUN DEĞİL</option>
-            <option value="İADE">İADE</option>
-            <option value="ÜRETİM">ÜRETİM</option>
-            <option value="PARÇA BEKLİYOR">PARÇA BEKLİYOR</option>
-            <option value="DIŞ SERVİS">DIŞ SERVİS</option>
-            <option value="FİYAT ONAYI">FİYAT ONAYI</option>
-            <option value="SERVİS TEKRARI">SERVİS TEKRARI</option>
-            <option value="KONTROL">KONTROL</option>
-            <option value="SERTİFİKA">SERTİFİKA</option>
-          </select>
-        </div>
-        
-        <div>
-          <label>Hizmetler (İsteğe Bağlı):</label>
-          <select id="partOrderService" class="modal-input">
-            <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-            <option value="YÜKSELTME">YÜKSELTME</option>
-            <option value="CAM SİLME">CAM SİLME</option>
-            <option value="YAZILIM YÜKLEME">YAZILIM YÜKLEME</option>
-            <option value="SWAP KARARI">SWAP KARARI</option>
-            <option value="TEMİZLİK">TEMİZLİK</option>
-            <option value="KASA PARLATMA">KASA PARLATMA</option>
-            <option value="İMEİ KONTROL">İMEİ KONTROL</option>
-            <option value="LEHİM İŞLEM">LEHİM İŞLEM</option>
-            <option value="GENEL BAKIM">GENEL BAKIM</option>
-            <option value="İADE DEPO">İADE DEPO</option>
-            <option value="MÜŞTERİ İADE">MÜŞTERİ İADE</option>
-            <option value="ONARIM">ONARIM</option>
-            <option value="ARKA KAPAK YAPIŞTIRMA">ARKA KAPAK YAPIŞTIRMA</option>
-            <option value="EKRAN BANDI YENİLEME">EKRAN BANDI YENİLEME</option>
-          </select>
-        </div>
-        
-        <div>
-          <label>Not (İsteğe Bağlı):</label>
-          <textarea id="partOrderNote" class="modal-input" placeholder="Eklemek istediğiniz notlar..." rows="3" style="resize: vertical;"></textarea>
-        </div>
-        
-        <div>
-          <label>İstenilen Parçalar (1-4 adet):</label>
-          <div class="part-inputs-grid">
-            <div class="part-input-group">
-              <label>Parça 1:</label>
-              <input type="text" id="partOrderPart1" placeholder="Örn: Batarya">
-            </div>
-            <div class="part-input-group">
-              <label>Parça 2:</label>
-              <input type="text" id="partOrderPart2" placeholder="Opsiyonel">
-            </div>
-            <div class="part-input-group">
-              <label>Parça 3:</label>
-              <input type="text" id="partOrderPart3" placeholder="Opsiyonel">
-            </div>
-            <div class="part-input-group">
-              <label>Parça 4:</label>
-              <input type="text" id="partOrderPart4" placeholder="Opsiyonel">
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="modal-buttons">
-        <button class="modal-button secondary" onclick="closePartOrderModal()">İptal</button>
-        <button class="modal-button primary" onclick="submitPartOrder()">İstek Gönder</button>
-      </div>
-    </div>
-  </div>
+/* ========================================
+   ADMIN NAVIGATION BAR
+   ======================================== */
+.admin-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(30, 35, 60, 0.95);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    padding: 10px 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 
+                0 1px 0 rgba(255, 255, 255, 0.15) inset;
+    z-index: 10000;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-  <!-- PROFESYONEL LOGIN EKRANI -->
-  <div id="loginScreen" class="login-container">
-    <div class="login-box">
-      <div class="login-header">
-        <div class="login-icon">🔧</div>
-        <h2>Mobilfon Teknik Servis Girişi</h2>
-        <p>Cihaz Takip Sistemi</p>
-      </div>
-      <div class="login-form">
-        <div class="input-group">
-          <span class="input-icon">📧</span>
-          <input type="email" id="emailInput" class="login-input" placeholder="E-posta adresiniz" autocomplete="email">
-        </div>
-        <div class="input-group">
-          <span class="input-icon">🔒</span>
-          <input type="password" id="passwordInput" class="login-input" placeholder="Şifreniz" autocomplete="current-password">
-        </div>
-        <div id="errorMessage" class="error-message"></div>
-        <button id="loginButton" class="login-button">Giriş Yap</button>
-      </div>
-      <div class="login-footer">
-        <p>© 2025 Teknik Servis Sistemi</p>
-      </div>
-    </div>
-  </div>
+.nav-title {
+    font-size: 26px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #667eea 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 1px;
+    text-align: center;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    position: relative;
+    padding: 8px 0;
+    filter: drop-shadow(0 3px 15px rgba(79, 172, 254, 0.5));
+}
 
+.nav-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #4facfe, #00f2fe, #667eea, transparent);
+    border-radius: 2px;
+}
 
+.nav-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
 
-  <div id="appContainer" class="app-container">
-  
-   <!-- DASHBOARD PANEL - ADMIN PANELİN HEMEN ALTINDA SABİT -->
-<div id="dashboardPanel" class="dashboard-panel" style="display: none;">
-  <div class="dashboard-header">
-    <h2>📊 Günlük Dashboard</h2>
-    <div class="dashboard-date" id="dashboardDate">Yükleniyor...</div>
-    <button id="restoreDashboardBtn" onclick="restoreDashboard()" style="display: none; padding: 10px 18px; background: linear-gradient(135deg, #27ae60, #229954); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-left: 15px; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);">
-      ♻️ Geri Yükle
-    </button>
-  </div>
-  
-  <div class="dashboard-stats">
-    <div class="dashboard-stat-card">
-      <span class="dashboard-stat-icon">📥</span>
-      <div class="dashboard-stat-label">Bugün Teslim Alınan</div>
-      <div class="dashboard-stat-value" id="dashboardTeslimAlinan">0</div>
-    </div>
+.nav-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.nav-buttons button {
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-buttons button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.nav-buttons button:hover::before {
+    left: 100%;
+}
+
+.nav-buttons button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+}
+
+.nav-buttons button.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: transparent;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+/* Reset Dashboard Button */
+.reset-dashboard-btn,
+#resetDashboardBtn {
+    display: none; /* JS will control visibility */
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    z-index: 100;
+    position: relative;
+}
+
+.reset-dashboard-btn:hover,
+#resetDashboardBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+/* Navigation Search */
+.nav-search {
+    position: relative;
+    min-width: 250px;
+}
+
+.nav-search input {
+    width: 100%;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.nav-search input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.nav-search input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.nav-search-result {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 8px;
+    background: rgba(26, 26, 46, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+/* User Info */
+.nav-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    margin-left: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.nav-logout-button {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+}
+
+.nav-logout-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+}
+
+/* ========================================
+   TOAST NOTIFICATIONS
+   ======================================== */
+.toast-container {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.toast {
+    min-width: 300px;
+    padding: 16px 20px;
+    background: rgba(35, 40, 70, 0.98);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.toast.success {
+    border-left: 4px solid #4facfe;
+}
+
+.toast.error {
+    border-left: 4px solid #f5576c;
+}
+
+.toast.warning {
+    border-left: 4px solid #fee140;
+}
+
+.toast.info {
+    border-left: 4px solid #667eea;
+}
+
+/* ========================================
+   CONFLICT & SYNC NOTIFICATIONS
+   ======================================== */
+.conflict-notification,
+.data-sync-notification {
+    position: fixed;
+    top: 100px;
+    left: 20px;
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    box-shadow: var(--shadow-xl);
+    border: 2px solid #f5576c;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 9999;
+    max-width: 350px;
+    animation: pulse 2s infinite;
+}
+
+.data-sync-notification {
+    top: 180px;
+    border-color: #fee140;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(245, 87, 108, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 15px rgba(245, 87, 108, 0);
+    }
+}
+
+.conflict-notification:hover,
+.data-sync-notification:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-xl), 0 0 30px rgba(245, 87, 108, 0.5);
+}
+
+.conflict-notification-header,
+.data-sync-notification-header {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #f5576c;
+}
+
+.data-sync-notification-header {
+    color: #fee140;
+}
+
+.conflict-notification-body,
+.data-sync-notification-body {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.conflict-notification-count,
+.data-sync-notification-count {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f5576c;
+}
+
+.data-sync-notification-count {
+    color: #fee140;
+}
+
+/* ========================================
+   DASHBOARD PANEL
+   ======================================== */
+.dashboard-panel {
+    background: rgba(40, 45, 75, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f5576c, #4facfe);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.dashboard-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.dashboard-date {
+    font-size: 12px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#restoreDashboardBtn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #27ae60, #229954);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+#restoreDashboardBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.dashboard-stat-card {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4facfe, #00f2fe);
+}
+
+.dashboard-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.25);
+    border-color: rgba(79, 172, 254, 0.4);
+}
+
+.dashboard-stat-icon {
+    font-size: 32px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.dashboard-stat-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+}
+
+.dashboard-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #4facfe;
+}
+
+.dashboard-details {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-details h3 {
+    font-size: 14px;
+    margin-bottom: 15px;
+    color: var(--text-secondary);
+}
+
+.dashboard-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    border-left: 3px solid #667eea;
+    transition: all 0.3s ease;
+}
+
+.dashboard-detail-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(5px);
+}
+
+.dashboard-detail-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.dashboard-detail-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #667eea;
+}
+
+/* ========================================
+   ADMIN PANEL
+   ======================================== */
+#adminPanel {
+    display: none;
+    background: rgba(40, 45, 75, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+#adminPanel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #4facfe, #00f2fe);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+}
+
+#adminPanel h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.admin-stat-box {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-stat-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.admin-stat-box:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.admin-stat-box .label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.admin-stat-box .value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #667eea;
+}
+
+/* Admin Search Area */
+#adminPanel textarea {
+    width: 100%;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+#adminPanel textarea:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+#searchResult {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(79, 172, 254, 0.2);
+    border-radius: var(--radius-md);
+    border-left: 4px solid #4facfe;
+    min-height: 40px;
+    display: none;
+}
+
+.history-log {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-top: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.history-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.history-header h4 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+
+.history-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.history-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+}
+
+.history-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.4);
+}
+
+.history-card.history-current {
+    background: rgba(79, 172, 254, 0.15);
+    border-color: #4facfe;
+    border-left: 4px solid #4facfe;
+}
+
+.history-card-header {
+    margin-bottom: 10px;
+}
+
+.history-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.history-badge.current {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+    border: 1px solid #4facfe;
+}
+
+.history-badge.past {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.history-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.history-route {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.history-from {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.history-arrow {
+    color: #4facfe;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.history-to {
+    color: #ffffff;
+}
+
+.history-meta {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.history-user,
+.history-time {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.history-reason {
+    background: rgba(241, 196, 15, 0.15);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    border-left: 3px solid #f1c40f;
+    margin-top: 5px;
+}
+
+.no-history {
+    padding: 20px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+/* ========================================
+   USER MANAGEMENT
+   ======================================== */
+.user-management {
+    background: rgba(40, 45, 75, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-radius: var(--radius-xl);
+    padding: 30px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: var(--shadow-lg);
+}
+
+.user-management h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.user-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.user-card {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.user-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.add-user-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.add-user-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* ========================================
+   WAREHOUSE PANEL
+   ======================================== */
+.warehouse-panel {
+    background: rgba(40, 45, 75, 0.7);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: var(--shadow-lg);
+}
+
+.warehouse-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.warehouse-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.warehouse-stat {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.warehouse-stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.warehouse-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #4facfe;
+}
+
+.mark-all-ready-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #27ae60, #229954);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+}
+
+.mark-all-ready-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+}
+
+/* ========================================
+   MAIN LAYOUT - SECTIONS
+   ======================================== */
+.main-layout {
+    display: flex;
+    gap: 25px;
+    width: 100%;
+    max-width: 100%;
+    padding: 0 5px;
+    margin-top: 40px;
+}
+
+.left-side,
+.middle-side,
+.right-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.section {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(15px) saturate(180%);
+    border-radius: var(--radius-lg);
+    padding: 25px;
+    margin-top: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.section:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(102, 126, 234, 0.25);
+    border-color: rgba(102, 126, 234, 0.4);
+}
+
+.section:hover::before {
+    opacity: 1;
+}
+
+.section label {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 13px;
+    resize: vertical;
+    font-family: 'Courier New', monospace;
+    transition: all 0.3s ease;
+}
+
+.section textarea:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.section textarea::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.mini-list {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ACTUAL CLASS USED IN JAVASCRIPT */
+.mini-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(12px);
+    border-radius: var(--radius-md);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    font-size: 14px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    margin-bottom: 8px;
+}
+
+.mini-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(102, 126, 234, 0.7);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+/* TEKNISYEN BARKOD RENK SİSTEMİ - KIRMIZI/YEŞİL */
+.mini-item.unmatched {
+    background: rgba(231, 76, 60, 0.2) !important;
+    border-color: #e74c3c !important;
+    border-left: 4px solid #e74c3c !important;
+}
+
+.mini-item.unmatched:hover {
+    background: rgba(231, 76, 60, 0.3) !important;
+    border-color: #c0392b !important;
+}
+
+.mini-item.matched {
+    background: rgba(46, 204, 113, 0.2) !important;
+    border-color: #2ecc71 !important;
+    border-left: 4px solid #2ecc71 !important;
+}
+
+.mini-item.matched:hover {
+    background: rgba(46, 204, 113, 0.3) !important;
+    border-color: #27ae60 !important;
+}
+
+/* LEGACY CLASS - KEEPING FOR COMPATIBILITY */
+.mini-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 18px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 8px;
+}
+
+.mini-list-item:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(102, 126, 234, 0.6);
+    transform: translateX(5px) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.barcode-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.barcode-number {
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.barcode-timestamp {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+}
+
+/* MINI ITEM SPECIFIC STYLES */
+.mini-item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    color: #ffffff;
+}
+
+.mini-item-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.75);
+    margin-top: 5px;
+    font-weight: 500;
+}
+
+.mini-item-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.item-action-btn {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer !important;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    pointer-events: auto !important;
+    z-index: 10 !important;
+    position: relative !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.item-action-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05) translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.item-action-btn.edit {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    border-color: transparent;
+}
+
+.item-action-btn.delete {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    border-color: transparent;
+}
+
+.barcode-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.barcode-actions button {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer !important;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    pointer-events: auto !important;
+    z-index: 10 !important;
+    position: relative !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.barcode-actions button:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05) translateY(-1px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* ========================================
+   MODALS
+   ======================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002 !important;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: flex !important;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal {
+    background: rgba(35, 40, 70, 0.98);
+    backdrop-filter: blur(30px) saturate(180%);
+    border-radius: var(--radius-xl);
+    padding: 35px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: var(--shadow-xl);
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f5576c);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.modal h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.modal-input {
+    width: 100%;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.modal-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+}
+
+.modal-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* SELECT DROPDOWN IMPROVEMENTS */
+.modal-input option {
+    background: #2d3561;
+    color: #ffffff;
+    padding: 10px;
+}
+
+.modal-input select {
+    cursor: pointer;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.modal-button {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto !important;
+    z-index: 100 !important;
+    position: relative !important;
+}
+
+.modal-button.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    border: none;
+}
+
+.modal-button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.modal-button.secondary {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    color: var(--text-primary);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.modal-button.secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+}
+
+/* ========================================
+   REPORTS MODAL
+   ======================================== */
+.reports-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002;
+}
+
+.reports-modal.active {
+    display: flex;
+}
+
+.reports-content {
+    background: rgba(35, 40, 70, 0.98);
+    backdrop-filter: blur(30px) saturate(180%);
+    border-radius: var(--radius-xl);
+    padding: 35px;
+    max-width: 1200px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: var(--shadow-xl);
+}
+
+.reports-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.reports-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.close-reports {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.close-reports:hover {
+    background: rgba(245, 87, 108, 0.3);
+    border-color: #f5576c;
+    transform: rotate(90deg);
+}
+
+.report-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-bottom: 25px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-group label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: var(--radius-md);
+    color: #ffffff;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.22);
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+}
+
+.filter-group select option {
+    background: #2d3561;
+    color: #ffffff;
+    padding: 12px;
+    font-weight: 500;
+}
+
+.generate-report-btn,
+.export-excel-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.generate-report-btn:hover,
+.export-excel-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.export-excel-btn {
+    background: linear-gradient(135deg, #27ae60, #229954);
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+}
+
+.export-excel-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.report-results {
+    margin-top: 25px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.report-results.active {
+    display: block;
+}
+
+/* REPORT SUMMARY CARDS */
+.report-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+}
+
+.summary-card .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-card .value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #667eea;
+}
+
+/* USER STATS */
+.user-stats {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-stats h4 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #ffffff;
+}
+
+.user-stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    border-left: 3px solid #667eea;
+    transition: all 0.3s ease;
+}
+
+.user-stat-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateX(5px);
+}
+
+.user-stat-name {
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.user-stat-count {
+    font-weight: 700;
+    color: #4facfe;
+    font-size: 16px;
+}
+
+/* DETAIL FILTERS */
+.detail-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-filter-input {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: #ffffff;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.detail-filter-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.detail-filter-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.filter-info {
+    padding: 12px 15px;
+    background: rgba(79, 172, 254, 0.15);
+    border-radius: var(--radius-sm);
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 600;
+    border-left: 4px solid #4facfe;
+}
+
+/* DETAIL LIST CONTAINER */
+.detail-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.detail-item {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.detail-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+}
+
+.detail-item .barcode {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    color: #4facfe;
+    margin-bottom: 10px;
+}
+
+.detail-item .info {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 6px;
+    line-height: 1.6;
+}
+
+/* NO RESULTS */
+.no-results {
+    text-align: center;
+    padding: 60px 20px;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ========================================
+   LOGIN SCREEN
+   ======================================== */
+.login-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dark-gradient);
+    z-index: 10000;
+    padding: 20px;
+}
+
+.login-box {
+    background: rgba(35, 40, 70, 0.98);
+    backdrop-filter: blur(30px) saturate(180%);
+    border-radius: var(--radius-xl);
+    padding: 50px;
+    max-width: 450px;
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: var(--shadow-xl);
+    animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f5576c, #4facfe);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.login-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.login-header h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.login-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.input-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    z-index: 1;
+}
+
+.login-input {
+    width: 100%;
+    padding: 15px 15px 15px 50px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 15px;
+    transition: all 0.3s ease;
+}
+
+.login-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.login-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.error-message {
+    color: #f5576c;
+    font-size: 13px;
+    margin-bottom: 15px;
+    text-align: center;
+    min-height: 20px;
+}
+
+.login-button {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.login-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-footer p {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ========================================
+   PART ORDER BUTTON (FLOATING)
+   ======================================== */
+.part-order-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    padding: 15px 25px;
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    border: none;
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+    cursor: pointer !important;
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: auto !important;
+    white-space: nowrap;
+}
+
+.part-order-button:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 12px 35px rgba(46, 204, 113, 0.5);
+    background: linear-gradient(135deg, #27ae60, #229954);
+}
+
+/* ========================================
+   RESET MODAL
+   ======================================== */
+.reset-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10003;
+}
+
+.reset-modal {
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(30px);
+    border-radius: var(--radius-xl);
+    padding: 40px;
+    max-width: 500px;
+    width: 90%;
+    border: 2px solid #f5576c;
+    box-shadow: var(--shadow-xl), 0 0 50px rgba(245, 87, 108, 0.3);
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reset-modal h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #f5576c;
+}
+
+.reset-modal p {
+    line-height: 1.8;
+    margin-bottom: 25px;
+    font-size: 14px;
+}
+
+.reset-modal-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.reset-modal-btn {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer !important;
+    transition: all 0.3s ease;
+    pointer-events: auto !important;
+    z-index: 100 !important;
+    position: relative !important;
+}
+
+.reset-modal-btn.cancel {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.reset-modal-btn.cancel:hover {
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+}
+
+.reset-modal-btn.confirm {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
+    border: none;
+}
+
+.reset-modal-btn.confirm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
+}
+
+/* ========================================
+   PERMISSIONS GRID
+   ======================================== */
+.permissions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+}
+
+.permission-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.permission-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.permission-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* ========================================
+   PART ORDER FORM
+   ======================================== */
+
+/* TECHNICIAN ORDER CARDS */
+.part-order-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+    margin-bottom: 12px;
+}
+
+.part-order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+    border-color: rgba(102, 126, 234, 0.5);
+    background: rgba(255, 255, 255, 0.13);
+}
+
+.part-order-card.ready {
+    border-left: 3px solid #2ecc71;
+}
+
+.part-order-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.part-inputs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.part-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.part-input-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.part-input-group input {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 13px;
+    transition: all 0.3s ease;
+}
+
+.part-input-group input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #667eea;
+}
+
+/* ========================================
+   SCROLLBAR STYLING
+   ======================================== */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/* TABLET & SMALLER DESKTOP (1200px) */
+@media (max-width: 1200px) {
+    .main-layout {
+        flex-direction: column;
+    }
     
-    <div class="dashboard-stat-card">
-      <span class="dashboard-stat-icon">📤</span>
-      <div class="dashboard-stat-label">Bugün Teslim Edilen</div>
-      <div class="dashboard-stat-value" id="dashboardTeslimEdilen">0</div>
-    </div>
-  </div>
-  
- <div class="dashboard-details">
-    <h3>📋 Teslim Alınan Kaynak Dağılımı</h3>
-    <div class="dashboard-detail-item">
-      <span class="dashboard-detail-label">Atanacak(Teşhis)</span>
-      <span class="dashboard-detail-value" id="dashboardAtanacakCount">0</span>
-    </div>
-    <div class="dashboard-detail-item">
-      <span class="dashboard-detail-label">SonKullanıcı</span>
-      <span class="dashboard-detail-value" id="dashboardSonKullanıcıCount">0</span>
-    </div>
-    <div class="dashboard-detail-item">
-      <span class="dashboard-detail-label">Sahibinden</span>
-      <span class="dashboard-detail-value" id="dashboardSahibindenCount">0</span>
-    </div>
-    <div class="dashboard-detail-item">
-      <span class="dashboard-detail-label">Media Markt</span>
-      <span class="dashboard-detail-value" id="dashboardMediaMarktCount">0</span>
-    </div>
-    <!-- ✅ YENİ EKLENEN SATIR -->
-    <div class="dashboard-detail-item" style="border-left: 3px solid #e67e22;">
-      <span class="dashboard-detail-label">🔄 Servise Geri Dönenler</span>
-      <span class="dashboard-detail-value" id="dashboardServiceReturnCount">0</span>
-    </div>
-  </div>
-   </div>
+    .admin-stats {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
     
-    <!-- USER MANAGEMENT SECTION (ADMIN ONLY) -->
-    <div id="userManagement" class="user-management" style="display: none;">
-      <h2>👥 Kullanıcı Yönetimi</h2>
-      <div class="user-list" id="userList">
-        <!-- Users will be loaded here -->
-      </div>
-      <button class="add-user-btn" onclick="openAddUserModal()">
-        <span>➕</span>
-        <span>Yeni Kullanıcı Ekle</span>
-      </button>
-    </div>
-
-    <div id="adminPanel">
-      <h2>👑 Admin Paneli</h2>
-<div class="admin-stats">
-  <div class="admin-stat-box">
-    <div class="label">Servisteki Toplam Cihaz</div>
-    <div id="adminTotalBarcodes" class="value">0</div>
-  </div>
-  <!-- EŞLEŞME ORANI VE EŞLEŞEN BARKOD SİLİNDİ -->
-  <div class="admin-stat-box">
-    <div class="label">Atanacak Cihazlar</div>
-    <div id="adminAtanacak" class="value">0</div>
-  </div>
-  <div class="admin-stat-box">
-    <div class="label">Parça Bekliyor</div>
-    <div id="adminParcaBekliyor" class="value">0</div>
-  </div>
-  <div class="admin-stat-box">
-    <div class="label">PhoneCheck</div>
-    <div id="adminPhonecheck" class="value">0</div>
-  </div>
-
-    <div class="admin-stat-box">
-    <div class="label">SonKullanıcı</div>
-    <div id="SonKullanıcı" class="value">0</div>
-  </div>
-
-
-  <div class="admin-stat-box">
-    <div class="label">Onarım Tamamlandı</div>
-    <div id="adminOnarim" class="value">0</div>
-  </div>
-  <!-- YENİ EKLENEN DIŞ SERVİSLER -->
-  <div class="admin-stat-box">
-    <div class="label">Ön Cam Dış Servis</div>
-    <div id="adminOnCamDisServis" class="value">0</div>
-  </div>
-  <div class="admin-stat-box">
-    <div class="label">Anakart Dış Servis</div>
-    <div id="adminAnakartDisServis" class="value">0</div>
-  </div>
-  <!-- ESKİ DIŞ SERVİS SİLİNDİ -->
-
-  <div class="admin-stat-box">
-    <div class="label">Satışa Gidecek</div>
-    <div id="adminSatisa" class="value">0</div>
-  </div>
-  <div class="admin-stat-box">
-    <div class="label">Sahibinden</div>
-    <div id="adminSahiniden" class="value">0</div>
-  </div>
-  <div class="admin-stat-box">
-    <div class="label">Media Markt</div>
-    <div id="adminMediaMarkt" class="value">0</div>
-  </div>
-
-  <div class="admin-stat-box">
-    <div class="label">Toplam Teknisyen Cihazları</div>
-    <div id="adminTeknisyenler" class="value">0</div>
-  </div>
-  <div class="admin-stat-box">
-    <div class="label">Teslim Edilenler</div>
-    <div id="adminTeslimEdilenler" class="value">0</div>
-  </div>
-</div>
-      
-      <!-- Barkod Ara Bölümü Admin Panele Taşındı -->
-      <div style="margin-top: 25px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 12px;">
-        <label for="searchInput" style="display: block; margin-bottom: 10px; font-size: 18px; font-weight: bold;">🔍 Barkod Ara:</label>
-        <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px; background: rgba(255,255,255,0.9); color: #333;"></textarea>
-        <div id="searchResult" style="margin-top: 10px; padding: 10px; background: rgba(10, 78, 180, 0.493); border-radius: 8px; min-height: 40px; display: none; color: #fff;"></div>
-        <div id="partInfoAdmin" style="display: none;"></div>
-        <div id="historyLog" class="history-log" style="display: none; background: rgba(255,255,255,0.1); margin-top: 10px;"></div>
-      </div>
-    </div>
-
-    <!-- WAREHOUSE PANEL (DEPOCU) -->
-    <div id="warehousePanel" class="warehouse-panel" style="display: none;">
-      <div class="warehouse-header">
-        <h2>📦 Depo Parça Yönetim Paneli</h2>
-        <p style="opacity: 0.9; margin-top: 5px;">Bekleyen Parça İsteklerini Yönetin</p>
-        <div class="warehouse-stats">
-          <div class="warehouse-stat">
-            <div class="warehouse-stat-label">Bekleyen İstekler</div>
-            <div class="warehouse-stat-value" id="warehousePendingCount">0</div>
-          </div>
-          <div class="warehouse-stat">
-            <div class="warehouse-stat-label">Hazır Olanlar</div>
-            <div class="warehouse-stat-value" id="warehouseReadyCount">0</div>
-          </div>
-          <div class="warehouse-stat">
-            <div class="warehouse-stat-label">Toplam İstekler</div>
-            <div class="warehouse-stat-value" id="warehouseTotalCount">0</div>
-          </div>
-        </div>
-        
-        <!-- TOPLU HAZIR BUTONU -->
-        <button id="markAllReadyBtn" class="mark-all-ready-btn" onclick="markAllOrdersReady()" style="display: none;">
-          ✅ Tümünü Hazır İşaretle
-        </button>
-      </div>
-      
-      <div class="warehouse-orders" id="warehouseOrders">
-        <!-- Orders will be loaded here -->
-      </div>
-    </div>
-
-    <div class="main-layout" id="mainLayout">
-      <div class="left-side">
-        <div class="container" id="techniciansContainer">
-          <div class="section" data-section="gokhan">
-            <label for="gokhanInput">
-              <span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları -  0</span>
-            </label>
-            <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
-            <div id="gokhanList" class="mini-list"></div>
-          </div>
-          
-          <div class="section" data-section="yusuf">
-            <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları -  0</span></label>
-            <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
-            <div id="yusufList" class="mini-list"></div>
-          </div>
-          
-          <div class="section" data-section="enes">
-            <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları -  0</span></label>
-            <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
-            <div id="enesList" class="mini-list"></div>
-          </div>
-          
-          <div class="section" data-section="samet">
-            <label for="sametInput"><span id="sametLabel">🧑‍🔧 Samet'in Cihazları -  0</span></label>
-            <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
-            <div id="sametList" class="mini-list"></div>
-          </div>
-          
-
-          <div class="section" data-section="engin">
-            <label for="enginInput"><span id="enginLabel">🧑‍🔧 Engin'in Cihazları -  0</span></label>
-            <textarea id="enginInput" placeholder="engin'in barkodlarını buraya yapıştır..."></textarea>
-            <div id="enginList" class="mini-list"></div>
-          </div>
-          
-          <div class="section" data-section="ismail">
-            <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları -  0</span></label>
-            <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
-            <div id="ismailList" class="mini-list"></div>
-          </div>
-          
-          <div class="section" data-section="mehmet">
-            <label for="mehmetInput"><span id="mehmetLabel">🧑‍🔧 Mehmet'in Cihazları -  0</span></label>
-            <textarea id="mehmetInput" placeholder="Mehmet'in barkodlarını buraya yapıştır..."></textarea>
-            <div id="mehmetList" class="mini-list"></div>
-          </div>
-        </div>
-
-<div class="container" style="margin-top: 20px;" id="scannerSection">
-  <div class="section" style="flex: 1 1 100%;">
-    <label for="scannerInput">📡 Barkod Okut:</label>
-    <textarea id="scannerInput" placeholder="Barkod okuyucu ile okut..." autofocus></textarea>
-  </div>
-</div>
-
-
-  <div class="container" style="margin-top: 20px;" id="normalSearchSection">
-  <div class="section" id="normalUserSearch" style="flex: 1 1 100%; display: none;">
-    <label for="searchInputNormal">🔍 Barkod Ara:</label>
-    <textarea id="searchInputNormal" placeholder="Aramak istediğiniz barkodu girin..." style="height: 60px;"></textarea>
-    <div id="searchResultNormal" style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;"></div>
-    <div id="partInfoNormal" style="display: none;"></div>
-    <div id="historyLogNormal" class="history-log" style="display: none; background: #ac34db;"></div>
-  </div>
-</div>
-
-        <!-- TEKNİSYEN PARÇA SİPARİŞLERİ BÖLÜMÜ -->
-        <div id="technicianPartOrders" class="part-orders-section" style="display: none;">
-          <h3>🔧 Parça İsteklerim</h3>
-          <div id="technicianOrdersList">
-            <!-- Orders will be loaded here -->
-          </div>
-        </div>
-
-        <div class="container" style="margin-top: 20px;">
-  <div class="section" style="flex: 1 1 100%;">
-    <label for="teslimEdilenlerInput"><span id="teslimEdilenlerLabel">✅ Teslim Edilenler -  0</span></label>
-    <textarea id="teslimEdilenlerInput" placeholder="Teslim edilen barkodlar..." style="height: 120px;"></textarea>
-    <div id="teslimEdilenlerList" class="mini-list"></div>  </div>
-</div>
-
-<div class="container" style="margin-top: 20px;" id="mainSectionsContainer">
-  <!-- Atanacak Section -->
-  <div class="section" data-section="atanacak">
-    <label for="atanacakInput">
-      <span id="atanacakLabel">📋 Atanacak -  0</span>
-    </label>
-    <textarea id="atanacakInput" placeholder="Atanacak cihazlar..."></textarea>
-    <div id="atanacakList" class="mini-list"></div>
-  </div>
-  
-  <!-- Parça Bekliyor Section -->
-  <div class="section" data-section="parcaBekliyor">
-    <label for="parcaBekliyorInput">
-      <span id="parcaBekliyorLabel">⚙️ Parça Bekliyor -  0</span>
-    </label>
-    <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazlar..."></textarea>
-    <div id="parcaBekliyorList" class="mini-list"></div>
-  </div>
-  
-  <!-- PhoneCheck Section -->
-  <div class="section" data-section="phonecheck">
-    <label for="phonecheckInput">
-      <span id="phonecheckLabel">📱 PhoneCheck -  0</span>
-    </label>
-    <textarea id="phonecheckInput" placeholder="PhoneCheck'e transfer edilecek barkodlar..."></textarea>
-    <div id="phonecheckList" class="mini-list"></div>
-  </div>
-
-  <!-- Onarım Tamamlandı Section -->
-  <div class="section" data-section="onarim">
-    <label for="onarimInput">
-      <span id="onarimLabel">🔧 Onarım Tamamlandı -  0</span>
-    </label>
-    <textarea id="onarimInput" placeholder="Onarımı tamamlanan cihazlar..."></textarea>
-    <div id="onarimList" class="mini-list"></div>
-  </div>
-
-  <!-- Ön Cam Dış Servis Section -->
-  <div class="section" data-section="onCamDisServis">
-    <label for="onCamDisServisInput">
-      <span id="onCamDisServisLabel">🔨 Ön Cam Dış Servis -  0</span>
-    </label>
-    <textarea id="onCamDisServisInput" placeholder="Ön cam için dış servise gönderilecek barkodlar..."></textarea>
-    <div id="onCamDisServisList" class="mini-list"></div>
-  </div>
-
-  <!-- Anakart Dış Servis Section -->
-  <div class="section" data-section="anakartDisServis">
-    <label for="anakartDisServisInput">
-      <span id="anakartDisServisLabel">🔨 Anakart Dış Servis -  0</span>
-    </label>
-    <textarea id="anakartDisServisInput" placeholder="Anakart için dış servise gönderilecek barkodlar..."></textarea>
-    <div id="anakartDisServisList" class="mini-list"></div>
-  </div>
-
-  <!-- Son Kullanıcı Section -->
-  <div class="section" data-section="SonKullanıcı">
-    <label for="SonKullanıcıInput">
-      <span id="SonKullanıcıLabel">👤 Son Kullanıcı -  0</span>
-    </label>
-    <textarea id="SonKullanıcıInput" placeholder="Son Kullanıcı barkodlar..."></textarea>
-    <div id="SonKullanıcıList" class="mini-list"></div>
-  </div>
-
-  <!-- Satışa Gidecek Section -->
-  <div class="section" data-section="satisa">
-    <label for="satisaInput">
-      <span id="satisaLabel">💰 Satışa Gidecek -  0</span>
-    </label>
-    <textarea id="satisaInput" placeholder="Satışa gidecek barkodlar..."></textarea>
-    <div id="satisaList" class="mini-list"></div>
-  </div>
-
-  <!-- Sahibinden Section -->
-  <div class="section" data-section="sahiniden">
-    <label for="sahinidenInput">
-      <span id="sahinidenLabel">🏪 Sahibinden -  0</span>
-    </label>
-    <textarea id="sahinidenInput" placeholder="Sahibinden gelen barkodlar..."></textarea>
-    <div id="sahinidenList" class="mini-list"></div>
-  </div>
-
-  <!-- Media Markt Section -->
-  <div class="section" data-section="mediaMarkt">
-    <label for="mediaMarktInput">
-      <span id="mediaMarktLabel">🛒 Media Markt -  0</span>
-    </label>
-    <textarea id="mediaMarktInput" placeholder="Media Markt barkodları..."></textarea>
-    <div id="mediaMarktList" class="mini-list"></div>
-  </div>
-
-
-</div>
-
-
-
+    .report-summary {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
     
-    <!-- PARÇA SİPARİŞ BUTONU (TEKNİSYENLER İÇİN) -->
-    <button id="partOrderButton" class="part-order-button" style="display: none;" onclick="openPartOrderModal()">
-      🔧 Parça Sipariş Et
-    </button>
-  </div>
+    .order-body {
+        grid-template-columns: 1fr;
+    }
+}
 
-
-<div class="reset-modal-overlay" id="resetDashboardModal">
-  <div class="reset-modal">
-    <h2>⚠️ Dashboard Sıfırlama</h2>
-    <p>
-      <strong>Bu işlem şunları sıfırlayacak:</strong><br><br>
-      📊 Bugün Teslim Alınan: <span id="resetTeslimAlinan">0</span><br>
-      📤 Bugün Teslim Edilen: <span id="resetTeslimEdilen">0</span><br>
-      📋 Kaynak Dağılımı (Atanacak, SonKullanıcı, Sahibinden, Media Markt)<br><br>
-      <strong style="color: #ffd700;">⚠️ Bu işlem geri alınamaz!</strong><br>
-      İşlem database'de loglanacaktır.
-    </p>
-    <div class="reset-modal-buttons">
-      <button class="reset-modal-btn cancel" onclick="closeResetDashboardModal()">❌ İptal</button>
-      <button class="reset-modal-btn confirm" onclick="confirmResetDashboard()">✅ Sıfırla</button>
-    </div>
-  </div>
-</div>
-
-
-<div class="modal-overlay" id="syncModal">
-  <div class="modal" style="max-width: 700px;">
-    <h2>🔄 Liste Senkronizasyonu</h2>
-    <div class="sync-results" id="syncResults">
-      <div style="text-align: center; padding: 20px;">
-        <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-        <p>Çakışmalar taranıyor...</p>
-      </div>
-    </div>
-    <div class="modal-buttons">
-      <button class="modal-button secondary" onclick="closeSyncModal()">İptal</button>
-      <button class="modal-button primary" onclick="fixAllConflicts()" id="fixAllBtn" disabled>🔄 Tüm Çakışmaları Düzelt</button>
-    </div>
-  </div>
-</div>
-
-<!-- DATA SYNC VERIFICATION MODAL (SADECE ADMIN) -->
-<div class="modal-overlay" id="dataSyncModal">
-  <div class="modal" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
-    <h2>🔄 Veri Doğrulama ve Senkronizasyon</h2>
-    <div class="data-sync-info" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-      <p style="margin: 0; font-size: 14px;">
-        ⏱️ <strong>Son Kontrol:</strong> <span id="lastSyncCheck">-</span><br>
-        🔍 <strong>Kontrol Aralığı:</strong> Her 5 dakika<br>
-        📊 <strong>Kontrol Edilen Listeler:</strong> Tüm listeler ve Dashboard verileri
-      </p>
-    </div>
+/* MOBILE & SMALL TABLETS (768px) */
+@media (max-width: 768px) {
+    body {
+        padding: 170px 12px 12px 12px;
+    }
     
-    <div class="sync-results" id="dataSyncResults">
-      <div style="text-align: center; padding: 20px;">
-        <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-        <p>Veriler kontrol ediliyor...</p>
-      </div>
-    </div>
+    /* NAVIGATION */
+    .admin-nav {
+        padding: 10px 12px;
+    }
     
-    <div class="modal-buttons">
-      <button class="modal-button secondary" onclick="closeDataSyncModal()">Kapat</button>
-      <button class="modal-button primary" onclick="fixAllDataMismatches()" id="fixAllDataBtn" disabled>
-        ✅ Tüm Uyumsuzlukları Düzelt
-      </button>
-      <button class="modal-button" onclick="forceDataSyncCheck()" style="background: #3498db;">
-        🔄 Yeniden Kontrol Et
-      </button>
-    </div>
-  </div>
-</div>
+    .nav-title {
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+    
+    .nav-content {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .nav-buttons {
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+    
+    .nav-buttons button {
+        padding: 8px 14px;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+    
+    .nav-title {
+        font-size: 20px;
+        letter-spacing: 0.8px;
+    }
+    
+    .nav-search {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .nav-user-info {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    /* DASHBOARD */
+    .dashboard-panel {
+        padding: 18px;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-stat-card {
+        padding: 18px;
+    }
+    
+    .dashboard-stat-icon {
+        font-size: 36px;
+    }
+    
+    .dashboard-stat-value {
+        font-size: 28px;
+    }
+    
+    /* ADMIN PANEL */
+    #adminPanel {
+        padding: 18px;
+    }
+    
+    .admin-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .admin-stat-box {
+        padding: 15px;
+    }
+    
+    .admin-stat-box .value {
+        font-size: 24px;
+    }
+    
+    /* SECTIONS */
+    .section {
+        padding: 15px;
+        min-width: auto;
+    }
+    
+    .section label {
+        font-size: 14px;
+    }
+    
+    .section textarea {
+        min-height: 80px;
+        font-size: 12px;
+    }
+    
+    /* MINI ITEMS */
+    .mini-item {
+        padding: 12px 15px;
+    }
+    
+    .mini-item-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .mini-item-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .item-action-btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    /* MODALS */
+    .modal,
+    .reset-modal {
+        padding: 20px;
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .modal h2 {
+        font-size: 20px;
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+    }
+    
+    .modal-button,
+    .reset-modal-btn {
+        width: 100%;
+    }
+    
+    /* REPORTS */
+    .reports-content {
+        padding: 20px;
+        width: 98%;
+    }
+    
+    .reports-header h2 {
+        font-size: 22px;
+    }
+    
+    .report-filters {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 15px;
+    }
+    
+    .filter-group label {
+        font-size: 13px;
+    }
+    
+    .report-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .summary-card .value {
+        font-size: 24px;
+    }
+    
+    .user-stats {
+        padding: 15px;
+    }
+    
+    .detail-filters {
+        grid-template-columns: 1fr;
+        padding: 15px;
+    }
+    
+    .detail-item {
+        padding: 15px;
+    }
+    
+    .detail-item .barcode {
+        font-size: 14px;
+    }
+    
+    .detail-item .info {
+        font-size: 13px;
+    }
+    
+    /* WAREHOUSE/ORDERS */
+    .warehouse-order-card {
+        padding: 18px;
+    }
+    
+    .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .order-barcode {
+        font-size: 16px;
+    }
+    
+    .order-body {
+        grid-template-columns: 1fr;
+    }
+    
+    .order-actions {
+        flex-direction: column;
+    }
+    
+    .order-actions button {
+        width: 100%;
+    }
+    
+    /* PART ORDER FORM */
+    .part-inputs-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* USER MANAGEMENT */
+    .user-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .user-card {
+        padding: 15px;
+    }
+    
+    /* TOAST NOTIFICATIONS */
+    .toast-container {
+        top: 90px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .toast {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    /* CONFLICT NOTIFICATIONS */
+    .conflict-notification,
+    .data-sync-notification {
+        left: 10px;
+        right: 10px;
+        max-width: none;
+    }
+}
 
-<!-- SYSTEM LOGS MODAL (SADECE ADMIN) -->
-<div class="modal-overlay" id="systemLogsModal">
-  <div class="modal" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
-    <h2>📋 Sistem Logları</h2>
+/* VERY SMALL MOBILE (480px) */
+@media (max-width: 480px) {
+    .nav-title {
+        font-size: 16px;
+        letter-spacing: 0.5px;
+    }
     
-    <!-- Filtreler -->
-    <div class="logs-filters" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-        <div>
-          <label style="display: block; margin-bottom: 5px; font-size: 13px;">📅 Başlangıç Tarihi</label>
-          <input type="date" id="logsStartDate" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-        </div>
-        <div>
-          <label style="display: block; margin-bottom: 5px; font-size: 13px;">📅 Bitiş Tarihi</label>
-          <input type="date" id="logsEndDate" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-        </div>
-        <div>
-          <label style="display: block; margin-bottom: 5px; font-size: 13px;">👤 Kullanıcı</label>
-          <input type="text" id="logsUserFilter" placeholder="Tümü" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-        </div>
-        <div>
-          <label style="display: block; margin-bottom: 5px; font-size: 13px;">📦 IMEI</label>
-          <input type="text" id="logsImeiFilter" placeholder="15 haneli IMEI" maxlength="15" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-        </div>
-        <div>
-          <label style="display: block; margin-bottom: 5px; font-size: 13px;">📋 Liste</label>
-          <select id="logsListFilter" style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-            <option value="">Tümü</option>
-            <option value="atanacak">📋 Atanacak</option>
-            <option value="parcaBekliyor">⚙️ Parça Bekliyor</option>
-            <option value="phonecheck">📱 PhoneCheck</option>
-            <option value="onarim">🔧 Onarım Tamamlandı</option>
-            <option value="gokhan">🧑‍🔧 Gökhan</option>
-            <option value="enes">🧑‍🔧 Enes</option>
-            <option value="yusuf">🧑‍🔧 Yusuf</option>
-            <option value="samet">🧑‍🔧 Samet</option>
-            <option value="engin">🧑‍🔧 Engin</option>
-            <option value="ismail">🧑‍🔧 İsmail</option>
-            <option value="mehmet">🧑‍🔧 Mehmet</option>
-            <option value="onCamDisServis">🔨 Ön Cam Dış Servis</option>
-            <option value="anakartDisServis">🔨 Anakart Dış Servis</option>
-            <option value="satisa">💰 Satışa Gidecek</option>
-            <option value="sahiniden">🏪 Sahibinden</option>
-            <option value="mediaMarkt">🛒 Media Markt</option>
-            <option value="SonKullanıcı">👤 Son Kullanıcı</option>
-            <option value="teslimEdilenler">✅ Teslim Edilenler</option>
-          </select>
-        </div>
-        <div style="display: flex; align-items: flex-end;">
-          <button onclick="loadSystemLogs()" style="width: 100%; padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-            🔍 Logları Yükle
-          </button>
-        </div>
-      </div>
-      <div style="margin-top: 10px; text-align: right;">
-        <button onclick="clearLogsFilters()" style="padding: 6px 12px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
-          🗑️ Filtreleri Temizle
-        </button>
-      </div>
-    </div>
+    .nav-buttons button {
+        padding: 6px 10px;
+        font-size: 10px;
+    }
     
-    <!-- İstatistikler -->
-    <div id="logsStats" style="display: none; background: rgba(46, 204, 113, 0.2); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2ecc71;">
-      <strong>📊 Toplam: <span id="logsTotalCount">0</span> işlem</strong>
-    </div>
+    .dashboard-stat-value {
+        font-size: 22px;
+    }
     
-    <!-- Loglar -->
-    <div id="systemLogsResults" style="max-height: 500px; overflow-y: auto;">
-      <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-        📋 Filtre seçip "Logları Yükle" butonuna tıklayın
-      </div>
-    </div>
+    .admin-stats {
+        grid-template-columns: 1fr;
+    }
     
-    <div class="modal-buttons" style="margin-top: 20px;">
-      <button class="modal-button secondary" onclick="closeSystemLogsModal()">Kapat</button>
-      <button class="modal-button" onclick="exportLogsToExcel()" id="exportLogsBtn" disabled style="background: #27ae60;">
-        📊 Excel'e Aktar
-      </button>
-    </div>
-  </div>
-</div>
-<!-- ORIGINAL: <script> -->
-<script src="script.js"></script> <!-- ORIGINAL: </script> -->
-<script src="style.css"></script> <!-- ORIGINAL: </script> -->
-<script src="fiyatlar.html"></script> <!-- ORIGINAL: </script> -->
+    .summary-card .value {
+        font-size: 20px;
+    }
+    
+    .modal h2 {
+        font-size: 18px;
+    }
+    
+    .part-order-button {
+        width: 50px;
+        height: 50px;
+        font-size: 24px;
+        bottom: 20px;
+        right: 20px;
+    }
+}
 
-<script src="muhasebe.html"></script> <!-- ORIGINAL: </script> -->
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+.hidden {
+    display: none !important;
+}
 
-</body>
-</html>
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.slide-up {
+    animation: slideUp 0.5s ease-in-out;
+}
+
+/* ========================================
+   CONNECTION WARNING
+   ======================================== */
+#connectionWarning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+}
+
+#connectionWarningBox {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    padding: 50px 70px;
+    border-radius: var(--radius-xl);
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    max-width: 600px;
+    animation: pulse 2s infinite;
+}
+
+#connectionIcon {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+
+#connectionTitle {
+    font-size: 32px;
+    margin-bottom: 15px;
+    color: #fff;
+}
+
+#connectionMessage {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #ecf0f1;
+    line-height: 1.6;
+}
+
+#connectionStatus {
+    font-size: 16px;
+    color: #f39c12;
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-md);
+}
+
+/* ========================================
+   CLEAR FILTERS BUTTON
+   ======================================== */
+.clear-filters-btn {
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: all 0.3s ease;
+}
+
+.clear-filters-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+/* ========================================
+   SYNC RESULTS
+   ======================================== */
+.sync-results,
+.data-sync-info {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================
+   LOGS FILTERS
+   ======================================== */
+.logs-filters {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+}
+
+#logsStats {
+    background: rgba(46, 204, 113, 0.2);
+    padding: 15px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+    border-left: 4px solid #2ecc71;
+}
+
+#systemLogsResults {
+    max-height: 500px;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+
+/* ========================================
+   WAREHOUSE ORDERS
+   ======================================== */
+.warehouse-orders {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.warehouse-order-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    border-radius: var(--radius-lg);
+    padding: 25px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.warehouse-order-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.6);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ORDER CARD SECTIONS */
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.order-barcode {
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    color: #4facfe;
+}
+
+.order-status {
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.order-status.pending {
+    background: rgba(241, 196, 15, 0.2);
+    color: #f1c40f;
+    border: 1px solid #f1c40f;
+}
+
+.order-status.ready {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid #2ecc71;
+}
+
+.order-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.order-field {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    border-left: 2px solid #667eea;
+}
+
+.order-field-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.order-field-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.order-note {
+    background: rgba(241, 196, 15, 0.15);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    border-left: 3px solid #f1c40f;
+}
+
+.order-note .order-field-label {
+    color: #f1c40f;
+}
+
+.order-note .order-field-value {
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.order-parts {
+    background: rgba(102, 126, 234, 0.15);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    border-left: 3px solid #667eea;
+}
+
+.order-parts-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+
+.order-parts-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.part-tag {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.part-tag.available {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: #2ecc71;
+    color: #2ecc71;
+}
+
+.part-tag.unavailable {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.part-tag.pending {
+    background: rgba(241, 196, 15, 0.2);
+    border-color: #f1c40f;
+    color: #f1c40f;
+}
+
+.order-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.order-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.warehouse-action-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer !important;
+    transition: all 0.3s ease;
+    pointer-events: auto !important;
+    min-width: 150px;
+}
+
+.warehouse-action-btn.ready {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+.warehouse-action-btn.ready:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+}
+
+.warehouse-action-btn.cancel {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.warehouse-action-btn.cancel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+/* ========================================
+   ADDITIONAL FIXES - BUTTON VISIBILITY
+   ======================================== */
+
+/* Ensure user management buttons are visible and clickable */
+.user-card button,
+.user-item button,
+.user-action-btn,
+button[onclick*="editUser"],
+button[onclick*="deleteUser"],
+button[onclick*="openEditUserModal"] {
+    position: relative;
+    z-index: 10 !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
+    display: inline-block !important;
+}
+
+/* Make sure all action buttons are visible */
+.barcode-actions button,
+.modal-buttons button,
+.admin-panel button {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+/* Sync and Dashboard Reset buttons - override inline styles when needed */
+#resetDashboardBtn[style*="display: none"] {
+    /* Will be controlled by JS, this ensures proper styling when visible */
+}
+
+#fixAllBtn,
+#fixAllDataBtn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Hide notifications when count is 0 */
+.conflict-notification[data-count="0"],
+.data-sync-notification[data-count="0"] {
+    display: none !important;
+}
+
+/* Improve button contrast on lighter background */
+button {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure form inputs are visible */
+input, select, textarea {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-primary) !important;
+}
+
+input:focus, select:focus, textarea:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Make sure modal overlays work properly */
+.modal-overlay {
+    z-index: 10002 !important;
+}
+
+.reset-modal-overlay {
+    z-index: 10003 !important;
+}
+
+/* Improve card visibility in lists */
+.user-card,
+.warehouse-order-card,
+.mini-list-item {
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Ensure all interactive elements are visible */
+[onclick] {
+    cursor: pointer;
+    opacity: 1;
+}
+
+/* Fix for disabled buttons */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: auto; /* Keep clickable for visual feedback */
+}
+
+button:not(:disabled) {
+    opacity: 1;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+/* CRITICAL FIX: Override all button inline styles */
+button[id*="Btn"],
+button[onclick],
+.modal-button,
+.nav-buttons button {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+button[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+/* Improve nav button visibility */
+.nav-buttons button {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.nav-buttons button:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ========================================
+   CRITICAL FIXES - HIGHEST PRIORITY
+   ======================================== */
+
+/* FORCE ALL MODALS AND THEIR CONTENT TO BE CLICKABLE */
+.modal,
+.reset-modal,
+.modal *,
+.reset-modal *,
+.modal-overlay,
+.reset-modal-overlay {
+    pointer-events: auto !important;
+}
+
+/* REMOVE ANY BLOCKING */
+.modal-overlay::before,
+.modal-overlay::after,
+.reset-modal-overlay::before,
+.reset-modal-overlay::after {
+    pointer-events: none !important;
+}
+
+/* FORCE ALL BUTTONS TO BE CLICKABLE */
+button,
+input[type="button"],
+input[type="submit"],
+[role="button"],
+a[onclick],
+.modal-button,
+.reset-modal-btn,
+.item-action-btn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
+    user-select: none !important;
+}
+
+/* FORCE SPECIFIC BUTTONS */
+#resetDashboardBtn,
+#fixAllBtn,
+#fixAllDataBtn,
+.user-action-btn,
+.item-action-btn,
+.modal-button,
+.reset-modal-btn,
+button[onclick*="edit"],
+button[onclick*="delete"],
+button[onclick*="open"],
+button[onclick*="close"],
+button[onclick*="sync"],
+button[onclick*="fix"],
+button[onclick*="confirm"],
+button[onclick*="save"],
+button[class*="btn"],
+button[id*="Btn"] {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
+    z-index: 100 !important;
+    position: relative !important;
+}
+
+/* FORCE MODALS TO OPEN */
+.modal-overlay.active,
+.reset-modal-overlay.active,
+#syncModal.active,
+#editUserModal.active,
+#dataSyncModal.active,
+#systemLogsModal.active,
+#addUserModal.active,
+#editBarcodeModal.active,
+#partOrderModal.active,
+#resetDashboardModal.active,
+.modal-overlay[style*="display: flex"],
+.modal-overlay[style*="display:flex"],
+.reset-modal-overlay[style*="display: flex"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* OVERRIDE ANY INLINE STYLES */
+[style*="display: none"].active {
+    display: flex !important;
+}
+
+/* ========================================
+   END OF STYLES
+   ======================================== */
