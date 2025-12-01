@@ -5185,7 +5185,8 @@ if (inputs.searchNormal) {
 function performSearch(value, resultElementId, historyElementId, partInfoElementId) {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-        const query = value.trim().slice(0, 15);
+        const allMatches = value.match(/\d{15}/g);
+        const query = allMatches ? allMatches[allMatches.length - 1] : value.trim().slice(0, 15);
         const searchResult = document.getElementById(resultElementId);
         const historyLog = document.getElementById(historyElementId);
         const partInfo = document.getElementById(partInfoElementId);
