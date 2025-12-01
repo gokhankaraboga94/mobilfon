@@ -1000,7 +1000,7 @@ body::before {
 .mark-all-ready-btn {
     width: 100%;
     padding: 15px;
-    background: linear-gradient(135deg, #27ae60, #229954);
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
     color: white;
     border: none;
     border-radius: var(--radius-md);
@@ -1009,8 +1009,69 @@ body::before {
     cursor: pointer;
     margin-top: 15px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
 }
+
+.mark-all-ready-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+}
+
+.warehouse-orders-container {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.warehouse-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.warehouse-section.pending-section {
+    border-left: 4px solid #f39c12;
+}
+
+.warehouse-section.completed-section {
+    border-left: 4px solid #2ecc71;
+}
+
+#warehouseCompletedOrders {
+    max-height: 500px;
+    /* Adjust based on card height to show approx 3 items */
+    overflow-y: auto;
+    padding-right: 5px;
+    /* Space for scrollbar */
+}
+
+/* Custom Scrollbar for Completed Orders */
+#warehouseCompletedOrders::-webkit-scrollbar {
+    width: 6px;
+}
+
+#warehouseCompletedOrders::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+#warehouseCompletedOrders::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+#warehouseCompletedOrders::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.warehouse-orders {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+
 
 .mark-all-ready-btn:hover {
     transform: translateY(-2px);
