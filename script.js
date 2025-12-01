@@ -3225,11 +3225,19 @@ async function loadWarehouseOrders() {
     try {
         const snapshot = await db.ref('partOrders').once('value');
         const orders = snapshot.val();
-        const ordersContainer = document.getElementById('warehouseOrders');
+
+        // Containers
+        const pendingContainer = document.getElementById('warehousePendingOrders');
+        const completedContainer = document.getElementById('warehouseCompletedOrders');
         const markAllBtn = document.getElementById('markAllReadyBtn');
 
+        // Clear containers
+        pendingContainer.innerHTML = '';
+        completedContainer.innerHTML = '';
+
         if (!orders) {
-            ordersContainer.innerHTML = '<div class="no-warehouse-orders">Henüz parça siparişi bulunmuyor.</div>';
+            pendingContainer.innerHTML = '<div class="no-warehouse-orders">Bekleyen parça siparişi bulunmuyor.</div>';
+            completedContainer.innerHTML = '<div class="no-warehouse-orders">Tamamlanan sipariş bulunmuyor.</div>';
             updateWarehouseStats(0, 0);
             if (markAllBtn) markAllBtn.style.display = 'none';
             return;
@@ -3246,46 +3254,46 @@ async function loadWarehouseOrders() {
             markAllBtn.style.display = pendingOrders.length > 0 ? 'block' : 'none';
         }
 
-        ordersContainer.innerHTML = '';
-
         // Bekleyen siparişler başlık
-        if (pendingOrders.length > 0) {
-            const pendingHeader = document.createElement('div');
-            pendingHeader.style.gridColumn = '1 / -1';
-            pendingHeader.style.padding = '15px 20px';
-            pendingHeader.style.background = 'rgba(243, 156, 18, 0.2)';
-            pendingHeader.style.borderRadius = '10px';
-            pendingHeader.style.marginBottom = '15px';
-            pendingHeader.innerHTML = '<h3 style="margin: 0; font-size: 20px;">⏳ Bekleyen İstekler</h3>';
-            ordersContainer.appendChild(pendingHeader);
-        }
+        const pendingHeader = document.createElement('div');
+        pendingHeader.style.padding = '10px';
+        pendingHeader.style.marginBottom = '10px';
+        pendingHeader.innerHTML = '<h3 style="margin: 0; font-size: 18px; color: #f39c12;">⏳ Bekleyen İstekler</h3>';
+        pendingContainer.appendChild(pendingHeader);
 
-        // Bekleyen siparişleri göster
-        pendingOrders.forEach(([orderId, order]) => {
-            const card = createWarehouseOrderCard(orderId, order, true);
-            ordersContainer.appendChild(card);
-        });
+        if (pendingOrders.length === 0) {
+            const noPending = document.createElement('div');
+            noPending.className = 'no-warehouse-orders';
+            noPending.textContent = 'Bekleyen istek yok.';
+            pendingContainer.appendChild(noPending);
+        } else {
+            pendingOrders.forEach(([orderId, order]) => {
+                const card = createWarehouseOrderCard(orderId, order, true);
+                pendingContainer.appendChild(card);
+            });
+        }
 
         // Hazır siparişler başlık
-        if (readyOrders.length > 0) {
-            const readyHeader = document.createElement('div');
-            readyHeader.style.gridColumn = '1 / -1';
-            readyHeader.style.padding = '15px 20px';
-            readyHeader.style.background = 'rgba(46, 204, 113, 0.2)';
-            readyHeader.style.borderRadius = '10px';
-            readyHeader.style.margin = pendingOrders.length > 0 ? '25px 0 15px 0' : '0 0 15px 0';
-            readyHeader.innerHTML = '<h3 style="margin: 0; font-size: 20px;">✅ Hazır Siparişler</h3>';
-            ordersContainer.appendChild(readyHeader);
-        }
+        const readyHeader = document.createElement('div');
+        readyHeader.style.padding = '10px';
+        readyHeader.style.marginBottom = '10px';
+        readyHeader.style.position = 'sticky';
+        readyHeader.style.top = '0';
+        readyHeader.style.background = 'rgba(40, 45, 75, 0.95)';
+        readyHeader.style.zIndex = '10';
+        readyHeader.innerHTML = '<h3 style="margin: 0; font-size: 18px; color: #2ecc71;">✅ Tamamlanan İstekler (Son 3)</h3>';
+        completedContainer.appendChild(readyHeader);
 
-        // Hazır siparişleri göster
-        readyOrders.forEach(([orderId, order]) => {
-            const card = createWarehouseOrderCard(orderId, order, false);
-            ordersContainer.appendChild(card);
-        });
-
-        if (pendingOrders.length === 0 && readyOrders.length === 0) {
-            ordersContainer.innerHTML = '<div class="no-warehouse-orders">Henüz parça siparişi bulunmuyor.</div>';
+        if (readyOrders.length === 0) {
+            const noReady = document.createElement('div');
+            noReady.className = 'no-warehouse-orders';
+            noReady.textContent = 'Tamamlanan istek yok.';
+            completedContainer.appendChild(noReady);
+        } else {
+            readyOrders.forEach(([orderId, order]) => {
+                const card = createWarehouseOrderCard(orderId, order, false);
+                completedContainer.appendChild(card);
+            });
         }
 
         updateWarehouseStats(pendingOrders.length, readyOrders.length);
