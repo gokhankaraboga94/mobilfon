@@ -7699,6 +7699,7 @@ function clearLogsFilters() {
     document.getElementById('logsStartDate').value = weekAgo.toISOString().split('T')[0];
 }
 
+// ... existing code ...
 async function loadSystemLogs() {
     const startDate = document.getElementById('logsStartDate').value;
     const endDate = document.getElementById('logsEndDate').value;
@@ -7730,50 +7731,76 @@ async function loadSystemLogs() {
 
         const startTimestamp = start.getTime();
         const endTimestamp = end.getTime();
-
-        // Tüm IMEI geçmişlerini çek
-        const historySnapshot = await db.ref('servis/history').once('value');
-        const historyData = historySnapshot.val();
-
-        if (!historyData) {
-            resultsContainer.innerHTML = `
-        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-          <div style="font-size: 60px; margin-bottom: 20px;">📋</div>
-          <p>Seçilen tarih aralığında log bulunamadı.</p>
-        </div>
-      `;
-            statsContainer.style.display = 'none';
-            exportBtn.disabled = true;
-            return;
-        }
-
-        // Logları filtrele ve topla
         const logs = [];
 
-        Object.entries(historyData).forEach(([imei, imeiHistory]) => {
-            // IMEI filtresi varsa kontrol et
-            if (imeiFilter && imei !== imeiFilter) return;
+        // ============================================================
+        // SENARYO 1: PARÇA İSTEKLERİ SEÇİLDİYSE (partOrders tablosundan çek)
+        // ============================================================
+        if (listFilter === 'partOrders') {
+            const partOrdersSnapshot = await db.ref('partOrders').once('value');
+            const partOrdersData = partOrdersSnapshot.val();
 
-            Object.values(imeiHistory).forEach(entry => {
-                // Tarih kontrolü
-                if (entry.timestampRaw < startTimestamp || entry.timestampRaw > endTimestamp) return;
+            if (partOrdersData) {
+                Object.values(partOrdersData).forEach(order => {
+                    // Tarih kontrolü
+                    if (order.timestamp < startTimestamp || order.timestamp > endTimestamp) return;
 
-                // Kullanıcı filtresi
-                if (userFilter && !entry.user.toLowerCase().includes(userFilter)) return;
+                    // Kullanıcı filtresi (Teknisyen)
+                    if (userFilter && !order.technician.toLowerCase().includes(userFilter)) return;
 
-                // Liste filtresi
-                if (listFilter && entry.to !== listFilter && entry.from !== listFilter) return;
+                    // IMEI filtresi
+                    if (imeiFilter && order.barcode !== imeiFilter) return;
 
-                logs.push({
-                    imei: imei,
-                    from: entry.from,
-                    to: entry.to,
-                    user: entry.user,
-                    timestamp: entry.timestamp,
-                    timestampRaw: entry.timestampRaw
+                    // Parça isimlerini birleştir
+                    const partsList = order.parts ? order.parts.map(p => p.name).join(', ') : 'Parça Yok';
+
+                    logs.push({
+                        imei: order.barcode,
+                        from: 'Parça İsteği', // Nereden: Parça İsteği olarak görünsün
+                        to: partsList,        // Nereye: İstenen parçalar görünsün
+                        user: order.technician,
+                        timestamp: order.timestampReadable,
+                        timestampRaw: order.timestamp,
+                        isPartOrder: true // Özel işaretleme
+                    });
                 });
-            });
-        });
+            }
+        } 
+        // ============================================================
+        // SENARYO 2: NORMAL LOGLAR (history tablosundan çek)
+        // ============================================================
+        else {
+            // Tüm IMEI geçmişlerini çek
+            const historySnapshot = await db.ref('servis/history').once('value');
+            const historyData = historySnapshot.val();
+
+            if (historyData) {
+                Object.entries(historyData).forEach(([imei, imeiHistory]) => {
+                    // IMEI filtresi varsa kontrol et
+                    if (imeiFilter && imei !== imeiFilter) return;
+
+                    Object.values(imeiHistory).forEach(entry => {
+                        // Tarih kontrolü
+                        if (entry.timestampRaw < startTimestamp || entry.timestampRaw > endTimestamp) return;
+
+                        // Kullanıcı filtresi
+                        if (userFilter && !entry.user.toLowerCase().includes(userFilter)) return;
+
+                        // Liste filtresi
+                        if (listFilter && entry.to !== listFilter && entry.from !== listFilter) return;
+
+                        logs.push({
+                            imei: imei,
+                            from: entry.from,
+                            to: entry.to,
+                            user: entry.user,
+                            timestamp: entry.timestamp,
+                            timestampRaw: entry.timestampRaw
+                        });
+                    });
+                });
+            }
+        }
 
         // Tarihe göre sırala (en yeni en üstte)
         logs.sort((a, b) => b.timestampRaw - a.timestampRaw);
@@ -7812,6 +7839,7 @@ async function loadSystemLogs() {
         exportBtn.disabled = true;
     }
 }
+// ... existing code ...
 
 function displayLogs(logs) {
     const resultsContainer = document.getElementById('systemLogsResults');
