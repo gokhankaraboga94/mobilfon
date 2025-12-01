@@ -683,6 +683,7 @@ async function generatePartOrdersReport(startDateInput, endDateInput) {
           ${order.customer ? `<div class="info"><strong>👤 Müşteri/Bayi:</strong> ${order.customer}</div>` : ''}
           ${order.statusField ? `<div class="info"><strong>📊 Statü:</strong> ${order.statusField}</div>` : ''}
           ${order.service ? `<div class="info"><strong>🔧 Hizmet:</strong> ${order.service}</div>` : ''}
+          ${order.technicianDamage ? `<div class="info"><strong>⚠️ Teknisyen Hasarı:</strong> ${order.technicianDamage}</div>` : ''}
           <div class="info"><strong>🧑‍🔧 Teknisyen:</strong> ${order.technician}</div>
           <div class="info"><strong>📦 Parçalar:</strong> ${order.parts.map(p => p.name).join(', ')}</div>
           ${order.note ? `<div class="info" style="background: rgba(241, 196, 15, 0.1); padding: 8px; border-radius: 6px; margin-top: 5px;"><strong>📝 Not:</strong> ${order.note}</div>` : ''}
@@ -1641,6 +1642,7 @@ function exportPartOrdersReportToExcel() {
                 'MODEL',
                 'IMEI',
                 'TEKNİSYEN',
+                'TEKNİSYEN HASARI',
                 'STATU',
                 'MÜŞTERİ',
                 'HİZMETLER',
@@ -1664,6 +1666,7 @@ function exportPartOrdersReportToExcel() {
                     order.model,
                     order.barcode,
                     order.technician,
+                    order.technicianDamage || '',
                     order.statusField || '',
                     order.customer || '',
                     order.service || '',
@@ -1684,6 +1687,7 @@ function exportPartOrdersReportToExcel() {
                 { wch: 20 },  // MODEL
                 { wch: 16 },  // IMEI
                 { wch: 15 },  // TEKNİSYEN
+                { wch: 18 },  // TEKNİSYEN HASARI
                 { wch: 20 },  // STATU
                 { wch: 20 },  // MÜŞTERİ
                 { wch: 20 },  // HİZMETLER
@@ -7994,6 +7998,7 @@ function selectPartOrderType(type) {
     document.getElementById('partOrderStatus').value = '';
     document.getElementById('partOrderService').value = '';
     document.getElementById('partOrderNote').value = '';
+    document.getElementById('partOrderTechnicianDamage').value = '';
     document.getElementById('partOrderPart1').value = '';
     document.getElementById('partOrderPart2').value = '';
     document.getElementById('partOrderPart3').value = '';
@@ -8052,6 +8057,7 @@ async function submitPartOrder() {
         const statusField = document.getElementById('partOrderStatus').value;
         const service = document.getElementById('partOrderService').value;
         const note = document.getElementById('partOrderNote').value;
+        const technicianDamage = document.getElementById('partOrderTechnicianDamage').value;
 
         // Get parts
         const parts = [];
@@ -8128,6 +8134,7 @@ async function submitPartOrder() {
                 note: note,
                 parts: parts,
                 technician: technician,
+                technicianDamage: technicianDamage,
                 status: 'pending',
                 timestamp: timestamp,
                 timestampReadable: timestampReadable,
