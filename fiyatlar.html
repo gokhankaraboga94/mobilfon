@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -767,13 +766,160 @@
                 padding: 1.25rem;
             }
         }
+   /* Önceki CSS kodları aynen korunmuştur */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --success-color: #22c55e;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --text-dark: #1e293b;
+            --text-light: #f8fafc;
+            --text-gray: #94a3b8;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        }
+        body {
+            font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text-dark);
+            position: relative;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%), radial-gradient(circle at 80% 80%, rgba(138, 43, 226, 0.3), transparent 50%), radial-gradient(circle at 40% 20%, rgba(255, 105, 180, 0.2), transparent 50%);
+            z-index: -1;
+            animation: gradientShift 15s ease infinite;
+        }
+        @keyframes gradientShift { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .navbar {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-container { max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .navbar-brand { font-size: 1.5rem; font-weight: 800; background: linear-gradient(135deg, #fff, #e0e7ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: flex; align-items: center; gap: 0.75rem; letter-spacing: -0.5px; }
+        .navbar-brand::before { content: "⚙️"; font-size: 1.75rem; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)); }
+        .navbar-user { display: flex; align-items: center; gap: 1rem; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 1rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border-radius: 2rem; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
+        .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.4); }
+        .user-email { font-size: 0.9rem; color: white; font-weight: 600; }
+        .container { max-width: 1400px; margin: 2rem auto; padding: 0 2rem; }
+        .card { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 1.25rem; padding: 2rem; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.5); margin-bottom: 2rem; animation: fadeInUp 0.5s ease-out; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5); }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .card-title { font-size: 1.75rem; font-weight: 800; margin-bottom: 1.75rem; color: var(--text-dark); display: flex; align-items: center; gap: 0.875rem; letter-spacing: -0.5px; }
+        .card-title::before { content: ""; width: 5px; height: 32px; background: linear-gradient(180deg, var(--primary-color), var(--primary-dark)); border-radius: 4px; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3); }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-dark); font-size: 0.95rem; letter-spacing: 0.2px; }
+        input, select { width: 100%; padding: 0.875rem 1rem; border: 2px solid #e2e8f0; border-radius: 0.75rem; font-size: 1rem; transition: all 0.3s ease; font-family: inherit; background: white; color: var(--text-dark); font-weight: 500; }
+        input:focus, select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        textarea:focus { outline: none; border-color: var(--primary-color) !important; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        input::placeholder { color: #cbd5e1; font-weight: 400; }
+        .btn { padding: 0.875rem 1.75rem; border: none; border-radius: 0.75rem; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; letter-spacing: 0.3px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); position: relative; overflow: hidden; text-decoration: none; }
+        .btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.5s ease; }
+        .btn:hover::before { left: 100%; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
+        .btn:active { transform: translateY(0); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; }
+        .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .btn-small { padding: 0.5rem 1.25rem; font-size: 0.9rem; width: auto; }
+        .btn-logout { padding: 0.5rem 1.5rem; font-size: 0.9rem; width: auto; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); color: white; }
+        .btn-logout:hover { background: rgba(239, 68, 68, 0.9); border-color: transparent; }
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 2rem; }
+        .login-card { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border-radius: 1.5rem; padding: 3rem 2.5rem; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.5); border: 1px solid rgba(255, 255, 255, 0.6); width: 100%; max-width: 440px; animation: scaleIn 0.5s ease-out; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .login-title { text-align: center; font-size: 2.25rem; font-weight: 900; margin-bottom: 0.75rem; background: linear-gradient(135deg, var(--primary-color), #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; }
+        .login-subtitle { text-align: center; font-size: 1rem; color: var(--text-gray); margin-bottom: 2rem; font-weight: 500; }
+        .table-container { overflow-x: auto; margin-top: 1.5rem; border-radius: 0.75rem; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
+        .table-container-users { max-height: 300px; overflow-y: auto; }
+        /* Log Tablosu için özel yükseklik */
+        .table-container-logs { max-height: 500px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 1rem 1.25rem; text-align: left; border-bottom: 1px solid #f1f5f9; }
+        th { background: linear-gradient(135deg, #f8fafc, #f1f5f9); font-weight: 700; color: var(--text-dark); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 10; }
+        td { font-size: 0.95rem; color: #475569; font-weight: 500; }
+        tr:hover { background: #fafbfc; }
+        tbody tr:last-child td { border-bottom: none; }
+        .tabs { display: flex; gap: 0.75rem; margin-bottom: 2rem; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); padding: 0.5rem; border-radius: 1rem; flex-wrap: wrap; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05); }
+        .tab { padding: 0.75rem 1.5rem; background: transparent; border: none; border-radius: 0.75rem; cursor: pointer; font-weight: 700; color: #64748b; transition: all 0.3s ease; white-space: nowrap; font-size: 0.95rem; }
+        .tab:hover { color: var(--primary-color); background: rgba(99, 102, 241, 0.08); transform: none; box-shadow: none; }
+        .tab.active { background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)); color: white; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .price-display { background: linear-gradient(135deg, var(--primary-color), var(--primary-dark), #8b5cf6); color: white; padding: 2.5rem; border-radius: 1.25rem; text-align: center; margin-top: 2rem; box-shadow: 0 20px 50px rgba(99, 102, 241, 0.35); position: relative; overflow: hidden; }
+        .price-display::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 70%); animation: pulse 4s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 0.8; } }
+        .price-label { font-size: 1rem; opacity: 0.9; margin-bottom: 0.75rem; font-weight: 600; position: relative; z-index: 1; }
+        .price-amount { font-size: 3.5rem; font-weight: 900; position: relative; z-index: 1; text-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); letter-spacing: -2px; }
+        .price-details { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.2); position: relative; z-index: 1; }
+        .price-item { display: flex; justify-content: space-between; padding: 0.625rem 0; font-size: 1rem; font-weight: 600; }
+        .checkbox-group { display: flex; flex-direction: column; gap: 0.75rem; }
+        .checkbox-item { display: flex; align-items: center; padding: 1rem 1.25rem; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 0.75rem; cursor: pointer; transition: all 0.3s ease; }
+        .checkbox-item:hover { background: #f1f5f9; border-color: var(--primary-light); transform: translateX(5px); }
+        .checkbox-item input[type="checkbox"] { width: 20px; height: 20px; margin-right: 1rem; cursor: pointer; accent-color: var(--primary-color); }
+        .checkbox-item label { margin: 0; cursor: pointer; flex: 1; font-size: 1rem; color: var(--text-dark); font-weight: 600; }
+        .alert { padding: 1rem 1.5rem; border-radius: 0.75rem; margin-bottom: 1.5rem; display: none; font-weight: 600; font-size: 0.95rem; }
+        .alert.show { display: block; animation: slideDown 0.4s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+        .alert-success { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; border-left: 4px solid var(--success-color); }
+        .alert-error { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #991b1b; border-left: 4px solid var(--danger-color); }
+        .hidden { display: none !important; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px); z-index: 2000; align-items: center; justify-content: center; }
+        .modal.show { display: flex; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content { background: white; border-radius: 1.25rem; padding: 2rem; box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2); width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; animation: scaleIn 0.3s ease; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-title { font-size: 1.5rem; font-weight: 800; color: var(--text-dark); }
+        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-gray); padding: 0.25rem; border-radius: 0.5rem; transition: all 0.3s ease; }
+        .modal-close:hover { background: #f1f5f9; color: var(--danger-color); }
+        
+        /* Log Badge Stilleri */
+        .log-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .log-login { background: #dbeafe; color: #1e40af; } /* Mavi */
+        .log-logout { background: #fee2e2; color: #991b1b; } /* Kırmızı */
+        .log-calc { background: #d1fae5; color: #065f46; } /* Yeşil */
+        
+        @media (max-width: 768px) {
+            .navbar-container { padding: 0 1.5rem; }
+            .navbar-brand { font-size: 1.25rem; }
+            .user-email { display: none; }
+            .card { padding: 1.5rem; }
+            .card-title { font-size: 1.5rem; }
+            .login-card { padding: 2.5rem 2rem; }
+            .login-title { font-size: 2rem; }
+            .price-amount { font-size: 2.5rem; }
+            .form-grid { grid-template-columns: 1fr; }
+            .tabs { padding: 0.4rem; }
+            .tab { padding: 0.65rem 1.25rem; font-size: 0.9rem; }
+            th, td { padding: 0.875rem 1rem; font-size: 0.875rem; }
+            .modal-content { padding: 1.5rem; margin: 1rem; }
+        }
+        @media (max-width: 480px) { .container { padding: 0 1rem; } .login-card { padding: 2rem 1.5rem; } .card { padding: 1.25rem; } }
     </style>
 </head>
 <body>
-    <!-- Login Page -->
     <div id="loginPage" class="login-container">
         <div class="login-card">
-            <h1 class="login-title">🔧 Mobilfon Fiyat Listesi  Giriş</h1>
+            <h1 class="login-title">🔧 Mobilfon Servis Giriş</h1>
             <p class="login-subtitle">Devam etmek için hesabınıza giriş yapın</p>
             <div id="loginAlert" class="alert"></div>
             <form id="loginForm">
@@ -790,9 +936,7 @@
         </div>
     </div>
 
-    <!-- Main App -->
     <div id="mainApp" class="hidden">
-        <!-- Navbar -->
         <nav class="navbar">
             <div class="navbar-container">
                 <div class="navbar-brand">
@@ -809,15 +953,14 @@
         </nav>
 
         <div class="container">
-            <!-- Admin Panel -->
             <div id="adminPanel" class="hidden">
                 <div class="tabs">
                     <button class="tab active" onclick="switchTab('users')">👥 Kullanıcı Yönetimi</button>
                     <button class="tab" onclick="switchTab('parts')">🔧 Parça Yönetimi</button>
                     <button class="tab" onclick="switchTab('prices')">💰 Fiyat Listesi</button>
+                    <button class="tab" onclick="switchTab('logs')">📜 Sistem Logları</button>
                 </div>
 
-                <!-- Users Tab -->
                 <div id="usersTab" class="tab-content active">
                     <div class="card">
                         <h2 class="card-title">Yeni Kullanıcı Ekle</h2>
@@ -854,7 +997,6 @@
                     </div>
                 </div>
 
-                <!-- Parts Tab -->
                 <div id="partsTab" class="tab-content">
                     <div class="card">
                         <h2 class="card-title">Yeni Parça Ekle</h2>
@@ -890,7 +1032,6 @@
                     </div>
                 </div>
 
-                <!-- Prices Tab -->
                 <div id="pricesTab" class="tab-content">
                     <div class="card">
                         <h2 class="card-title">Fiyat Listesi</h2>
@@ -911,9 +1052,31 @@
                         </div>
                     </div>
                 </div>
+
+                <div id="logsTab" class="tab-content">
+                    <div class="card">
+                        <h2 class="card-title">Sistem Logları (Giriş/Çıkış & İşlemler)</h2>
+                        <div class="table-container table-container-logs">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Tarih/Saat</th>
+                                        <th>Kullanıcı</th>
+                                        <th>İşlem Türü</th>
+                                        <th>Detaylar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="systemLogsList">
+                                    <tr>
+                                        <td colspan="4" style="text-align: center;">Loglar yükleniyor...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- User Panel -->
             <div id="userPanel" class="hidden">
                 <div class="tabs">
                     <button class="tab active" onclick="switchUserTab('calculate')">💰 Fiyat Hesaplama</button>
@@ -921,7 +1084,6 @@
                     <button class="tab" onclick="switchUserTab('contact')">📞 İletişim</button>
                 </div>
 
-                <!-- Calculate Tab -->
                 <div id="calculateTab" class="tab-content active">
                     <div class="card">
                         <h2 class="card-title">Fiyat Hesaplama</h2>
@@ -958,7 +1120,6 @@
                     </div>
                 </div>
 
-                <!-- List Tab -->
                 <div id="listTab" class="tab-content">
                     <div class="card">
                         <h2 class="card-title">Fiyat Listesi</h2>
@@ -979,7 +1140,6 @@
                     </div>
                 </div>
 
-                <!-- Contact Tab -->
                 <div id="contactTab" class="tab-content">
                     <div class="card">
                         <h2 class="card-title">İletişim Formu</h2>
@@ -1026,7 +1186,6 @@
         </div>
     </div>
 
-    <!-- Edit Part Modal -->
     <div id="editPartModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1067,7 +1226,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -1095,6 +1253,21 @@
 
         let currentUser = null;
         let isAdmin = false;
+
+        // YENİ: LOGLAMA FONKSİYONU
+        async function logAction(userId, email, action, details) {
+            try {
+                await database.ref('system_logs').push({
+                    userId: userId,
+                    email: email,
+                    action: action,
+                    details: details,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            } catch (error) {
+                console.error("Loglama hatası:", error);
+            }
+        }
 
         // Auth State Observer
         auth.onAuthStateChanged(user => {
@@ -1131,7 +1304,7 @@
             }, 5000);
         }
 
-        // Login
+        // Login - GÜNCELLENDİ (LOGLAMA EKLENDİ)
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
@@ -1145,18 +1318,26 @@
                 if (user.uid !== ADMIN_UID) {
                     const snapshot = await database.ref('users/' + user.uid).once('value');
                     if (!snapshot.exists()) {
-                        // Kullanıcı veritabanında yok, çıkış yap
                         await auth.signOut();
                         showAlert('loginAlert', 'Hesabınız bulunamadı veya silinmiş. Lütfen yönetici ile iletişime geçin.', 'error');
+                        return;
                     }
                 }
+
+                // LOGLAMA: Başarılı Giriş
+                await logAction(user.uid, user.email, 'Giriş', 'Sisteme başarıyla giriş yapıldı.');
+
             } catch (error) {
                 showAlert('loginAlert', 'Giriş başarısız: ' + error.message, 'error');
             }
         });
 
-        // Logout
-        function logout() {
+        // Logout - GÜNCELLENDİ (LOGLAMA EKLENDİ)
+        async function logout() {
+            if (currentUser) {
+                // LOGLAMA: Çıkış
+                await logAction(currentUser.uid, currentUser.email, 'Çıkış', 'Sistemden çıkış yapıldı.');
+            }
             auth.signOut();
         }
 
@@ -1181,6 +1362,8 @@
                 document.getElementById('userPanel').classList.add('hidden');
                 loadUsers();
                 loadAdminPrices();
+                // Admin giriş yaptığında logları da yükle (ilk sefer için)
+                loadSystemLogs(); 
             } else {
                 document.getElementById('adminPanel').classList.add('hidden');
                 document.getElementById('userPanel').classList.remove('hidden');
@@ -1189,7 +1372,7 @@
             }
         }
 
-        // Tab Switching (Admin)
+        // Tab Switching (Admin) - GÜNCELLENDİ (LOG TAB EKLENDİ)
         function switchTab(tabName) {
             const tabs = document.querySelectorAll('#adminPanel .tab');
             const contents = document.querySelectorAll('#adminPanel .tab-content');
@@ -1199,6 +1382,49 @@
             
             event.target.classList.add('active');
             document.getElementById(tabName + 'Tab').classList.add('active');
+
+            // Eğer log sekmesine tıklandıysa verileri tazeleyelim
+            if (tabName === 'logs') {
+                loadSystemLogs();
+            }
+        }
+
+        // YENİ: Logları Yükleme Fonksiyonu
+        function loadSystemLogs() {
+            // Son 100 logu getir, timestamp'e göre
+            database.ref('system_logs').orderByChild('timestamp').limitToLast(100).on('value', snapshot => {
+                const tbody = document.getElementById('systemLogsList');
+                tbody.innerHTML = '';
+
+                // Firebase'den gelen veriler eskiden yeniye doğru gelir, biz tersten (yeniden eskiye) göstermek istiyoruz.
+                const logs = [];
+                snapshot.forEach(child => {
+                    logs.push(child.val());
+                });
+                logs.reverse(); // Ters çevir
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">Henüz kayıtlı bir log bulunmuyor.</td></tr>';
+                    return;
+                }
+
+                logs.forEach(log => {
+                    const row = tbody.insertRow();
+                    const date = new Date(log.timestamp).toLocaleString('tr-TR');
+                    
+                    // İşlem türüne göre badge rengi
+                    let badgeClass = 'log-login';
+                    if (log.action === 'Çıkış') badgeClass = 'log-logout';
+                    if (log.action === 'Hesaplama') badgeClass = 'log-calc';
+
+                    row.innerHTML = `
+                        <td style="font-size: 0.85rem;">${date}</td>
+                        <td>${log.email}</td>
+                        <td><span class="log-badge ${badgeClass}">${log.action}</span></td>
+                        <td style="font-size: 0.9rem; max-width: 400px;">${log.details}</td>
+                    `;
+                });
+            });
         }
 
         // Tab Switching (User)
@@ -1233,13 +1459,15 @@
                 const data = await response.json();
                 
                 if (data.localId) {
-                    // Kullanıcıyı veritabanına kaydet
                     await database.ref('users/' + data.localId).set({
                         email: email,
                         createdAt: Date.now(),
                         createdBy: currentUser.uid
                     });
                     
+                    // LOGLAMA: Yeni Kullanıcı Ekleme
+                    await logAction(currentUser.uid, currentUser.email, 'Kullanıcı Ekleme', `${email} kullanıcısı eklendi.`);
+
                     showAlert('userAlert', 'Kullanıcı başarıyla eklendi!', 'success');
                     document.getElementById('addUserForm').reset();
                     loadUsers();
@@ -1263,7 +1491,6 @@
                     const user = child.val();
                     const userId = child.key;
                     
-                    // Admin kendisini gösterme
                     if (userId === ADMIN_UID) return;
                     
                     const row = tbody.insertRow();
@@ -1282,16 +1509,14 @@
 
         // Delete User
         async function deleteUser(userId, email) {
-            if (confirm(`${email} adlı kullanıcıyı silmek istediğinizden emin misiniz?\n\nNot: Kullanıcı veritabanından silinecek ve bir daha giriş yapamayacaktır.`)) {
+            if (confirm(`${email} adlı kullanıcıyı silmek istediğinizden emin misiniz?`)) {
                 try {
-                    // 1. Kullanıcıyı veritabanından sil
                     await database.ref('users/' + userId).remove();
                     
-                    // 2. Firebase Authentication'dan silme (REST API ile)
-                    // Not: Bu işlem Firebase Admin SDK gerektirir ve client-side'dan tam olarak yapılamaz
-                    // Ancak kullanıcı veritabanından silindiği için giriş yapamayacak
+                    // LOGLAMA: Kullanıcı Silme
+                    await logAction(currentUser.uid, currentUser.email, 'Kullanıcı Silme', `${email} kullanıcısı silindi.`);
                     
-                    showAlert('userAlert', 'Kullanıcı başarıyla silindi! Artık sisteme giriş yapamayacaktır.', 'success');
+                    showAlert('userAlert', 'Kullanıcı başarıyla silindi!', 'success');
                 } catch (error) {
                     showAlert('userAlert', 'Hata: ' + error.message, 'error');
                 }
@@ -1318,6 +1543,9 @@
                 };
 
                 await database.ref('parts').push(partData);
+                
+                // LOGLAMA: Parça Ekleme
+                await logAction(currentUser.uid, currentUser.email, 'Parça Ekleme', `${brand} ${model} - ${name} eklendi.`);
 
                 showAlert('partAlert', 'Parça başarıyla eklendi!', 'success');
                 document.getElementById('addPartForm').reset();
@@ -1351,7 +1579,7 @@
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
                                 <button class="btn btn-warning btn-small" onclick="openEditModal('${partKey}')">✏️ Düzenle</button>
-                                <button class="btn btn-danger btn-small" onclick="deletePart('${partKey}')">🗑️ Sil</button>
+                                <button class="btn btn-danger btn-small" onclick="deletePart('${partKey}', '${part.name}')">🗑️ Sil</button>
                             </div>
                         </td>
                     `;
@@ -1385,9 +1613,13 @@
         }
 
         // Delete Part
-        async function deletePart(key) {
+        async function deletePart(key, partName) {
             if (confirm('Bu parçayı silmek istediğinizden emin misiniz?')) {
                 await database.ref('parts/' + key).remove();
+                
+                // LOGLAMA: Parça Silme
+                await logAction(currentUser.uid, currentUser.email, 'Parça Silme', `${partName} parçası silindi.`);
+                
                 showAlert('partAlert', 'Parça silindi!', 'success');
             }
         }
@@ -1437,6 +1669,9 @@
                 };
 
                 await database.ref('parts/' + partKey).update(updatedPartData);
+
+                // LOGLAMA: Parça Düzenleme
+                await logAction(currentUser.uid, currentUser.email, 'Parça Düzenleme', `${brand} ${model} - ${name} güncellendi.`);
 
                 showAlert('partAlert', 'Parça başarıyla güncellendi!', 'success');
                 closeEditModal();
@@ -1582,7 +1817,7 @@
             }
         }
 
-        // Calculate Price
+        // Calculate Price - GÜNCELLENDİ (LOGLAMA EKLENDİ)
         document.getElementById('calculateBtn').addEventListener('click', async function() {
             const checkboxes = document.querySelectorAll('#partsList input[type="checkbox"]:checked');
             
@@ -1591,8 +1826,12 @@
                 return;
             }
 
+            const brand = document.getElementById('selectBrand').value;
+            const model = document.getElementById('selectModel').value;
+
             let total = 0;
             const breakdown = [];
+            const partNames = [];
 
             checkboxes.forEach(cb => {
                 const price = parseFloat(cb.getAttribute('data-price'));
@@ -1601,6 +1840,7 @@
                 
                 total += price;
                 breakdown.push({ name: label, price: price });
+                partNames.push(label);
             });
 
             document.getElementById('totalPrice').textContent = total.toFixed(2) + ' ₺';
@@ -1614,6 +1854,10 @@
             `).join('');
 
             document.getElementById('priceResult').style.display = 'block';
+
+            // LOGLAMA: Hesaplama İşlemi
+            const logDetails = `${brand} ${model} için hesaplama yapıldı. Parçalar: ${partNames.join(', ')}. Toplam: ${total.toFixed(2)} ₺`;
+            await logAction(currentUser.uid, currentUser.email, 'Hesaplama', logDetails);
         });
 
         // Contact Form Submit
