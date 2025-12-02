@@ -1,4 +1,12 @@
 // ========================================
+// PERFORMANCE OPTIMIZATION
+// ========================================
+const PRODUCTION_MODE = true; // Set to false for debugging
+const log = PRODUCTION_MODE ? () => { } : console.log.bind(console);
+const warn = PRODUCTION_MODE ? () => { } : console.warn.bind(console);
+const error = console.error.bind(console); // Always log errors
+
+// ========================================
 // ========================================
 // DATA SYNC VERIFICATION SYSTEM
 // ========================================
@@ -18,6 +26,30 @@ const DATA_SYNC_CHECK_INTERVAL = 5 * 60 * 1000; // 5 dakika
 // NAVIGATION FUNCTIONS - DÜZELTMİŞ VERSİYON
 // ========================================
 let isNavigationInProgress = false;
+
+// ========================================
+// CACHED DATA - Performance Optimization
+// ========================================
+const CACHED_LIST_NAMES = {
+    atanacak: '📋 Atanacak',
+    parcaBekliyor: '⚙️ Parça Bekliyor',
+    phonecheck: '📱 PhoneCheck',
+    gokhan: '🧑‍🔧 Gökhan',
+    enes: '🧑‍🔧 Enes',
+    yusuf: '🧑‍🔧 Yusuf',
+    samet: '🧑‍🔧 Samet',
+    engin: '🧑‍🔧 Engin',
+    ismail: '🧑‍🔧 İsmail',
+    mehmet: '🧑‍🔧 Mehmet',
+    onarim: '🔧 Onarım Tamamlandı',
+    onCamDisServis: '🔨 Ön Cam Dış Servis',
+    anakartDisServis: '🔨 Anakart Dış Servis',
+    satisa: '💰 Satışa Gidecek',
+    sahiniden: '🏪 Sahibinden',
+    mediaMarkt: '🛒 Media Markt',
+    SonKullanıcı: '👤 Son Kullanıcı',
+    teslimEdilenler: '✅ Teslim Edilenler'
+};
 
 function showMainView() {
     if (isNavigationInProgress) return;
@@ -55,7 +87,7 @@ function showMainView() {
         // ✅ ÖNEMLİ: Input listener'ları yeniden başlat
         setTimeout(() => {
             reinitializeAllInputListeners();
-            console.log('✅ Ana sayfaya geçildi, input listener\'lar yeniden başlatıldı');
+            log('✅ Ana sayfaya geçildi, input listener\'lar yeniden başlatıldı');
         }, 100);
     } finally {
         isNavigationInProgress = false;
@@ -1903,26 +1935,26 @@ function checkMidnightReset() {
 }
 
 
-setInterval(checkMidnightReset, 30000); // 30 saniye
+setInterval(checkMidnightReset, 60000); // 60 saniye - Optimized
 
 
 
 // Senkronizasyon modalını aç
 function openSyncModal() {
-    console.log('🔄 openSyncModal called');
+    log('🔄 openSyncModal called');
     const modal = document.getElementById('syncModal');
-    console.log('Sync modal element:', modal);
+    log('Sync modal element:', modal);
     if (modal) {
         modal.classList.add('active');
         modal.style.display = 'flex'; // Force display
-        console.log('Modal class list:', modal.classList);
+        log('Modal class list:', modal.classList);
     }
     analyzeSyncIssues();
 }
 
 // Senkronizasyon modalını kapat
 function closeSyncModal() {
-    console.log('❌ closeSyncModal called');
+    log('❌ closeSyncModal called');
     const modal = document.getElementById('syncModal');
     if (modal) {
         modal.classList.remove('active');
@@ -5255,7 +5287,7 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
             historyLog.style.display = "none";
             if (partInfo) partInfo.style.display = "none";
         }
-    }, 300);
+    }, 500); // Optimized debounce
 }
 
 async function loadAndDisplayHistoryToElement(code, historyElementId) {
@@ -5372,7 +5404,6 @@ inputs.scanner.addEventListener("input", e => {
 function renderMiniList(name) {
     // ✅ ÖNCE KONTROL: userCodes[name] var mı?
     if (!miniLists[name] || !userCodes[name]) {
-        console.warn(`⚠️ renderMiniList: ${name} listesi bulunamadı veya userCodes tanımlı değil`);
         return;
     }
 
@@ -5380,10 +5411,11 @@ function renderMiniList(name) {
 
     // ✅ GÜVENLİ KONTROL: list elementi var mı?
     if (!list) {
-        console.warn(`⚠️ renderMiniList: ${name}List elementi bulunamadı`);
         return;
     }
 
+    // ✅ PERFORMANCE: Use DocumentFragment for batch DOM updates
+    const fragment = document.createDocumentFragment();
     list.innerHTML = "";
 
     // ✅ TOPLU SİLME: Admin ise checkbox container ekle
@@ -5426,7 +5458,7 @@ function renderMiniList(name) {
       </button>
     `;
 
-        list.appendChild(bulkDeleteContainer);
+        fragment.appendChild(bulkDeleteContainer);
     }
 
     // ✅ GÜVENLİ KONTROL: userCodes[name] Set objesi mi?
@@ -5505,8 +5537,11 @@ function renderMiniList(name) {
         </div>
       ` : ''}
     `;
-        list.appendChild(div);
+        fragment.appendChild(div);
     });
+
+    // ✅ PERFORMANCE: Append all items at once
+    list.appendChild(fragment);
 }
 
 
@@ -7765,7 +7800,7 @@ async function loadSystemLogs() {
                     });
                 });
             }
-        } 
+        }
         // ============================================================
         // SENARYO 2: NORMAL LOGLAR (history tablosundan çek)
         // ============================================================
