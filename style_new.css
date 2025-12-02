@@ -12,6 +12,15 @@
     padding: 0;
 }
 
+/* ========================================
+   CURSOR OPTIMIZATION - Mouse pointer instead of I-beam
+   ======================================== */
+input,
+textarea,
+select {
+    cursor: default !important;
+}
+
 :root {
     /* Modern Color Palette - LIGHTENED */
     --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -2970,10 +2979,7 @@ button[onclick*="openEditUserModal"] {
     pointer-events: auto !important;
 }
 
-/* Sync and Dashboard Reset buttons - override inline styles when needed */
-#resetDashboardBtn[style*="display: none"] {
-    /* Will be controlled by JS, this ensures proper styling when visible */
-}
+/* Sync and Dashboard Reset buttons - controlled by JS */
 
 #fixAllBtn,
 #fixAllDataBtn {
