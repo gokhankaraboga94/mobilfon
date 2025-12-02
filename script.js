@@ -1,6 +1,3 @@
-Script
-
-
 // ========================================
 // PERFORMANCE OPTIMIZATION
 // ========================================
@@ -8124,7 +8121,6 @@ function closePartOrderModal() {
 }
 
 // Submit part order
-
 async function submitPartOrder() {
     try {
         // Get form values
@@ -8135,7 +8131,7 @@ async function submitPartOrder() {
         const note = document.getElementById('partOrderNote').value;
         const technicianDamage = document.getElementById('partOrderTechnicianDamage').value;
 
-        // Get parts (TÜMÜ OPSİYONEL)
+        // Get parts
         const parts = [];
         for (let i = 1; i <= 4; i++) {
             const partValue = document.getElementById(`partOrderPart${i}`).value.trim();
@@ -8144,14 +8140,16 @@ async function submitPartOrder() {
             }
         }
 
-        // Validate model (model hala zorunlu)
+        // Validate common fields
         if (!model) {
             alert('Lütfen cihaz modelini seçin!');
             return;
         }
 
-        // TÜM PARÇALAR OPSİYONEL - hiç parça girilmemişse de kabul et
-        // if (parts.length === 0) { } // BU KONTROLÜ TAMAMEN KALDIRIN
+        if (parts.length === 0) {
+            alert('Lütfen en az bir parça girin!');
+            return;
+        }
 
         // Get barcodes based on type
         let barcodes = [];
@@ -8206,7 +8204,7 @@ async function submitPartOrder() {
                 statusField: statusField,
                 service: service,
                 note: note,
-                parts: parts, // Burada parts array'i boş olabilir
+                parts: parts,
                 technician: technician,
                 technicianDamage: technicianDamage,
                 status: 'pending',
@@ -8229,17 +8227,9 @@ async function submitPartOrder() {
 
         // Show success message
         if (currentPartOrderType === 'single') {
-            if (parts.length === 0) {
-                showToast(`✅ Parça siparişi başarıyla oluşturuldu! (Parça belirtilmemiş)`, 'success');
-            } else {
-                showToast(`✅ Parça siparişi başarıyla oluşturuldu!`, 'success');
-            }
+            showToast(`✅ Parça siparişi başarıyla oluşturuldu!`, 'success');
         } else {
-            if (parts.length === 0) {
-                showToast(`✅ ${barcodes.length} adet parça siparişi başarıyla oluşturuldu! (Parça belirtilmemiş)`, 'success');
-            } else {
-                showToast(`✅ ${barcodes.length} adet parça siparişi başarıyla oluşturuldu!`, 'success');
-            }
+            showToast(`✅ ${barcodes.length} adet parça siparişi başarıyla oluşturuldu!`, 'success');
         }
 
         // Close modal
