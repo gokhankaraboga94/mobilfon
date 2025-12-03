@@ -8255,3 +8255,305 @@ async function submitPartOrder() {
         alert('Parça siparişi oluşturulurken bir hata oluştu!');
     }
 }
+
+
+
+// ========================================
+// ZAMAN AŞIMI UYARI SİSTEMİ (TIMEOUT SYSTEM)
+// ========================================
+
+// ========================================
+// GELİŞMİŞ ZAMAN AŞIMI KONTROLÜ
+// ========================================
+// ========================================
+// ZAMAN AŞIMI UYARI SİSTEMİ (TAM ENTEGRASYON)
+// ========================================
+
+// ========================================
+// ZAMAN AŞIMI UYARI SİSTEMİ (V3 - GÜÇLENDİRİLMİŞ VERSİYON)
+// ========================================
+
+const TIMEOUT_DURATION = 3 * 24 * 60 * 60 * 1000; // 3 Gün
+let timeoutDevices = [];
+
+// Sistemi Başlatan Tetikleyiciler
+window.addEventListener('load', () => {
+    // Sayfa tamamen yüklendikten 5 saniye sonra başlat
+    setTimeout(() => {
+        console.log('🚀 Zaman aşımı sistemi başlatılıyor (v3)...');
+        checkTimeouts();
+    }, 5000);
+
+    // Her 15 dakikada bir kontrol et
+    setInterval(checkTimeouts, 15 * 60 * 1000);
+});
+
+async function checkTimeouts() {
+    // Verilerin yüklendiğinden emin ol
+    if (typeof dataLoaded !== 'undefined' && !dataLoaded) {
+        console.log('⏳ Veriler bekleniyor...');
+        setTimeout(checkTimeouts, 3000);
+        return;
+    }
+
+    console.log('⏰ Zaman aşımı kontrolü çalışıyor...');
+    timeoutDevices = []; // Listeyi sıfırla
+    
+    try {
+        // Yoksayılanlar listesini çek
+        const ignoredSnapshot = await db.ref('timeoutIgnored').once('value');
+        const ignoredList = ignoredSnapshot.val() || {};
+
+        // Kontrol edilecek listeleri belirle (Satış, Teslim ve Geçmiş hariç hepsi)
+        const excludeLists = ['satisa', 'sahiniden', 'SonKullanıcı', 'teslimEdilenler', 'eslesenler', 'adet', 'history', 'serviceReturns'];
+        const targetLists = Object.keys(userCodes).filter(listName => !excludeLists.includes(listName));
+
+        // PhoneCheck ve Onarım listelerini manuel olarak da garantiye al
+        if (!targetLists.includes('phonecheck') && userCodes['phonecheck']) targetLists.push('phonecheck');
+        if (!targetLists.includes('onarim') && userCodes['onarim']) targetLists.push('onarim');
+
+        for (const listName of targetLists) {
+            // Liste boşsa geç
+            if (!userCodes[listName] || userCodes[listName].size === 0) continue;
+
+            const barcodes = Array.from(userCodes[listName]);
+            
+            for (const barcode of barcodes) {
+                if (ignoredList[barcode]) continue; // Yoksayılan cihazı atla
+
+                let entryTimeRaw = null;
+                let entryUser = 'Bilinmiyor';
+
+                // 1. YÖNTEM: History (Geçmiş) Analizi
+                // PhoneCheck ve Onarım için geçmiş kayıtlarında isim farklılıklarını tolere et
+                const historySnapshot = await db.ref(`servis/history/${barcode}`).once('value');
+                const history = historySnapshot.val();
+
+                if (history) {
+                    const entries = Object.values(history).sort((a, b) => b.timestampRaw - a.timestampRaw);
+                    
+                    // Cihazın bu listeye girdiği SON kaydı bul (Büyük/Küçük harf duyarsız)
+                    const lastEntry = entries.find(e => {
+                        const to = (e.to || '').toLowerCase();
+                        const current = listName.toLowerCase();
+                        
+                        // Tam eşleşme veya özel durumlar (onarim <-> onarimTamamlandi)
+                        return to === current || 
+                               (current === 'onarim' && to.includes('onarim')) ||
+                               (current === 'phonecheck' && to.includes('phonecheck'));
+                    });
+                    
+                    if (lastEntry && lastEntry.timestampRaw) {
+                        entryTimeRaw = lastEntry.timestampRaw;
+                        entryUser = lastEntry.user || 'Bilinmiyor';
+                    }
+                }
+
+                // 2. YÖNTEM (YEDEK): History'de bulamazsa listedeki görünen tarihi kullan
+                // convertToTimestamp fonksiyonu script.js içinde zaten mevcut, onu kullanıyoruz
+                if (!entryTimeRaw && codeTimestamps[listName] && codeTimestamps[listName][barcode]) {
+                    const tsVal = codeTimestamps[listName][barcode];
+                    // Eğer veri zaten sayı tipindeyse (timestamp) direkt al, değilse çevir
+                    entryTimeRaw = (typeof tsVal === 'number') ? tsVal : convertToTimestamp(tsVal);
+                    entryUser = codeUsers[listName][barcode] || 'Bilinmiyor';
+                }
+
+                // Süre hesabı ve Ekleme
+                if (entryTimeRaw) {
+                    const waitingTime = Date.now() - entryTimeRaw;
+                    const daysWaiting = Math.floor(waitingTime / (24 * 60 * 60 * 1000));
+
+                    if (waitingTime > TIMEOUT_DURATION) {
+                        // Debug için konsola yaz (Sadece PhoneCheck ve Onarım için)
+                        if (listName === 'phonecheck' || listName === 'onarim') {
+                            console.log(`⚠️ Tespit: ${listName} - ${barcode} (${daysWaiting} gün)`);
+                        }
+
+                        timeoutDevices.push({
+                            barcode: barcode,
+                            listName: listName,
+                            days: daysWaiting,
+                            lastActionDate: new Date(entryTimeRaw).toLocaleDateString('tr-TR'),
+                            user: entryUser
+                        });
+                    }
+                }
+            }
+        }
+
+        updateTimeoutWarningUI();
+        
+        // Modal açıksa listeyi anlık güncelle
+        const modal = document.getElementById('timeoutModal');
+        if (modal && modal.classList.contains('active')) {
+            renderTimeoutList();
+        }
+
+    } catch (error) {
+        console.error('❌ Zaman aşımı kontrolü hatası:', error);
+    }
+}
+
+// Arayüz (UI) Güncelleme Fonksiyonları
+function updateTimeoutWarningUI() {
+    const warningBox = document.getElementById('timeoutWarning');
+    const countSpan = document.getElementById('timeoutCount');
+    
+    if (warningBox && countSpan) {
+        if (timeoutDevices.length > 0) {
+            countSpan.textContent = timeoutDevices.length;
+            warningBox.style.display = 'flex';
+            // Animasyon efekti
+            warningBox.classList.remove('pulse');
+            void warningBox.offsetWidth; // reflow
+            warningBox.classList.add('pulse');
+        } else {
+            warningBox.style.display = 'none';
+        }
+    }
+}
+
+function openTimeoutModal() {
+    const modal = document.getElementById('timeoutModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        renderTimeoutList();
+    }
+}
+
+function closeTimeoutModal() {
+    const modal = document.getElementById('timeoutModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
+}
+
+function renderTimeoutList() {
+    const tbody = document.getElementById('timeoutListBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    const listNamesTR = {
+        atanacak: '📋 Atanacak',
+        phonecheck: '📱 PhoneCheck',
+        onarim: '🔧 Onarım',
+        mediaMarkt: '🛒 Media Markt',
+        gokhan: '🧑‍🔧 Gökhan', enes: '🧑‍🔧 Enes', yusuf: '🧑‍🔧 Yusuf', 
+        samet: '🧑‍🔧 Samet', engin: '🧑‍🔧 Engin', ismail: '🧑‍🔧 İsmail', mehmet: '🧑‍🔧 Mehmet',
+        onCamDisServis: '🔨 Ön Cam', anakartDisServis: '🔨 Anakart'
+    };
+
+    // Gün sayısına göre sırala (En çok bekleyen en üstte)
+    timeoutDevices.sort((a, b) => b.days - a.days);
+
+    timeoutDevices.forEach(device => {
+        const tr = document.createElement('tr');
+        // Liste ismini güzelleştir
+        const displayName = listNamesTR[device.listName] || device.listName.charAt(0).toUpperCase() + device.listName.slice(1);
+        
+        tr.innerHTML = `
+            <td><input type="checkbox" class="timeout-checkbox" value="${device.barcode}" data-list="${device.listName}"></td>
+            <td style="font-family: monospace; font-weight: bold; color: #3498db;">${device.barcode}</td>
+            <td>${displayName}</td>
+            <td><span class="timeout-days-badge">${device.days} Gün</span></td>
+            <td>${device.lastActionDate}</td>
+            <td>👤 ${device.user}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function toggleAllTimeout(source) {
+    const checkboxes = document.querySelectorAll('.timeout-checkbox');
+    checkboxes.forEach(cb => cb.checked = source.checked);
+}
+
+// Seçilenleri Yoksay
+async function ignoreSelectedTimeouts() {
+    const selected = document.querySelectorAll('.timeout-checkbox:checked');
+    if (selected.length === 0) {
+        showToast('Lütfen en az bir cihaz seçin!', 'warning');
+        return;
+    }
+
+    if (!confirm(`${selected.length} cihaz için zaman aşımı uyarısı kapatılacak. Onaylıyor musunuz?`)) return;
+
+    try {
+        const updates = {};
+        selected.forEach(cb => {
+            const barcode = cb.value;
+            updates[`timeoutIgnored/${barcode}`] = {
+                ignoredAt: Date.now(),
+                user: currentUserName
+            };
+        });
+
+        await db.ref().update(updates);
+        showToast('Seçilen cihazlar yoksayıldı.', 'success');
+        checkTimeouts(); // Listeyi yenile
+
+    } catch (error) {
+        console.error('İşlem hatası:', error);
+        showToast('Hata oluştu.', 'error');
+    }
+}
+
+// Seçilenleri Transfer Et
+async function transferSelectedToDelivered() {
+    const selected = document.querySelectorAll('.timeout-checkbox:checked');
+    if (selected.length === 0) {
+        showToast('Lütfen en az bir cihaz seçin!', 'warning');
+        return;
+    }
+
+    if (!confirm(`${selected.length} cihaz "Teslim Edilenler" listesine transfer edilecek. Onaylıyor musunuz?`)) return;
+
+    try {
+        let successCount = 0;
+        for (const cb of selected) {
+            const barcode = cb.value;
+            const currentList = cb.dataset.list;
+
+            // 1. Mevcut listeden sil
+            const dbPathFrom = currentList === 'onarim' ? 'onarimTamamlandi' : currentList;
+            await db.ref(`servis/${dbPathFrom}/${barcode}`).remove();
+            
+            // Local setlerden temizle
+            if(userCodes[currentList]) userCodes[currentList].delete(barcode);
+
+            // 2. Teslim Edilenlere ekle
+            const timestamp = getTimestamp(); 
+            await db.ref(`servis/teslimEdilenler/${barcode}`).set({
+                ts: timestamp,
+                user: currentUserName
+            });
+
+            // 3. Geçmişe kaydet
+            if (typeof saveBarcodeHistory === 'function') {
+                saveBarcodeHistory(barcode, currentList, 'teslimEdilenler', `${currentUserName} (Zaman Aşımı Transfer)`);
+            }
+            
+            // 4. Teslim sayacını artır
+            if(typeof incrementDeliveredCount === 'function') incrementDeliveredCount();
+
+            successCount++;
+        }
+
+        showToast(`${successCount} cihaz transfer edildi.`, 'success');
+        
+        // UI Güncellemeleri
+        checkTimeouts(); 
+        if (typeof renderList === 'function') renderList();
+        if (typeof updateLabelAndCount === 'function') {
+            const listsToUpdate = new Set(Array.from(selected).map(cb => cb.dataset.list));
+            listsToUpdate.forEach(l => updateLabelAndCount(l));
+        }
+
+    } catch (error) {
+        console.error('Transfer hatası:', error);
+        showToast('Transfer sırasında hata oluştu.', 'error');
+    }
+}
