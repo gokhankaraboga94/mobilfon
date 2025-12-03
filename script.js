@@ -3030,12 +3030,12 @@ async function submitPartOrder() {
         showToast('Cihaz modelini giriniz!', 'error');
         return;
     }
-
+/*
     if (!part1) {
         showToast('En az 1 parça girmelisiniz!', 'error');
         return;
     }
-
+*/
     const parts = [];
     if (part1) parts.push({ name: part1, status: 'pending' });
     if (part2) parts.push({ name: part2, status: 'pending' });
@@ -8155,12 +8155,12 @@ async function submitPartOrder() {
             alert('Lütfen cihaz modelini seçin!');
             return;
         }
-
+/*
         if (parts.length === 0) {
             alert('Lütfen en az bir parça girin!');
             return;
         }
-
+*/
         // Get barcodes based on type
         let barcodes = [];
         if (currentPartOrderType === 'single') {
