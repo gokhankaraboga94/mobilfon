@@ -3188,14 +3188,15 @@ function createTechnicianOrderCard(orderId, order) {
         ? '<span class="order-status ready">✅ Hazır</span>'
         : '<span class="order-status pending">⏳ Bekliyor</span>';
 
-    // Parts list with status
+// Parts list
     let partsHTML = '<div class="order-parts"><div class="order-parts-title">🔧 İstenen Parçalar:</div><div class="order-parts-list">';
-    order.parts.forEach(part => {
-        const icon = part.status === 'available' ? '✅' :
-            part.status === 'unavailable' ? '❌' : '⏳';
-        const statusClass = part.status === 'available' ? 'available' :
-            part.status === 'unavailable' ? 'unavailable' : 'pending';
-        partsHTML += `<span class="part-tag ${statusClass}">${icon} ${part.name}</span>`;
+    
+    // EĞER order.parts VARSA döngüye gir, YOKSA boş dizi ([]) kabul et
+    (order.parts || []).forEach((part) => {
+        // part nesnesinin ve isminin varlığını da kontrol edelim
+        if (part && part.name) {
+            partsHTML += `<span class="part-tag">${part.name}</span>`;
+        }
     });
     partsHTML += '</div></div>';
 
@@ -3344,23 +3345,32 @@ function createWarehouseOrderCard(orderId, order, isPending) {
         ? '<span class="order-status pending">⏳ Bekliyor</span>'
         : '<span class="order-status ready">✅ Hazır</span>';
 
-    // Parts list
+    // --- DÜZELTME BAŞLANGICI ---
+    // Parts list - Hata vermemesi için ekstra güvenlik önlemi
     let partsHTML = '<div class="order-parts"><div class="order-parts-title">🔧 İstenen Parçalar:</div><div class="order-parts-list">';
-    order.parts.forEach((part) => {
-        partsHTML += `<span class="part-tag">${part.name}</span>`;
+    
+    // Eğer order.parts bir dizi ise onu kullan, değilse boş bir dizi kullan
+    const partsList = Array.isArray(order.parts) ? order.parts : [];
+    
+    partsList.forEach((part) => {
+        // part nesnesi boş değilse ve ismi varsa ekle
+        if (part && part.name) {
+            partsHTML += `<span class="part-tag">${part.name}</span>`;
+        }
     });
     partsHTML += '</div></div>';
+    // --- DÜZELTME BİTİŞİ ---
 
     card.innerHTML = `
         <div class="order-header">
-          <div class="order-barcode">${order.barcode}</div>
+          <div class="order-barcode">${order.barcode || 'Barkod Yok'}</div>
           ${statusBadge}
         </div>
         
         <div class="order-body">
           <div class="order-field">
             <div class="order-field-label">Model</div>
-            <div class="order-field-value">📱 ${order.model}</div>
+            <div class="order-field-value">📱 ${order.model || '-'}</div>
           </div>
           
           ${order.customer ? `
@@ -3386,12 +3396,12 @@ function createWarehouseOrderCard(orderId, order, isPending) {
           
           <div class="order-field">
             <div class="order-field-label">Teknisyen</div>
-            <div class="order-field-value">👤 ${order.technician}</div>
+            <div class="order-field-value">👤 ${order.technician || '-'}</div>
           </div>
           
           <div class="order-field">
             <div class="order-field-label">Tarih</div>
-            <div class="order-field-value">📅 ${order.timestampReadable}</div>
+            <div class="order-field-value">📅 ${order.timestampReadable || '-'}</div>
           </div>
         </div>
         
