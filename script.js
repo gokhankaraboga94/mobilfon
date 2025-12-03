@@ -78,6 +78,14 @@ function showMainView() {
             document.getElementById('dashboardPanel').style.display = 'none';
         }
 
+        // ✅ TIMEOUT DASHBOARD - SADECE ADMIN VE SEMI-ADMIN
+        if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+            document.getElementById('timeoutDashboardPanel').style.display = 'block';
+            loadTimeoutDashboard(); // Son kaydedilen veriyi yükle
+        } else {
+            document.getElementById('timeoutDashboardPanel').style.display = 'none';
+        }
+
         if (document.getElementById('reportsModal').classList.contains('active')) {
             closeReportsModalWithoutNavigation();
         }
@@ -3030,12 +3038,12 @@ async function submitPartOrder() {
         showToast('Cihaz modelini giriniz!', 'error');
         return;
     }
-/*
-    if (!part1) {
-        showToast('En az 1 parça girmelisiniz!', 'error');
-        return;
-    }
-*/
+    /*
+        if (!part1) {
+            showToast('En az 1 parça girmelisiniz!', 'error');
+            return;
+        }
+    */
     const parts = [];
     if (part1) parts.push({ name: part1, status: 'pending' });
     if (part2) parts.push({ name: part2, status: 'pending' });
@@ -3188,9 +3196,9 @@ function createTechnicianOrderCard(orderId, order) {
         ? '<span class="order-status ready">✅ Hazır</span>'
         : '<span class="order-status pending">⏳ Bekliyor</span>';
 
-// Parts list
+    // Parts list
     let partsHTML = '<div class="order-parts"><div class="order-parts-title">🔧 İstenen Parçalar:</div><div class="order-parts-list">';
-    
+
     // EĞER order.parts VARSA döngüye gir, YOKSA boş dizi ([]) kabul et
     (order.parts || []).forEach((part) => {
         // part nesnesinin ve isminin varlığını da kontrol edelim
@@ -3348,10 +3356,10 @@ function createWarehouseOrderCard(orderId, order, isPending) {
     // --- DÜZELTME BAŞLANGICI ---
     // Parts list - Hata vermemesi için ekstra güvenlik önlemi
     let partsHTML = '<div class="order-parts"><div class="order-parts-title">🔧 İstenen Parçalar:</div><div class="order-parts-list">';
-    
+
     // Eğer order.parts bir dizi ise onu kullan, değilse boş bir dizi kullan
     const partsList = Array.isArray(order.parts) ? order.parts : [];
-    
+
     partsList.forEach((part) => {
         // part nesnesi boş değilse ve ismi varsa ekle
         if (part && part.name) {
@@ -8155,12 +8163,12 @@ async function submitPartOrder() {
             alert('Lütfen cihaz modelini seçin!');
             return;
         }
-/*
-        if (parts.length === 0) {
-            alert('Lütfen en az bir parça girin!');
-            return;
-        }
-*/
+        /*
+                if (parts.length === 0) {
+                    alert('Lütfen en az bir parça girin!');
+                    return;
+                }
+        */
         // Get barcodes based on type
         let barcodes = [];
         if (currentPartOrderType === 'single') {
@@ -8298,7 +8306,7 @@ async function checkTimeouts() {
 
     console.log('⏰ Zaman aşımı kontrolü çalışıyor...');
     timeoutDevices = []; // Listeyi sıfırla
-    
+
     try {
         // Yoksayılanlar listesini çek
         const ignoredSnapshot = await db.ref('timeoutIgnored').once('value');
@@ -8317,7 +8325,7 @@ async function checkTimeouts() {
             if (!userCodes[listName] || userCodes[listName].size === 0) continue;
 
             const barcodes = Array.from(userCodes[listName]);
-            
+
             for (const barcode of barcodes) {
                 if (ignoredList[barcode]) continue; // Yoksayılan cihazı atla
 
@@ -8331,18 +8339,18 @@ async function checkTimeouts() {
 
                 if (history) {
                     const entries = Object.values(history).sort((a, b) => b.timestampRaw - a.timestampRaw);
-                    
+
                     // Cihazın bu listeye girdiği SON kaydı bul (Büyük/Küçük harf duyarsız)
                     const lastEntry = entries.find(e => {
                         const to = (e.to || '').toLowerCase();
                         const current = listName.toLowerCase();
-                        
+
                         // Tam eşleşme veya özel durumlar (onarim <-> onarimTamamlandi)
-                        return to === current || 
-                               (current === 'onarim' && to.includes('onarim')) ||
-                               (current === 'phonecheck' && to.includes('phonecheck'));
+                        return to === current ||
+                            (current === 'onarim' && to.includes('onarim')) ||
+                            (current === 'phonecheck' && to.includes('phonecheck'));
                     });
-                    
+
                     if (lastEntry && lastEntry.timestampRaw) {
                         entryTimeRaw = lastEntry.timestampRaw;
                         entryUser = lastEntry.user || 'Bilinmiyor';
@@ -8382,7 +8390,7 @@ async function checkTimeouts() {
         }
 
         updateTimeoutWarningUI();
-        
+
         // Modal açıksa listeyi anlık güncelle
         const modal = document.getElementById('timeoutModal');
         if (modal && modal.classList.contains('active')) {
@@ -8398,7 +8406,7 @@ async function checkTimeouts() {
 function updateTimeoutWarningUI() {
     const warningBox = document.getElementById('timeoutWarning');
     const countSpan = document.getElementById('timeoutCount');
-    
+
     if (warningBox && countSpan) {
         if (timeoutDevices.length > 0) {
             countSpan.textContent = timeoutDevices.length;
@@ -8410,6 +8418,75 @@ function updateTimeoutWarningUI() {
         } else {
             warningBox.style.display = 'none';
         }
+    }
+
+    // Dashboard'u da güncelle
+    updateTimeoutDashboard();
+}
+
+// ========================================
+// TIMEOUT DASHBOARD GÜNCELLEME
+// ========================================
+async function updateTimeoutDashboard() {
+    // Sadece admin ve semi-admin için
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+
+    // Kategorilere ayır
+    const green = timeoutDevices.filter(d => d.days >= 3 && d.days < 10).length;
+    const yellow = timeoutDevices.filter(d => d.days >= 10 && d.days < 20).length;
+    const red = timeoutDevices.filter(d => d.days >= 20).length;
+
+    // DOM elementlerini kontrol et ve güncelle
+    const greenElement = document.getElementById('timeoutDashboardGreen');
+    const yellowElement = document.getElementById('timeoutDashboardYellow');
+    const redElement = document.getElementById('timeoutDashboardRed');
+
+    if (greenElement) greenElement.textContent = green;
+    if (yellowElement) yellowElement.textContent = yellow;
+    if (redElement) redElement.textContent = red;
+
+    // Database'e kaydet
+    try {
+        await db.ref('timeoutDashboardData').set({
+            green: green,
+            yellow: yellow,
+            red: red,
+            lastUpdated: Date.now(),
+            timestamp: new Date().toLocaleString('tr-TR')
+        });
+        console.log(`📊 Timeout Dashboard güncellendi ve kaydedildi: Yeşil=${green}, Sarı=${yellow}, Kırmızı=${red}`);
+    } catch (error) {
+        console.error('❌ Timeout Dashboard kaydedilemedi:', error);
+    }
+}
+
+// ========================================
+// TIMEOUT DASHBOARD YÜKLEME (Sayfa açılışında)
+// ========================================
+async function loadTimeoutDashboard() {
+    // Sadece admin ve semi-admin için
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+
+    try {
+        const snapshot = await db.ref('timeoutDashboardData').once('value');
+        const data = snapshot.val();
+
+        if (data) {
+            // Son kaydedilen verileri göster
+            const greenElement = document.getElementById('timeoutDashboardGreen');
+            const yellowElement = document.getElementById('timeoutDashboardYellow');
+            const redElement = document.getElementById('timeoutDashboardRed');
+
+            if (greenElement) greenElement.textContent = data.green || 0;
+            if (yellowElement) yellowElement.textContent = data.yellow || 0;
+            if (redElement) redElement.textContent = data.red || 0;
+
+            console.log(`📊 Timeout Dashboard yüklendi (${data.timestamp}): Yeşil=${data.green}, Sarı=${data.yellow}, Kırmızı=${data.red}`);
+        } else {
+            console.log('📊 Timeout Dashboard verisi bulunamadı, varsayılan değerler gösteriliyor');
+        }
+    } catch (error) {
+        console.error('❌ Timeout Dashboard yüklenemedi:', error);
     }
 }
 
@@ -8433,15 +8510,15 @@ function closeTimeoutModal() {
 function renderTimeoutList() {
     const tbody = document.getElementById('timeoutListBody');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
-    
+
     const listNamesTR = {
         atanacak: '📋 Atanacak',
         phonecheck: '📱 PhoneCheck',
         onarim: '🔧 Onarım',
         mediaMarkt: '🛒 Media Markt',
-        gokhan: '🧑‍🔧 Gökhan', enes: '🧑‍🔧 Enes', yusuf: '🧑‍🔧 Yusuf', 
+        gokhan: '🧑‍🔧 Gökhan', enes: '🧑‍🔧 Enes', yusuf: '🧑‍🔧 Yusuf',
         samet: '🧑‍🔧 Samet', engin: '🧑‍🔧 Engin', ismail: '🧑‍🔧 İsmail', mehmet: '🧑‍🔧 Mehmet',
         onCamDisServis: '🔨 Ön Cam', anakartDisServis: '🔨 Anakart'
     };
@@ -8453,7 +8530,7 @@ function renderTimeoutList() {
         const tr = document.createElement('tr');
         // Liste ismini güzelleştir
         const displayName = listNamesTR[device.listName] || device.listName.charAt(0).toUpperCase() + device.listName.slice(1);
-        
+
         tr.innerHTML = `
             <td><input type="checkbox" class="timeout-checkbox" value="${device.barcode}" data-list="${device.listName}"></td>
             <td style="font-family: monospace; font-weight: bold; color: #3498db;">${device.barcode}</td>
@@ -8520,12 +8597,12 @@ async function transferSelectedToDelivered() {
             // 1. Mevcut listeden sil
             const dbPathFrom = currentList === 'onarim' ? 'onarimTamamlandi' : currentList;
             await db.ref(`servis/${dbPathFrom}/${barcode}`).remove();
-            
+
             // Local setlerden temizle
-            if(userCodes[currentList]) userCodes[currentList].delete(barcode);
+            if (userCodes[currentList]) userCodes[currentList].delete(barcode);
 
             // 2. Teslim Edilenlere ekle
-            const timestamp = getTimestamp(); 
+            const timestamp = getTimestamp();
             await db.ref(`servis/teslimEdilenler/${barcode}`).set({
                 ts: timestamp,
                 user: currentUserName
@@ -8535,17 +8612,17 @@ async function transferSelectedToDelivered() {
             if (typeof saveBarcodeHistory === 'function') {
                 saveBarcodeHistory(barcode, currentList, 'teslimEdilenler', `${currentUserName} (Zaman Aşımı Transfer)`);
             }
-            
+
             // 4. Teslim sayacını artır
-            if(typeof incrementDeliveredCount === 'function') incrementDeliveredCount();
+            if (typeof incrementDeliveredCount === 'function') incrementDeliveredCount();
 
             successCount++;
         }
 
         showToast(`${successCount} cihaz transfer edildi.`, 'success');
-        
+
         // UI Güncellemeleri
-        checkTimeouts(); 
+        checkTimeouts();
         if (typeof renderList === 'function') renderList();
         if (typeof updateLabelAndCount === 'function') {
             const listsToUpdate = new Set(Array.from(selected).map(cb => cb.dataset.list));
