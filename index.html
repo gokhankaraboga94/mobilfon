@@ -1,1075 +1,140 @@
+
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teknik Servis Cihaz Takip Sistemi</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- ULTRA PROFESSIONAL DESIGN -->
-    <link rel="stylesheet" href="style_new.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobilfon Cihaz Takip Sistemi</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: radial-gradient(circle at bottom, #030014 0%, #000 100%);
+      overflow: hidden;
+      color: #fff;
+      font-family: 'Orbitron', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
 
+    h1 {
+      font-size: 2.8em;
+      color: #00eaff;
+      text-shadow: 0 0 20px #00eaff;
+      margin-bottom: 10px;
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 3px solid #00eaff;
+      width: 0;
+      animation: typing 3s steps(30, end) forwards, blink 0.7s infinite step-end alternate;
+    }
+
+    @keyframes typing {
+      from { width: 0 }
+      to { width: 100% }
+    }
+
+    @keyframes blink {
+      50% { border-color: transparent }
+    }
+
+    p {
+      font-size: 1.2em;
+      color: #a6f6ff;
+      text-shadow: 0 0 8px #00eaff;
+      margin-bottom: 40px;
+    }
+
+    .stars {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      box-shadow: 100px 200px white, 300px 400px white, 500px 600px white, 800px 100px white, 1000px 700px white;
+      animation: moveStars 60s linear infinite;
+    }
+
+    @keyframes moveStars {
+      from { transform: translateY(0); }
+      to { transform: translateY(-2000px); }
+    }
+
+    .planet {
+      position: absolute;
+      bottom: 10%;
+      left: 10%;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #00eaff, #002244);
+      box-shadow: 0 0 40px #00eaff;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+
+    .progress-container {
+      width: 80%;
+      max-width: 500px;
+      height: 25px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 0 10px #00eaff;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #00eaff, #0077ff);
+      border-radius: 20px;
+      box-shadow: 0 0 15px #00eaff;
+      animation: loading 600s linear forwards;
+    }
+
+    @keyframes loading {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    .countdown {
+      margin-top: 20px;
+      font-size: 1.5em;
+      color: #00eaff;
+      text-shadow: 0 0 10px #00eaff;
+    }
+  </style>
 </head>
-
 <body>
-    <!-- TOAST CONTAINER -->
-    <div class="toast-container" id="toastContainer"></div>
-
-    <!-- İNTERNET BAĞLANTISI UYARISI -->
-    <div id="connectionWarning"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); z-index: 99999; justify-content: center; align-items: center; flex-direction: column;">
-        <div id="connectionWarningBox"
-            style="background: linear-gradient(135deg, #e74c3c, #c0392b); padding: 40px 60px; border-radius: 20px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); max-width: 600px; animation: pulse 2s infinite;">
-            <div id="connectionIcon" style="font-size: 80px; margin-bottom: 20px;">📡❌</div>
-            <h1 id="connectionTitle" style="font-size: 32px; margin-bottom: 15px; color: #fff;">İNTERNET BAĞLANTISI
-                KESİLDİ!
-            </h1>
-            <p id="connectionMessage" style="font-size: 18px; margin-bottom: 20px; color: #ecf0f1;">
-                Database bağlantısı kurulamadı.<br>
-                <strong>Lütfen sistemi kullanmayın!</strong><br>
-                Girdiğiniz veriler kaydedilmeyecektir.
-            </p>
-            <div id="connectionStatus"
-                style="font-size: 16px; color: #f39c12; margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 10px;">
-                🔄 Bağlantı kontrol ediliyor...
-            </div>
-        </div>
-    </div>
-
-    <div class="conflict-notification" id="conflictNotification" onclick="openSyncModalFromNotification()"
-        style="display: none;">
-        <div class="conflict-notification-header">
-            ⚠️ Çakışma Tespit Edildi!
-        </div>
-        <div class="conflict-notification-body">
-            <span class="conflict-notification-count" id="conflictCount">0</span> adet liste çakışması bulundu.
-            <br><strong>Tıklayarak düzeltin →</strong>
-        </div>
-    </div>
-
-    <!-- DATA SYNC VERIFICATION NOTIFICATION (SADECE ADMIN) -->
-    <div class="data-sync-notification" id="dataSyncNotification" onclick="openDataSyncModal()" style="display: none;">
-        <div class="data-sync-notification-header">
-            🔄 Veri Uyumsuzluğu Tespit Edildi!
-        </div>
-        <div class="data-sync-notification-body">
-            <span class="data-sync-notification-count" id="dataSyncCount">0</span> adet uyumsuzluk bulundu.
-            <br><strong>Tıklayarak inceleyin ve düzeltin →</strong>
-        </div>
-    </div>
-
-    <!-- ADMIN NAV BAR -->
-    <div class="admin-nav" id="adminNav">
-        <div class="nav-title">Mobilfon Teknik Servis Cihaz Takip Sistemi</div>
-        <div class="nav-content">
-            <!-- MEVCUT BUTONLAR -->
-            <div class="nav-buttons">
-                <button onclick="showMainView()" id="mainViewBtn">🏠 Ana Sayfa</button>
-                <button onclick="showReportsView()" id="reportsBtn">📊 Raporlar</button>
-                <button onclick="showSystemLogs()" id="systemLogsBtn" style="display: none;">📋 Sistem Logları</button>
-                <button onclick="openPriceList()" id="priceListBtn">💰 Fiyat Listesi Sistemi</button>
-                <button onclick="openAccounting()" id="accountingBtn">📒 Muhasebe Sistemi</button>
-                <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı
-                    Yönetimi</button>
-
-            </div>
-
-            <!-- MEVCUT NAV-BUTTONS DIV'İNDEN SONRA, NAV-SEARCH'TEN ÖNCE -->
-            <button onclick="openResetDashboardModal()" id="resetDashboardBtn" class="reset-dashboard-btn">
-                🔄 Dashboard Sıfırla
-            </button>
-
-            <!-- YENİ EKLENEN ARAMA ALANI -->
-            <div class="nav-search">
-                <input type="text" id="navSearchInput" placeholder="🔍 Barkod ara..." maxlength="15">
-                <div id="navSearchResult" class="nav-search-result"></div>
-            </div>
-
-            <!-- MEVCUT USER INFO -->
-            <div class="nav-user-info" id="navUserInfo" style="display: none;">
-                <span class="nav-user-name" id="navUserName">👤 Kullanıcı</span>
-                <button class="nav-logout-button" id="navLogoutButton">Çıkış</button>
-            </div>
-        </div>
-    </div>
-
-
-
-
-    <!-- REPORTS MODAL -->
-    <div class="reports-modal" id="reportsModal">
-        <div class="reports-content">
-            <div class="reports-header">
-                <h2>📊 Günlük Raporlar</h2>
-                <!-- close-reports butonunu güncelleyin -->
-                <button class="close-reports" onclick="closeReportsModalWithoutNavigation()">✕</button>
-            </div>
-
-            <div class="report-filters">
-                <div class="filter-group">
-                    <label>📅 Başlangıç Tarihi</label>
-                    <input type="date" id="reportStartDate">
-                </div>
-
-                <div class="filter-group">
-                    <label>📅 Bitiş Tarihi</label>
-                    <input type="date" id="reportEndDate">
-                </div>
-
-                <div class="filter-group">
-                    <label>📋 Liste Seçin</label>
-                    <select id="reportList">
-                        <option value="">Tümü</option>
-                        <option value="partOrders">🔧 Teknisyen Adetleri/Parça İstekleri</option>
-                        <option value="atanacak">📋 Atanacak</option>
-                        <option value="parcaBekliyor">⚙️ Parça Bekliyor</option>
-                        <option value="phonecheck">📱 PhoneCheck</option>
-                        <option value="gokhan">🧑‍🔧 Gökhan</option>
-                        <option value="enes">🧑‍🔧 Enes</option>
-                        <option value="yusuf">🧑‍🔧 Yusuf</option>
-                        <option value="samet">🧑‍🔧 Samet</option>
-
-                        <option value="engin">🧑‍🔧 Engin</option>
-                        <option value="ismail">🧑‍🔧 İsmail</option>
-                        <option value="mehmet">🧑‍🔧 Mehmet</option>
-                        <option value="onarim">🔧 Onarım Tamamlandı</option>
-                        <option value="onCamDisServis">🔨 Ön Cam Dış Servis</option> <!-- YENİ EKLENDİ -->
-                        <option value="anakartDisServis">🔨 Anakart Dış Servis</option> <!-- YENİ EKLENDİ -->
-                        <option value="satisa">💰 Satışa Gidecek</option>
-                        <option value="SonKullanıcı">SonKullanıcı</option>
-                        <option value="sahiniden">🏪 Sahibinden</option>
-                        <option value="mediaMarkt">🛒 Media Markt</option>
-                        <option value="teslimEdilenler">✅ Teslim Edilenler</option>
-                        <option value="serviceReturn">🔄 Servise Geri Dönenler</option>
-                        <option value="dailyReceived">📥 Bugün Teslim Alınan</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Bu butonu report-filters'ın hemen altına ekleyin -->
-            <button class="clear-filters-btn" onclick="clearDetailFilters()" style="display: none;"
-                id="clearFiltersBtn">
-                🗑️ Filtreleri Temizle
-            </button>
-
-            <button class="generate-report-btn" onclick="generateReport()">
-                📊 Rapor Oluştur
-            </button>
-
-            <button class="export-excel-btn" onclick="exportToExcel()" id="exportExcelBtn" disabled>
-                📊 Excel'e Aktar
-            </button>
-
-            <div class="report-results" id="reportResults">
-                <!-- Results will be displayed here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL FOR USER MANAGEMENT (ADD) -->
-    <div class="modal-overlay" id="addUserModal">
-        <div class="modal">
-            <h2>➕ Yeni Kullanıcı Ekle</h2>
-            <input type="email" id="newUserEmail" class="modal-input"
-                placeholder="E-posta adresi (örn: ahmet@servis.com)">
-            <input type="password" id="newUserPassword" class="modal-input" placeholder="Şifre (min. 6 karakter)">
-            <select id="newUserRole" class="modal-input" onchange="handleRoleChange()">
-                <option value="viewer">👁️ Görüntüleyici (Viewer)</option>
-                <option value="editor">✏️ Düzenleyici (Editor)</option>
-                <option value="semi-admin">👔 Yarı Admin (Semi-Admin)</option>
-                <option value="technician">🔧 Teknisyen (Technician)</option>
-                <option value="warehouse">📦 Depocu (Warehouse)</option>
-            </select>
-
-            <!-- Teknisyen İzinleri -->
-            <div id="technicianPermissions" style="display: none;">
-                <h3 style="margin: 15px 0 10px 0; font-size: 16px;">🔑 Teknisyen İzinleri</h3>
-                <div class="permissions-grid" id="permissionsGrid"></div>
-            </div>
-
-            <div class="modal-buttons">
-                <button class="modal-button secondary" onclick="closeAddUserModal()">İptal</button>
-                <button class="modal-button primary" onclick="addNewUser()">Kullanıcı Ekle</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL FOR USER MANAGEMENT (EDIT) -->
-    <div class="modal-overlay" id="editUserModal">
-        <div class="modal">
-            <h2>✏️ Kullanıcı Düzenle</h2>
-            <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                <strong>Email:</strong> <span id="editUserEmail"></span>
-            </div>
-            <select id="editUserRole" class="modal-input" onchange="handleEditRoleChange()">
-                <option value="viewer">👁️ Görüntüleyici (Viewer)</option>
-                <option value="editor">✏️ Düzenleyici (Editor)</option>
-                <option value="semi-admin">👔 Yarı Admin (Semi-Admin)</option>
-                <option value="technician">🔧 Teknisyen (Technician)</option>
-                <option value="warehouse">📦 Depocu (Warehouse)</option>
-            </select>
-
-            <!-- Teknisyen İzinleri -->
-            <div id="editTechnicianPermissions" style="display: none;">
-                <h3 style="margin: 15px 0 10px 0; font-size: 16px;">🔑 Teknisyen İzinleri</h3>
-                <div class="permissions-grid" id="editPermissionsGrid"></div>
-            </div>
-
-            <div class="modal-buttons">
-                <button class="modal-button secondary" onclick="closeEditUserModal()">İptal</button>
-                <button class="modal-button primary" onclick="saveEditedUser()">Kaydet</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL FOR EDIT BARCODE -->
-    <div class="modal-overlay" id="editBarcodeModal">
-        <div class="modal">
-            <h2>✏️ Barkod Düzenle</h2>
-            <input type="text" id="editBarcodeInput" class="modal-input" placeholder="Yeni barkod (15 haneli)"
-                maxlength="15">
-            <div class="modal-buttons">
-                <button class="modal-button secondary" onclick="closeEditBarcodeModal()">İptal</button>
-                <button class="modal-button primary" onclick="saveEditedBarcode()">Kaydet</button>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- MODAL FOR PART ORDER TYPE SELECTION -->
-    <div class="modal-overlay" id="partOrderTypeModal">
-        <div class="modal" style="max-width: 500px;">
-            <h2>🔧 Parça Sipariş Türü Seçin</h2>
-            <p style="margin-bottom: 25px; opacity: 0.9;">Tek bir cihaz için mi yoksa birden fazla cihaz için mi parça
-                siparişi vereceksiniz?</p>
-
-            <div style="display: grid; gap: 15px;">
-                <button class="part-order-type-btn" onclick="selectPartOrderType('single')"
-                    style="padding: 20px; background: linear-gradient(135deg, #3498db, #2980b9); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 12px;">
-                    <span style="font-size: 24px;">📱</span>
-                    <div style="text-align: left;">
-                        <div>Tek Parça Siparişi</div>
-                        <div style="font-size: 13px; font-weight: 400; opacity: 0.9; margin-top: 4px;">Bir cihaz için
-                            parça siparişi
-                        </div>
-                    </div>
-                </button>
-
-                <button class="part-order-type-btn" onclick="selectPartOrderType('multiple')"
-                    style="padding: 20px; background: linear-gradient(135deg, #9b59b6, #8e44ad); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 12px;">
-                    <span style="font-size: 24px;">📦</span>
-                    <div style="text-align: left;">
-                        <div>Çoklu Parça Siparişi</div>
-                        <div style="font-size: 13px; font-weight: 400; opacity: 0.9; margin-top: 4px;">Birden fazla
-                            cihaz için toplu
-                            sipariş</div>
-                    </div>
-                </button>
-            </div>
-
-            <div class="modal-buttons" style="margin-top: 20px;">
-                <button class="modal-button secondary" onclick="closePartOrderTypeModal()">İptal</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL FOR PART ORDER (TECHNICIAN) -->
-
-    <div class="modal-overlay" id="partOrderModal">
-        <div class="modal">
-            <h2>🔧 Parça Sipariş Et</h2>
-            <div class="part-order-form">
-                <div id="barcodeInputContainer">
-                    <label id="barcodeLabel">15 Haneli Barkod:</label>
-                    <input type="text" id="partOrderBarcode" class="modal-input" placeholder="Örn: 123456789012345"
-                        maxlength="15">
-                    <textarea id="partOrderBarcodeMultiple" class="modal-input"
-                        placeholder="Birden fazla barkod girin (her satıra bir barkod veya virgül ile ayırın)&#10;Örn:&#10;123456789012345&#10;234567890123456&#10;345678901234567"
-                        rows="5" style="display: none; resize: vertical; font-family: monospace;"></textarea>
-                    <div id="barcodeCount"
-                        style="display: none; margin-top: 5px; font-size: 13px; color: #3498db; font-weight: 600;">
-                    </div>
-                </div>
-
-                <div>
-                    <label>Cihaz Modeli:</label>
-                    <select id="partOrderModel" class="modal-input">
-                        <option value="">-- Model Seçiniz --</option>
-                        <option value="İPHONE 11">İPHONE 11</option>
-                        <option value="İPHONE 11 PRO">İPHONE 11 PRO</option>
-                        <option value="İPHONE 11 PRO MAX">İPHONE 11 PRO MAX</option>
-                        <option value="İPHONE 12">İPHONE 12</option>
-                        <option value="İPHONE 12 MİNİ">İPHONE 12 MİNİ</option>
-                        <option value="İPHONE 12 PRO">İPHONE 12 PRO</option>
-                        <option value="İPHONE 12 PROMAX">İPHONE 12 PROMAX</option>
-                        <option value="İPHONE 13">İPHONE 13</option>
-                        <option value="İPHONE 13 MİNİ">İPHONE 13 MİNİ</option>
-                        <option value="İPHONE 13 PRO">İPHONE 13 PRO</option>
-                        <option value="İPHONE 13 PROMAX">İPHONE 13 PROMAX</option>
-                        <option value="İPHONE 14">İPHONE 14</option>
-                        <option value="İPHONE 14 PLUS">İPHONE 14 PLUS</option>
-                        <option value="İPHONE 14 PRO">İPHONE 14 PRO</option>
-                        <option value="İPHONE 14 PROMAX">İPHONE 14 PROMAX</option>
-                        <option value="İPHONE 15">İPHONE 15</option>
-                        <option value="İPHONE 15 PLUS">İPHONE 15 PLUS</option>
-                        <option value="İPHONE 15 PRO">İPHONE 15 PRO</option>
-                        <option value="İPHONE 15 PROMAX">İPHONE 15 PROMAX</option>
-                        <option value="İPHONE 16">İPHONE 16</option>
-                        <option value="İPHONE 16 PRO">İPHONE 16 PRO</option>
-                        <option value="İPHONE 16 PROMAX">İPHONE 16 PROMAX</option>
-                        <option value="İPHONE X">İPHONE X</option>
-                        <option value="İPHONE XR">İPHONE XR</option>
-                        <option value="İPHONE XS">İPHONE XS</option>
-                        <option value="İPHONE XS MAX">İPHONE XS MAX</option>
-                        <option value="İPHONE 8 PLUS">İPHONE 8 PLUS</option>
-                        <option value="İPHONE SE 2020">İPHONE SE 2020</option>
-                        <option value="LG">LG</option>
-                        <option value="Mİ 10 LİTE">Mİ 10 LİTE</option>
-                        <option value="REALME C21">REALME C21</option>
-                        <option value="REDMİ 12">REDMİ 12</option>
-                        <option value="REDMİ 12PRO">REDMİ 12PRO</option>
-                        <option value="REDMİ 13">REDMİ 13</option>
-                        <option value="SAMSUNG A03">SAMSUNG A03</option>
-                        <option value="SAMSUNG A06">SAMSUNG A06</option>
-                        <option value="SAMSUNG A12">SAMSUNG A12</option>
-                        <option value="SAMSUNG A13">SAMSUNG A13</option>
-                        <option value="SAMSUNG A14">SAMSUNG A14</option>
-                        <option value="SAMSUNG A23">SAMSUNG A23</option>
-                        <option value="SAMSUNG A24">SAMSUNG A24</option>
-                        <option value="SAMSUNG A34">SAMSUNG A34</option>
-                        <option value="SAMSUNG A35">SAMSUNG A35</option>
-                        <option value="SAMSUNG A52">SAMSUNG A52</option>
-                        <option value="SAMSUNG A53">SAMSUNG A53</option>
-                        <option value="SAMSUNG A54">SAMSUNG A54</option>
-                        <option value="SAMSUNG A72">SAMSUNG A72</option>
-                        <option value="SAMSUNG A73">SAMSUNG A73</option>
-                        <option value="SAMSUNG M51">SAMSUNG M51</option>
-                        <option value="SAMSUNG NOTE 20 ULTRA">SAMSUNG NOTE 20 ULTRA</option>
-                        <option value="SAMSUNG NOTE 3">SAMSUNG NOTE 3</option>
-                        <option value="SAMSUNG S20">SAMSUNG S20</option>
-                        <option value="SAMSUNG S20 FE">SAMSUNG S20 FE</option>
-                        <option value="SAMSUNG S20 ULTRA">SAMSUNG S20 ULTRA</option>
-                        <option value="SAMSUNG S21 FE">SAMSUNG S21 FE</option>
-                        <option value="SAMSUNG S21 PLUS">SAMSUNG S21 PLUS</option>
-                        <option value="SAMSUNG S21 ULTRA">SAMSUNG S21 ULTRA</option>
-                        <option value="SAMSUNG S22">SAMSUNG S22</option>
-                        <option value="SAMSUNG S22+">SAMSUNG S22+</option>
-                        <option value="SAMSUNG S22 ULTRA">SAMSUNG S22 ULTRA</option>
-                        <option value="SAMSUNG S23">SAMSUNG S23</option>
-                        <option value="SAMSUNG S23 PLUS">SAMSUNG S23 PLUS</option>
-                        <option value="SAMSUNG S23 FE">SAMSUNG S23 FE</option>
-                        <option value="SAMSUNG S23 ULTRA">SAMSUNG S23 ULTRA</option>
-                        <option value="SAMSUNG S24">SAMSUNG S24</option>
-                        <option value="SAMSUNG S24 PLUS">SAMSUNG S24 PLUS</option>
-                        <option value="SAMSUNG S24 ULTRA">SAMSUNG S24 ULTRA</option>
-                        <option value="OMİX X400">OMİX X400</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Müşteri / Bayi (İsteğe Bağlı):</label>
-                    <select id="partOrderCustomer" class="modal-input">
-                        <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-                        <option value="TEŞHİS">TEŞHİS</option>
-                        <option value="SAHİBİNDEN">SAHİBİNDEN</option>
-                        <option value="DEPO">DEPO</option>
-                        <option value="YENİLİYO">YENİLİYO</option>
-                        <option value="MEDİAMARKT">MEDİAMARKT</option>
-                        <option value="LETGO">LETGO</option>
-                        <option value="TURKCELL">TURKCELL</option>
-                        <option value="TELEKOM">TELEKOM</option>
-                        <option value="BAYER">BAYER</option>
-                        <option value="SATIŞ">SATIŞ</option>
-                        <option value="KALİTE KONTROL">KALİTE KONTROL</option>
-                        <option value="YÖNETİM">YÖNETİM</option>
-                        <option value="BİGBOSS">BİGBOSS</option>
-                        <option value="MUHASEBE">MUHASEBE</option>
-                        <option value="YAZILIM">YAZILIM</option>
-                        <option value="SON KULLANICI">SON KULLANICI</option>
-                        <option value="DIŞ SERVİS">DIŞ SERVİS</option>
-                        <option value="FİRMA İÇİ ÇALIŞAN">FİRMA İÇİ ÇALIŞAN</option>
-                        <option value="KARGO">KARGO</option>
-                        <option value="HEPSİBURADA">HEPSİBURADA</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Statü (İsteğe Bağlı):</label>
-                    <select id="partOrderStatus" class="modal-input">
-                        <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-                        <option value="ÜRETİME UYGUN DEĞİL">ÜRETİME UYGUN DEĞİL</option>
-                        <option value="İADE">İADE</option>
-                        <option value="ÜRETİM">ÜRETİM</option>
-                        <option value="PARÇA BEKLİYOR">PARÇA BEKLİYOR</option>
-                        <option value="DIŞ SERVİS">DIŞ SERVİS</option>
-                        <option value="FİYAT ONAYI">FİYAT ONAYI</option>
-                        <option value="SERVİS TEKRARI">SERVİS TEKRARI</option>
-                        <option value="KONTROL">KONTROL</option>
-                        <option value="SERTİFİKA">SERTİFİKA</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Hizmetler (İsteğe Bağlı):</label>
-                    <select id="partOrderService" class="modal-input">
-                        <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-                        <option value="YÜKSELTME">YÜKSELTME</option>
-                        <option value="CAM SİLME">CAM SİLME</option>
-                        <option value="YAZILIM YÜKLEME">YAZILIM YÜKLEME</option>
-                        <option value="SWAP KARARI">SWAP KARARI</option>
-                        <option value="TEMİZLİK">TEMİZLİK</option>
-                        <option value="KASA PARLATMA">KASA PARLATMA</option>
-                        <option value="İMEİ KONTROL">İMEİ KONTROL</option>
-                        <option value="LEHİM İŞLEM">LEHİM İŞLEM</option>
-                        <option value="GENEL BAKIM">GENEL BAKIM</option>
-                        <option value="İADE DEPO">İADE DEPO</option>
-                        <option value="MÜŞTERİ İADE">MÜŞTERİ İADE</option>
-                        <option value="ONARIM">ONARIM</option>
-                        <option value="ARKA KAPAK YAPIŞTIRMA">ARKA KAPAK YAPIŞTIRMA</option>
-                        <option value="EKRAN BANDI YENİLEME">EKRAN BANDI YENİLEME</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Not (İsteğe Bağlı):</label>
-                    <textarea id="partOrderNote" class="modal-input" placeholder="Eklemek istediğiniz notlar..."
-                        rows="3" style="resize: vertical;"></textarea>
-                </div>
-
-                <div>
-                    <label>Teknisyen Hasarı:</label>
-                    <select id="partOrderTechnicianDamage" class="modal-input">
-                        <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-                        <option value="Var">Var</option>
-                        <option value="Yok">Yok</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>İstenilen Parçalar (1-4 adet):</label>
-                    <div class="part-inputs-grid">
-                        <div class="part-input-group">
-                            <label>Parça 1:</label>
-                            <input type="text" id="partOrderPart1" placeholder="Örn: Batarya">
-                        </div>
-                        <div class="part-input-group">
-                            <label>Parça 2:</label>
-                            <input type="text" id="partOrderPart2" placeholder="Opsiyonel">
-                        </div>
-                        <div class="part-input-group">
-                            <label>Parça 3:</label>
-                            <input type="text" id="partOrderPart3" placeholder="Opsiyonel">
-                        </div>
-                        <div class="part-input-group">
-                            <label>Parça 4:</label>
-                            <input type="text" id="partOrderPart4" placeholder="Opsiyonel">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-buttons">
-                <button class="modal-button secondary" onclick="closePartOrderModal()">İptal</button>
-                <button class="modal-button primary" onclick="submitPartOrder()">İstek Gönder</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- PROFESYONEL LOGIN EKRANI -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-box">
-            <div class="login-header">
-                <div class="login-icon">🔧</div>
-                <h2>Mobilfon Teknik Servis Girişi</h2>
-                <p>Cihaz Takip Sistemi</p>
-            </div>
-            <div class="login-form">
-                <div class="input-group">
-                    <span class="input-icon">📧</span>
-                    <input type="email" id="emailInput" class="login-input" placeholder="E-posta adresiniz"
-                        autocomplete="email">
-                </div>
-                <div class="input-group">
-                    <span class="input-icon">🔒</span>
-                    <input type="password" id="passwordInput" class="login-input" placeholder="Şifreniz"
-                        autocomplete="current-password">
-                </div>
-                <div id="errorMessage" class="error-message"></div>
-                <button id="loginButton" class="login-button">Giriş Yap</button>
-            </div>
-            <div class="login-footer">
-                <p>© 2025 Teknik Servis Sistemi</p>
-            </div>
-        </div>
-    </div>
-
-
-
-    <div id="appContainer" class="app-container">
-
-        <!-- DASHBOARD PANEL - ADMIN PANELİN HEMEN ALTINDA SABİT -->
-        <div id="dashboardPanel" class="dashboard-panel" style="display: none;">
-            <div class="dashboard-header">
-                <h2>📊 Günlük Dashboard</h2>
-                <div class="dashboard-date" id="dashboardDate">Yükleniyor...</div>
-                <button id="restoreDashboardBtn" onclick="restoreDashboard()"
-                    style="display: none; padding: 10px 18px; background: linear-gradient(135deg, #27ae60, #229954); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-left: 15px; box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);">
-                    ♻️ Geri Yükle
-                </button>
-            </div>
-
-            <div class="dashboard-stats">
-                <div class="dashboard-stat-card">
-                    <span class="dashboard-stat-icon">📥</span>
-                    <div class="dashboard-stat-label">Bugün Teslim Alınan</div>
-                    <div class="dashboard-stat-value" id="dashboardTeslimAlinan">0</div>
-                </div>
-
-                <div class="dashboard-stat-card">
-                    <span class="dashboard-stat-icon">📤</span>
-                    <div class="dashboard-stat-label">Bugün Teslim Edilen</div>
-                    <div class="dashboard-stat-value" id="dashboardTeslimEdilen">0</div>
-                </div>
-            </div>
-
-            <div class="dashboard-details">
-                <h3>📋 Teslim Alınan Kaynak Dağılımı</h3>
-                <div class="dashboard-detail-item">
-                    <span class="dashboard-detail-label">Atanacak(Teşhis)</span>
-                    <span class="dashboard-detail-value" id="dashboardAtanacakCount">0</span>
-                </div>
-                <div class="dashboard-detail-item">
-                    <span class="dashboard-detail-label">SonKullanıcı</span>
-                    <span class="dashboard-detail-value" id="dashboardSonKullanıcıCount">0</span>
-                </div>
-                <div class="dashboard-detail-item">
-                    <span class="dashboard-detail-label">Sahibinden</span>
-                    <span class="dashboard-detail-value" id="dashboardSahibindenCount">0</span>
-                </div>
-                <div class="dashboard-detail-item">
-                    <span class="dashboard-detail-label">Media Markt</span>
-                    <span class="dashboard-detail-value" id="dashboardMediaMarktCount">0</span>
-                </div>
-                <!-- ✅ YENİ EKLENEN SATIR -->
-                <div class="dashboard-detail-item" style="border-left: 3px solid #e67e22;">
-                    <span class="dashboard-detail-label">🔄 Servise Geri Dönenler</span>
-                    <span class="dashboard-detail-value" id="dashboardServiceReturnCount">0</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- USER MANAGEMENT SECTION (ADMIN ONLY) -->
-        <div id="userManagement" class="user-management" style="display: none;">
-            <h2>👥 Kullanıcı Yönetimi</h2>
-            <div class="user-list" id="userList">
-                <!-- Users will be loaded here -->
-            </div>
-            <button class="add-user-btn" onclick="openAddUserModal()">
-                <span>➕</span>
-                <span>Yeni Kullanıcı Ekle</span>
-            </button>
-        </div>
-
-        <div id="adminPanel">
-            <h2>👑 Admin Paneli</h2>
-            <div class="admin-stats">
-                <div class="admin-stat-box">
-                    <div class="label">Servisteki Toplam Cihaz</div>
-                    <div id="adminTotalBarcodes" class="value">0</div>
-                </div>
-                <!-- EŞLEŞME ORANI VE EŞLEŞEN BARKOD SİLİNDİ -->
-                <div class="admin-stat-box">
-                    <div class="label">Atanacak Cihazlar</div>
-                    <div id="adminAtanacak" class="value">0</div>
-                </div>
-                <div class="admin-stat-box">
-                    <div class="label">Parça Bekliyor</div>
-                    <div id="adminParcaBekliyor" class="value">0</div>
-                </div>
-                <div class="admin-stat-box">
-                    <div class="label">PhoneCheck</div>
-                    <div id="adminPhonecheck" class="value">0</div>
-                </div>
-
-                <div class="admin-stat-box">
-                    <div class="label">SonKullanıcı</div>
-                    <div id="SonKullanıcı" class="value">0</div>
-                </div>
-
-
-                <div class="admin-stat-box">
-                    <div class="label">Onarım Tamamlandı</div>
-                    <div id="adminOnarim" class="value">0</div>
-                </div>
-                <!-- YENİ EKLENEN DIŞ SERVİSLER -->
-                <div class="admin-stat-box">
-                    <div class="label">Ön Cam Dış Servis</div>
-                    <div id="adminOnCamDisServis" class="value">0</div>
-                </div>
-                <div class="admin-stat-box">
-                    <div class="label">Anakart Dış Servis</div>
-                    <div id="adminAnakartDisServis" class="value">0</div>
-                </div>
-                <!-- ESKİ DIŞ SERVİS SİLİNDİ -->
-
-                <div class="admin-stat-box">
-                    <div class="label">Satışa Gidecek</div>
-                    <div id="adminSatisa" class="value">0</div>
-                </div>
-                <div class="admin-stat-box">
-                    <div class="label">Sahibinden</div>
-                    <div id="adminSahiniden" class="value">0</div>
-                </div>
-                <div class="admin-stat-box">
-                    <div class="label">Media Markt</div>
-                    <div id="adminMediaMarkt" class="value">0</div>
-                </div>
-
-                <div class="admin-stat-box">
-                    <div class="label">Toplam Teknisyen Cihazları</div>
-                    <div id="adminTeknisyenler" class="value">0</div>
-                </div>
-                <div class="admin-stat-box">
-                    <div class="label">Teslim Edilenler</div>
-                    <div id="adminTeslimEdilenler" class="value">0</div>
-                </div>
-            </div>
-
-            <!-- Barkod Ara Bölümü Admin Panele Taşındı -->
-            <div style="margin-top: 25px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 12px;">
-                <label for="searchInput"
-                    style="display: block; margin-bottom: 10px; font-size: 18px; font-weight: bold;">🔍
-                    Barkod Ara:</label>
-                <textarea id="searchInput" placeholder="Aramak istediğiniz barkodu girin..."
-                    style="height: 60px; background: rgba(255,255,255,0.9); color: #333;"></textarea>
-                <div id="searchResult"
-                    style="margin-top: 10px; padding: 10px; background: rgba(10, 78, 180, 0.493); border-radius: 8px; min-height: 40px; display: none; color: #fff;">
-                </div>
-                <div id="partInfoAdmin" style="display: none;"></div>
-                <div id="historyLog" class="history-log"
-                    style="display: none; background: rgba(255,255,255,0.1); margin-top: 10px;"></div>
-            </div>
-        </div>
-
-        <!-- WAREHOUSE PANEL (DEPOCU) -->
-        <div id="warehousePanel" class="warehouse-panel" style="display: none;">
-            <div class="warehouse-header">
-                <h2>📦 Depo Parça Yönetim Paneli</h2>
-                <p style="opacity: 0.9; margin-top: 5px;">Bekleyen Parça İsteklerini Yönetin</p>
-                <div class="warehouse-stats">
-                    <div class="warehouse-stat">
-                        <div class="warehouse-stat-label">Bekleyen İstekler</div>
-                        <div class="warehouse-stat-value" id="warehousePendingCount">0</div>
-                    </div>
-                    <div class="warehouse-stat">
-                        <div class="warehouse-stat-label">Hazır Olanlar</div>
-                        <div class="warehouse-stat-value" id="warehouseReadyCount">0</div>
-                    </div>
-                    <div class="warehouse-stat">
-                        <div class="warehouse-stat-label">Toplam İstekler</div>
-                        <div class="warehouse-stat-value" id="warehouseTotalCount">0</div>
-                    </div>
-                </div>
-
-                <!-- TOPLU HAZIR BUTONU -->
-                <button id="markAllReadyBtn" class="mark-all-ready-btn" onclick="markAllOrdersReady()"
-                    style="display: none;">
-                    ✅ Tümünü Hazır İşaretle
-                </button>
-            </div>
-
-            <div class="warehouse-orders-container">
-                <!-- Bekleyen İstekler Bölümü -->
-                <div id="warehousePendingOrders" class="warehouse-section pending-section">
-                    <!-- Pending orders will be loaded here -->
-                </div>
-
-                <!-- Tamamlanan İstekler Bölümü -->
-                <div id="warehouseCompletedOrders" class="warehouse-section completed-section">
-                    <!-- Completed orders will be loaded here -->
-                </div>
-            </div>
-        </div>
-
-        <div class="main-layout" id="mainLayout">
-            <div class="left-side">
-                <div class="container" id="techniciansContainer">
-                    <div class="section" data-section="gokhan">
-                        <label for="gokhanInput">
-                            <span id="gokhanLabel">🧑‍🔧 Gökhan'ın Cihazları - 0</span>
-                        </label>
-                        <textarea id="gokhanInput" placeholder="Gökhan'ın barkodlarını buraya yapıştır..."></textarea>
-                        <div id="gokhanList" class="mini-list"></div>
-                    </div>
-
-                    <div class="section" data-section="yusuf">
-                        <label for="yusufInput"><span id="yusufLabel">🧑‍🔧 Yusuf'un Cihazları - 0</span></label>
-                        <textarea id="yusufInput" placeholder="Yusuf'un barkodlarını buraya yapıştır..."></textarea>
-                        <div id="yusufList" class="mini-list"></div>
-                    </div>
-
-                    <div class="section" data-section="enes">
-                        <label for="enesInput"><span id="enesLabel">🧑‍🔧 Enes'in Cihazları - 0</span></label>
-                        <textarea id="enesInput" placeholder="Enes'in barkodlarını buraya yapıştır..."></textarea>
-                        <div id="enesList" class="mini-list"></div>
-                    </div>
-
-                    <div class="section" data-section="samet">
-                        <label for="sametInput"><span id="sametLabel">🧑‍🔧 Samet'in Cihazları - 0</span></label>
-                        <textarea id="sametInput" placeholder="Samet'in barkodlarını buraya yapıştır..."></textarea>
-                        <div id="sametList" class="mini-list"></div>
-                    </div>
-
-
-                    <div class="section" data-section="engin">
-                        <label for="enginInput"><span id="enginLabel">🧑‍🔧 Engin'in Cihazları - 0</span></label>
-                        <textarea id="enginInput" placeholder="engin'in barkodlarını buraya yapıştır..."></textarea>
-                        <div id="enginList" class="mini-list"></div>
-                    </div>
-
-                    <div class="section" data-section="ismail">
-                        <label for="ismailInput"><span id="ismailLabel">🧑‍🔧 İsmail'in Cihazları - 0</span></label>
-                        <textarea id="ismailInput" placeholder="İsmail'in barkodlarını buraya yapıştır..."></textarea>
-                        <div id="ismailList" class="mini-list"></div>
-                    </div>
-
-                    <div class="section" data-section="mehmet">
-                        <label for="mehmetInput"><span id="mehmetLabel">🧑‍🔧 Mehmet'in Cihazları - 0</span></label>
-                        <textarea id="mehmetInput" placeholder="Mehmet'in barkodlarını buraya yapıştır..."></textarea>
-                        <div id="mehmetList" class="mini-list"></div>
-                    </div>
-                </div>
-
-                <div class="container" style="margin-top: 20px;" id="scannerSection">
-                    <div class="section" style="flex: 1 1 100%;">
-                        <label for="scannerInput">📡 Barkod Okut:</label>
-                        <textarea id="scannerInput" placeholder="Barkod okuyucu ile okut..." autofocus></textarea>
-                    </div>
-                </div>
-
-
-                <div class="container" style="margin-top: 20px;" id="normalSearchSection">
-                    <div class="section" id="normalUserSearch" style="flex: 1 1 100%; display: none;">
-                        <label for="searchInputNormal">🔍 Barkod Ara:</label>
-                        <textarea id="searchInputNormal" placeholder="Aramak istediğiniz barkodu girin..."
-                            style="height: 60px;"></textarea>
-                        <div id="searchResultNormal"
-                            style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;">
-                        </div>
-                        <div id="partInfoNormal" style="display: none;"></div>
-                        <div id="historyLogNormal" class="history-log" style="display: none; background: #ac34db;">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TEKNİSYEN PARÇA SİPARİŞLERİ BÖLÜMÜ -->
-                <div id="technicianPartOrders" class="part-orders-section" style="display: none;">
-                    <h3>🔧 Parça İsteklerim</h3>
-                    <div id="technicianOrdersList">
-                        <!-- Orders will be loaded here -->
-                    </div>
-                </div>
-
-                <div class="container" style="margin-top: 20px;">
-                    <div class="section" style="flex: 1 1 100%;">
-                        <label for="teslimEdilenlerInput"><span id="teslimEdilenlerLabel">✅ Teslim Edilenler -
-                                0</span></label>
-                        <textarea id="teslimEdilenlerInput" placeholder="Teslim edilen barkodlar..."
-                            style="height: 120px;"></textarea>
-                        <div id="teslimEdilenlerList" class="mini-list"></div>
-                    </div>
-                </div>
-
-                <div class="container" style="margin-top: 20px;" id="mainSectionsContainer">
-                    <!-- Atanacak Section -->
-                    <div class="section" data-section="atanacak">
-                        <label for="atanacakInput">
-                            <span id="atanacakLabel">📋 Atanacak - 0</span>
-                        </label>
-                        <textarea id="atanacakInput" placeholder="Atanacak cihazlar..."></textarea>
-                        <div id="atanacakList" class="mini-list"></div>
-                    </div>
-
-                    <!-- Parça Bekliyor Section -->
-                    <div class="section" data-section="parcaBekliyor">
-                        <label for="parcaBekliyorInput">
-                            <span id="parcaBekliyorLabel">⚙️ Parça Bekliyor - 0</span>
-                        </label>
-                        <textarea id="parcaBekliyorInput" placeholder="Parça bekleyen cihazlar..."></textarea>
-                        <div id="parcaBekliyorList" class="mini-list"></div>
-                    </div>
-
-                    <!-- PhoneCheck Section -->
-                    <div class="section" data-section="phonecheck">
-                        <label for="phonecheckInput">
-                            <span id="phonecheckLabel">📱 PhoneCheck - 0</span>
-                        </label>
-                        <textarea id="phonecheckInput"
-                            placeholder="PhoneCheck'e transfer edilecek barkodlar..."></textarea>
-                        <div id="phonecheckList" class="mini-list"></div>
-                    </div>
-
-                    <!-- Onarım Tamamlandı Section -->
-                    <div class="section" data-section="onarim">
-                        <label for="onarimInput">
-                            <span id="onarimLabel">🔧 Onarım Tamamlandı - 0</span>
-                        </label>
-                        <textarea id="onarimInput" placeholder="Onarımı tamamlanan cihazlar..."></textarea>
-                        <div id="onarimList" class="mini-list"></div>
-                    </div>
-
-                    <!-- Ön Cam Dış Servis Section -->
-                    <div class="section" data-section="onCamDisServis">
-                        <label for="onCamDisServisInput">
-                            <span id="onCamDisServisLabel">🔨 Ön Cam Dış Servis - 0</span>
-                        </label>
-                        <textarea id="onCamDisServisInput"
-                            placeholder="Ön cam için dış servise gönderilecek barkodlar..."></textarea>
-                        <div id="onCamDisServisList" class="mini-list"></div>
-                    </div>
-
-                    <!-- Anakart Dış Servis Section -->
-                    <div class="section" data-section="anakartDisServis">
-                        <label for="anakartDisServisInput">
-                            <span id="anakartDisServisLabel">🔨 Anakart Dış Servis - 0</span>
-                        </label>
-                        <textarea id="anakartDisServisInput"
-                            placeholder="Anakart için dış servise gönderilecek barkodlar..."></textarea>
-                        <div id="anakartDisServisList" class="mini-list"></div>
-                    </div>
-
-                    <!-- Son Kullanıcı Section -->
-                    <div class="section" data-section="SonKullanıcı">
-                        <label for="SonKullanıcıInput">
-                            <span id="SonKullanıcıLabel">👤 Son Kullanıcı - 0</span>
-                        </label>
-                        <textarea id="SonKullanıcıInput" placeholder="Son Kullanıcı barkodlar..."></textarea>
-                        <div id="SonKullanıcıList" class="mini-list"></div>
-                    </div>
-
-                    <!-- Satışa Gidecek Section -->
-                    <div class="section" data-section="satisa">
-                        <label for="satisaInput">
-                            <span id="satisaLabel">💰 Satışa Gidecek - 0</span>
-                        </label>
-                        <textarea id="satisaInput" placeholder="Satışa gidecek barkodlar..."></textarea>
-                        <div id="satisaList" class="mini-list"></div>
-                    </div>
-
-                    <!-- Sahibinden Section -->
-                    <div class="section" data-section="sahiniden">
-                        <label for="sahinidenInput">
-                            <span id="sahinidenLabel">🏪 Sahibinden - 0</span>
-                        </label>
-                        <textarea id="sahinidenInput" placeholder="Sahibinden gelen barkodlar..."></textarea>
-                        <div id="sahinidenList" class="mini-list"></div>
-                    </div>
-
-                    <!-- Media Markt Section -->
-                    <div class="section" data-section="mediaMarkt">
-                        <label for="mediaMarktInput">
-                            <span id="mediaMarktLabel">🛒 Media Markt - 0</span>
-                        </label>
-                        <textarea id="mediaMarktInput" placeholder="Media Markt barkodları..."></textarea>
-                        <div id="mediaMarktList" class="mini-list"></div>
-                    </div>
-
-
-                </div>
-
-
-
-
-                <!-- PARÇA SİPARİŞ BUTONU (TEKNİSYENLER İÇİN) -->
-                <button id="partOrderButton" class="part-order-button" style="display: none;"
-                    onclick="openPartOrderModal()">
-                    🔧 Parça Sipariş Et
-                </button>
-            </div>
-
-
-            <div class="reset-modal-overlay" id="resetDashboardModal">
-                <div class="reset-modal">
-                    <h2>⚠️ Dashboard Sıfırlama</h2>
-                    <p>
-                        <strong>Bu işlem şunları sıfırlayacak:</strong><br><br>
-                        📊 Bugün Teslim Alınan: <span id="resetTeslimAlinan">0</span><br>
-                        📤 Bugün Teslim Edilen: <span id="resetTeslimEdilen">0</span><br>
-                        📋 Kaynak Dağılımı (Atanacak, SonKullanıcı, Sahibinden, Media Markt)<br><br>
-                        <strong style="color: #ffd700;">⚠️ Bu işlem geri alınamaz!</strong><br>
-                        İşlem database'de loglanacaktır.
-                    </p>
-                    <div class="reset-modal-buttons">
-                        <button class="reset-modal-btn cancel" onclick="closeResetDashboardModal()">❌ İptal</button>
-                        <button class="reset-modal-btn confirm" onclick="confirmResetDashboard()">✅ Sıfırla</button>
-                    </div>
-                </div>
-            </div>
-
-
-            <div class="modal-overlay" id="syncModal">
-                <div class="modal" style="max-width: 700px;">
-                    <h2>🔄 Liste Senkronizasyonu</h2>
-                    <div class="sync-results" id="syncResults">
-                        <div style="text-align: center; padding: 20px;">
-                            <div
-                                style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;">
-                            </div>
-                            <p>Çakışmalar taranıyor...</p>
-                        </div>
-                    </div>
-                    <div class="modal-buttons">
-                        <button class="modal-button secondary" onclick="closeSyncModal()">İptal</button>
-                        <button class="modal-button primary" onclick="fixAllConflicts()" id="fixAllBtn" disabled>🔄 Tüm
-                            Çakışmaları
-                            Düzelt</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- DATA SYNC VERIFICATION MODAL (SADECE ADMIN) -->
-            <div class="modal-overlay" id="dataSyncModal">
-                <div class="modal" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
-                    <h2>🔄 Veri Doğrulama ve Senkronizasyon</h2>
-                    <div class="data-sync-info"
-                        style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <p style="margin: 0; font-size: 14px;">
-                            ⏱️ <strong>Son Kontrol:</strong> <span id="lastSyncCheck">-</span><br>
-                            🔍 <strong>Kontrol Aralığı:</strong> Her 5 dakika<br>
-                            📊 <strong>Kontrol Edilen Listeler:</strong> Tüm listeler ve Dashboard verileri
-                        </p>
-                    </div>
-
-                    <div class="sync-results" id="dataSyncResults">
-                        <div style="text-align: center; padding: 20px;">
-                            <div
-                                style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;">
-                            </div>
-                            <p>Veriler kontrol ediliyor...</p>
-                        </div>
-                    </div>
-
-                    <div class="modal-buttons">
-                        <button class="modal-button secondary" onclick="closeDataSyncModal()">Kapat</button>
-                        <button class="modal-button primary" onclick="fixAllDataMismatches()" id="fixAllDataBtn"
-                            disabled>
-                            ✅ Tüm Uyumsuzlukları Düzelt
-                        </button>
-                        <button class="modal-button" onclick="forceDataSyncCheck()" style="background: #3498db;">
-                            🔄 Yeniden Kontrol Et
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SYSTEM LOGS MODAL (SADECE ADMIN) -->
-            <div class="modal-overlay" id="systemLogsModal">
-                <div class="modal" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
-                    <h2>📋 Sistem Logları</h2>
-
-                    <!-- Filtreler -->
-                    <div class="logs-filters"
-                        style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-size: 13px;">📅 Başlangıç
-                                    Tarihi</label>
-                                <input type="date" id="logsStartDate"
-                                    style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-size: 13px;">📅 Bitiş
-                                    Tarihi</label>
-                                <input type="date" id="logsEndDate"
-                                    style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-size: 13px;">👤 Kullanıcı</label>
-                                <input type="text" id="logsUserFilter" placeholder="Tümü"
-                                    style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-size: 13px;">📦 IMEI</label>
-                                <input type="text" id="logsImeiFilter" placeholder="15 haneli IMEI" maxlength="15"
-                                    style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-size: 13px;">📋 Liste</label>
-                                <select id="logsListFilter"
-                                    style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
-                                    <option value="">Tümü</option>
-                                     <option value="partOrders">Teknisyen Adetleri / Parça İstekleri</option>
-
-                                    <option value="atanacak">📋 Atanacak</option>
-                                    <option value="parcaBekliyor">⚙️ Parça Bekliyor</option>
-                                    <option value="phonecheck">📱 PhoneCheck</option>
-                                    <option value="onarim">🔧 Onarım Tamamlandı</option>
-                                    <option value="gokhan">🧑‍🔧 Gökhan</option>
-                                    <option value="enes">🧑‍🔧 Enes</option>
-                                    <option value="yusuf">🧑‍🔧 Yusuf</option>
-                                    <option value="samet">🧑‍🔧 Samet</option>
-                                    <option value="engin">🧑‍🔧 Engin</option>
-                                    
-                                    <option value="ismail">🧑‍🔧 İsmail</option>
-                                    <option value="mehmet">🧑‍🔧 Mehmet</option>
-                                    <option value="onCamDisServis">🔨 Ön Cam Dış Servis</option>
-                                    <option value="anakartDisServis">🔨 Anakart Dış Servis</option>
-                                    <option value="satisa">💰 Satışa Gidecek</option>
-                                    <option value="sahiniden">🏪 Sahibinden</option>
-                                    <option value="mediaMarkt">🛒 Media Markt</option>
-                                    <option value="SonKullanıcı">👤 Son Kullanıcı</option>
-                                    <option value="teslimEdilenler">✅ Teslim Edilenler</option>
-                                </select>
-                            </div>
-                            <div style="display: flex; align-items: flex-end;">
-                                <button onclick="loadSystemLogs()"
-                                    style="width: 100%; padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-                                    🔍 Logları Yükle
-                                </button>
-                            </div>
-                        </div>
-                        <div style="margin-top: 10px; text-align: right;">
-                            <button onclick="clearLogsFilters()"
-                                style="padding: 6px 12px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
-                                🗑️ Filtreleri Temizle
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- İstatistikler -->
-                    <div id="logsStats"
-                        style="display: none; background: rgba(46, 204, 113, 0.2); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2ecc71;">
-                        <strong>📊 Toplam: <span id="logsTotalCount">0</span> işlem</strong>
-                    </div>
-
-                    <!-- Loglar -->
-                    <div id="systemLogsResults" style="max-height: 500px; overflow-y: auto;">
-                        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
-                            📋 Filtre seçip "Logları Yükle" butonuna tıklayın
-                        </div>
-                    </div>
-
-                    <div class="modal-buttons" style="margin-top: 20px;">
-                        <button class="modal-button secondary" onclick="closeSystemLogsModal()">Kapat</button>
-                        <button class="modal-button" onclick="exportLogsToExcel()" id="exportLogsBtn" disabled
-                            style="background: #27ae60;">
-                            📊 Excel'e Aktar
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <!-- ORIGINAL: <script> -->
-            <script src="script.js"></script> <!-- ORIGINAL: </script> -->
-            <script src="fiyatlar.html"></script> <!-- ORIGINAL: </script> -->
-            <script src="style_new.css"></script> <!-- ORIGINAL: </script> -->
-
-            <script src="muhasebe.html"></script> <!-- ORIGINAL: </script> -->
-
+  <div class="stars"></div>
+  <div class="planet"></div>
+  <h1>Mobilfon Cihaz Takip Sistemi</h1>
+  <p>Sayfamız bakımda, sistem güncelleniyor... 🚀</p>
+
+  <div class="progress-container">
+    <div class="progress-bar" id="progress"></div>
+  </div>
+  <div class="countdown" id="countdown">10:00</div>
+
+  <script>
+    let totalSeconds = 600;
+    const countdownElement = document.getElementById('countdown');
+
+    const timer = setInterval(() => {
+      totalSeconds--;
+      let minutes = Math.floor(totalSeconds / 60);
+      let seconds = totalSeconds % 60;
+      countdownElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      if (totalSeconds <= 0) clearInterval(timer);
+    }, 1000);
+  </script>
 </body>
-
 </html>
