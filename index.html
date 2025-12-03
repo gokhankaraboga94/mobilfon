@@ -655,6 +655,38 @@
             </div>
         </div>
 
+        <!-- TIMEOUT DASHBOARD (ADMIN & SEMI-ADMIN ONLY) -->
+        <div id="timeoutDashboardPanel" class="timeout-dashboard-panel" style="display: none;">
+            <div class="timeout-dashboard-header">
+                <h2>⏰ Zaman Aşımı Takip Dashboard</h2>
+                <p style="opacity: 0.9; margin-top: 5px;">Bekleyen Cihazların Süre Bazlı Dağılımı</p>
+            </div>
+
+            <div class="timeout-dashboard-stats">
+                <div class="timeout-stat-card green">
+                    <div class="timeout-stat-icon">🟢</div>
+                    <div class="timeout-stat-value" id="timeoutDashboardGreen">0</div>
+                    <div class="timeout-stat-label">3-9 Gün Bekleyenler</div>
+                    <div class="timeout-stat-sublabel">Normal Süre</div>
+                </div>
+
+                <div class="timeout-stat-card yellow">
+                    <div class="timeout-stat-icon">🟡</div>
+                    <div class="timeout-stat-value" id="timeoutDashboardYellow">0</div>
+                    <div class="timeout-stat-label">10-19 Gün Bekleyenler</div>
+                    <div class="timeout-stat-sublabel">Dikkat Gerekli</div>
+                </div>
+
+                <div class="timeout-stat-card red">
+                    <div class="timeout-stat-icon">🔴</div>
+                    <div class="timeout-stat-value" id="timeoutDashboardRed">0</div>
+                    <div class="timeout-stat-label">20+ Gün Bekleyenler</div>
+                    <div class="timeout-stat-sublabel">Acil Müdahale</div>
+                </div>
+            </div>
+        </div>
+
+
         <!-- WAREHOUSE PANEL (DEPOCU) -->
         <div id="warehousePanel" class="warehouse-panel" style="display: none;">
             <div class="warehouse-header">
