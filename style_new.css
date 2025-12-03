@@ -3512,3 +3512,190 @@ button[id*="Btn"] {
 .close-modal-btn:hover {
     opacity: 1;
 }
+
+/* ========================================
+   TIMEOUT DASHBOARD PANEL
+   ======================================== */
+.timeout-dashboard-panel {
+    background: linear-gradient(135deg, rgba(52, 73, 94, 0.95), rgba(44, 62, 80, 0.95));
+    backdrop-filter: blur(15px);
+    border-radius: var(--radius-lg);
+    padding: 25px;
+    margin-top: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.timeout-dashboard-header {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.timeout-dashboard-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 5px 0;
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.timeout-dashboard-header p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.timeout-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.timeout-stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 25px 20px;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.timeout-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: currentColor;
+    opacity: 0.6;
+}
+
+.timeout-stat-card.green {
+    border-color: rgba(39, 174, 96, 0.3);
+    color: #27ae60;
+}
+
+.timeout-stat-card.green:hover {
+    background: rgba(39, 174, 96, 0.15);
+    border-color: #27ae60;
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(39, 174, 96, 0.3);
+}
+
+.timeout-stat-card.yellow {
+    border-color: rgba(243, 156, 18, 0.3);
+    color: #f39c12;
+}
+
+.timeout-stat-card.yellow:hover {
+    background: rgba(243, 156, 18, 0.15);
+    border-color: #f39c12;
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(243, 156, 18, 0.3);
+}
+
+.timeout-stat-card.red {
+    border-color: rgba(231, 76, 60, 0.3);
+    color: #e74c3c;
+}
+
+.timeout-stat-card.red:hover {
+    background: rgba(231, 76, 60, 0.15);
+    border-color: #e74c3c;
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(231, 76, 60, 0.3);
+}
+
+.timeout-stat-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.timeout-stat-value {
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    line-height: 1;
+}
+
+.timeout-stat-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.timeout-stat-sublabel {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    margin-top: 5px;
+}
+
+/* Responsive Design for Timeout Dashboard */
+@media screen and (max-width: 768px) {
+    .timeout-dashboard-panel {
+        padding: 15px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+
+    .timeout-dashboard-header h2 {
+        font-size: 18px;
+    }
+
+    .timeout-dashboard-header p {
+        font-size: 12px;
+    }
+
+    .timeout-dashboard-stats {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .timeout-stat-card {
+        padding: 20px 15px;
+    }
+
+    .timeout-stat-icon {
+        font-size: 36px;
+    }
+
+    .timeout-stat-value {
+        font-size: 32px;
+    }
+
+    .timeout-stat-label {
+        font-size: 13px;
+    }
+
+    .timeout-stat-sublabel {
+        font-size: 10px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .timeout-stat-icon {
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+
+    .timeout-stat-value {
+        font-size: 28px;
+    }
+
+    .timeout-stat-label {
+        font-size: 12px;
+    }
+}
+
