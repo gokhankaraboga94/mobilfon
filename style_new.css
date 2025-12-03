@@ -300,7 +300,7 @@ body::before {
 
 .nav-logout-button {
     padding: 8px 16px;
-    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    background: linear-gradient(135deg, #f50404 0%, #f70202 100%);
     color: white;
     border: none;
     border-radius: var(--radius-sm);
