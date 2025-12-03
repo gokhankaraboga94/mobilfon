@@ -1070,6 +1070,61 @@
 
             <script src="muhasebe.html"></script> <!-- ORIGINAL: </script> -->
 
+
+
+<div id="timeoutWarning" class="timeout-warning" onclick="openTimeoutModal()">
+    <div class="timeout-icon">⚠️</div>
+    <div class="timeout-content">
+        <div class="timeout-title">Zaman Aşımı!</div>
+        <div class="timeout-text"><span id="timeoutCount">0</span> cihaz 3 günden fazladır bekliyor.</div>
+        <div class="timeout-subtext">Detaylar için tıklayın</div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="timeoutModal">
+    <div class="modal" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2>⚠️ Zaman Aşımına Uğrayan Cihazlar</h2>
+            <button class="close-modal-btn" onclick="closeTimeoutModal()">✕</button>
+        </div>
+        
+        <div class="timeout-info-box">
+            <p>Aşağıdaki cihazlar <strong>3 günden uzun süredir</strong> ilgili listelerde beklemektedir ve henüz teslim edilmemiştir.</p>
+        </div>
+
+        <div class="timeout-table-container">
+            <table class="timeout-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="selectAllTimeout" onchange="toggleAllTimeout(this)"></th>
+                        <th>Barkod</th>
+                        <th>Bulunduğu Liste</th>
+                        <th>Bekleme Süresi</th>
+                        <th>Son İşlem</th>
+                        <th>Kullanıcı</th>
+                    </tr>
+                </thead>
+                <tbody id="timeoutListBody">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="modal-buttons" style="margin-top: 20px;">
+            <button class="modal-button secondary" onclick="ignoreSelectedTimeouts()">
+                👁️ Dikkate Alma / Bir Daha Gösterme
+            </button>
+            <button class="modal-button primary" onclick="transferSelectedToDelivered()">
+                ✅ Seçilenleri Teslim Edilenlere Gönder
+            </button>
+            <button class="modal-button" style="background: #3498db; color: white;" onclick="checkTimeouts()">
+                🔄 Yenile
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
 </body>
 
 </html>
