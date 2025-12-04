@@ -82,6 +82,11 @@ function showMainView() {
         if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
             document.getElementById('timeoutDashboardPanel').style.display = 'block';
             loadTimeoutDashboard(); // Son kaydedilen veriyi yükle
+
+            // Click handler'ları başlat
+            setTimeout(() => {
+                initTimeoutDashboardClickHandlers();
+            }, 100);
         } else {
             document.getElementById('timeoutDashboardPanel').style.display = 'none';
         }
@@ -8404,24 +8409,17 @@ async function checkTimeouts() {
 
 // Arayüz (UI) Güncelleme Fonksiyonları
 function updateTimeoutWarningUI() {
-    const warningBox = document.getElementById('timeoutWarning');
-    const countSpan = document.getElementById('timeoutCount');
-
-    if (warningBox && countSpan) {
-        if (timeoutDevices.length > 0) {
-            countSpan.textContent = timeoutDevices.length;
-            warningBox.style.display = 'flex';
-            // Animasyon efekti
-            warningBox.classList.remove('pulse');
-            void warningBox.offsetWidth; // reflow
-            warningBox.classList.add('pulse');
-        } else {
-            warningBox.style.display = 'none';
-        }
-    }
+    // ⚠️ Bildirim kaldırıldı - Sadece arka planda çalışıyor
+    // Kullanıcılar artık stat-card'lara tıklayarak detayları görebilir
+    // const warningBox = document.getElementById('timeoutWarning');
+    // const countSpan = document.getElementById('timeoutCount');
+    // Bildirim gösterme kodu kaldırıldı
 
     // Dashboard'u da güncelle
     updateTimeoutDashboard();
+
+    // Timeout cihaz detaylarını hesapla (click için)
+    calculateTimeoutDevices();
 }
 
 // ========================================
@@ -8468,6 +8466,7 @@ async function loadTimeoutDashboard() {
     if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
 
     try {
+        // Dashboard sayılarını yükle
         const snapshot = await db.ref('timeoutDashboardData').once('value');
         const data = snapshot.val();
 
@@ -8485,10 +8484,251 @@ async function loadTimeoutDashboard() {
         } else {
             console.log('📊 Timeout Dashboard verisi bulunamadı, varsayılan değerler gösteriliyor');
         }
+
+        // Önceki tarama verilerini yükle (cihaz detayları)
+        const detailsSnapshot = await db.ref('timeoutDeviceDetails').once('value');
+        const detailsData = detailsSnapshot.val();
+
+        if (detailsData) {
+            cachedTimeoutDevices = {
+                green: detailsData.green || [],
+                yellow: detailsData.yellow || [],
+                red: detailsData.red || []
+            };
+            console.log(`📊 Timeout cihaz detayları yüklendi: Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
+        } else {
+            console.log('📊 Timeout cihaz detayları bulunamadı, boş başlatıldı');
+        }
     } catch (error) {
         console.error('❌ Timeout Dashboard yüklenemedi:', error);
     }
 }
+
+// ========================================
+// TIMEOUT DASHBOARD CLICK FUNCTIONALITY
+// ========================================
+
+// Global değişken: timeout cihaz detaylarını sakla
+let cachedTimeoutDevices = {
+    green: [],
+    yellow: [],
+    red: []
+};
+
+// Timeout cihazlarını hesapla ve kategorilere ayır
+async function calculateTimeoutDevices() {
+    // Sadece admin ve semi-admin için
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+
+    cachedTimeoutDevices = {
+        green: [],
+        yellow: [],
+        red: []
+    };
+
+    try {
+        // timeoutDevices array'inden kategorilere ayır
+        if (timeoutDevices && timeoutDevices.length > 0) {
+            timeoutDevices.forEach(device => {
+                // Model bilgisini almaya çalış (varsa)
+                const deviceWithModel = {
+                    ...device,
+                    model: 'Bilinmiyor' // Varsayılan değer
+                };
+
+                // Kategorilere ayır
+                if (device.days >= 3 && device.days < 10) {
+                    cachedTimeoutDevices.green.push(deviceWithModel);
+                } else if (device.days >= 10 && device.days < 20) {
+                    cachedTimeoutDevices.yellow.push(deviceWithModel);
+                } else if (device.days >= 20) {
+                    cachedTimeoutDevices.red.push(deviceWithModel);
+                }
+            });
+
+            // Her kategoriyi gün sayısına göre sırala (en çok bekleyenden en aza)
+            cachedTimeoutDevices.green.sort((a, b) => b.days - a.days);
+            cachedTimeoutDevices.yellow.sort((a, b) => b.days - a.days);
+            cachedTimeoutDevices.red.sort((a, b) => b.days - a.days);
+        }
+
+        // Database'e kaydet (önceki tarama verilerini sakla)
+        await db.ref('timeoutDeviceDetails').set({
+            green: cachedTimeoutDevices.green,
+            yellow: cachedTimeoutDevices.yellow,
+            red: cachedTimeoutDevices.red,
+            lastUpdated: Date.now(),
+            timestamp: new Date().toLocaleString('tr-TR')
+        });
+
+        console.log(`📊 Timeout cihazları hesaplandı ve kaydedildi: Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
+    } catch (error) {
+        console.error('❌ Timeout cihazları hesaplanamadı:', error);
+    }
+}
+
+// Timeout cihaz detaylarını göster
+function showTimeoutDeviceDetails(category) {
+    // Sadece admin ve semi-admin için
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+
+    const devices = cachedTimeoutDevices[category] || [];
+
+    if (devices.length === 0) {
+        showToast(`Bu kategoride bekleyen cihaz bulunmuyor.`, 'info');
+        return;
+    }
+
+    renderTimeoutDeviceModal(devices, category);
+}
+
+// Timeout cihaz modalını render et
+function renderTimeoutDeviceModal(devices, category) {
+    // Kategori bilgileri
+    const categoryInfo = {
+        green: {
+            title: '🟢 3-9 Gün Bekleyen Cihazlar',
+            subtitle: 'Normal Süre',
+            color: '#27ae60'
+        },
+        yellow: {
+            title: '🟡 10-19 Gün Bekleyen Cihazlar',
+            subtitle: 'Dikkat Gerekli',
+            color: '#f39c12'
+        },
+        red: {
+            title: '🔴 20+ Gün Bekleyen Cihazlar',
+            subtitle: 'Acil Müdahale',
+            color: '#e74c3c'
+        }
+    };
+
+    const info = categoryInfo[category];
+
+    // Liste adlarını Türkçe'ye çevir
+    const listNames = {
+        atanacak: '📋 Atanacak',
+        parcaBekliyor: '⚙️ Parça Bekliyor',
+        phonecheck: '📱 PhoneCheck',
+        gokhan: '🧑‍🔧 Gökhan',
+        enes: '🧑‍🔧 Enes',
+        yusuf: '🧑‍🔧 Yusuf',
+        samet: '🧑‍🔧 Samet',
+        engin: '🧑‍🔧 Engin',
+        ismail: '🧑‍🔧 İsmail',
+        mehmet: '🧑‍🔧 Mehmet',
+        onarim: '🔧 Onarım Tamamlandı',
+        onCamDisServis: '🔨 Ön Cam Dış Servis',
+        anakartDisServis: '🔨 Anakart Dış Servis',
+        satisa: '💰 Satışa Gidecek',
+        sahiniden: '🏪 Sahibinden',
+        mediaMarkt: '🛒 Media Markt',
+        SonKullanıcı: '👤 Son Kullanıcı'
+    };
+
+    // Modal HTML'i oluştur
+    let devicesHTML = '';
+    devices.forEach((device, index) => {
+        const listDisplayName = listNames[device.listName] || device.listName;
+        devicesHTML += `
+            <tr style="border-left: 4px solid ${info.color};">
+                <td style="padding: 12px; text-align: center; font-weight: 600;">${index + 1}</td>
+                <td style="padding: 12px; font-family: monospace; font-weight: 600;">${device.barcode}</td>
+                <td style="padding: 12px;">${device.model}</td>
+                <td style="padding: 12px;">${listDisplayName}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; color: ${info.color};">${device.days} gün</td>
+                <td style="padding: 12px; text-align: center;">${device.lastActionDate}</td>
+            </tr>
+        `;
+    });
+
+    const modalHTML = `
+        <div class="timeout-device-modal-overlay" id="timeoutDeviceModalOverlay" onclick="closeTimeoutDeviceModal()">
+            <div class="timeout-device-modal" onclick="event.stopPropagation()" style="border-top: 4px solid ${info.color};">
+                <div class="timeout-device-modal-header" style="border-bottom: 2px solid ${info.color};">
+                    <div>
+                        <h2 style="margin: 0; color: ${info.color};">${info.title}</h2>
+                        <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 14px;">${info.subtitle} • Toplam ${devices.length} cihaz</p>
+                    </div>
+                    <button class="timeout-device-modal-close" onclick="closeTimeoutDeviceModal()">✕</button>
+                </div>
+                <div class="timeout-device-modal-body">
+                    <table class="timeout-device-table">
+                        <thead>
+                            <tr>
+                                <th style="padding: 12px; text-align: center; width: 50px;">#</th>
+                                <th style="padding: 12px; text-align: left;">Barkod</th>
+                                <th style="padding: 12px; text-align: left;">Model</th>
+                                <th style="padding: 12px; text-align: left;">Bulunduğu Liste</th>
+                                <th style="padding: 12px; text-align: center; width: 100px;">Bekleyen Gün</th>
+                                <th style="padding: 12px; text-align: center; width: 120px;">Son İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${devicesHTML}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Modal'ı body'ye ekle
+    const existingModal = document.getElementById('timeoutDeviceModalOverlay');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Modal'ı göster
+    setTimeout(() => {
+        const modal = document.getElementById('timeoutDeviceModalOverlay');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+        }
+    }, 10);
+}
+
+// Timeout cihaz modalını kapat
+function closeTimeoutDeviceModal() {
+    const modal = document.getElementById('timeoutDeviceModalOverlay');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+}
+
+// Timeout dashboard stat-card'larına click event listener'ları ekle
+function initTimeoutDashboardClickHandlers() {
+    // Sadece admin ve semi-admin için
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+
+    const greenCard = document.querySelector('.timeout-stat-card.green');
+    const yellowCard = document.querySelector('.timeout-stat-card.yellow');
+    const redCard = document.querySelector('.timeout-stat-card.red');
+
+    if (greenCard) {
+        greenCard.style.cursor = 'pointer';
+        greenCard.onclick = () => showTimeoutDeviceDetails('green');
+    }
+
+    if (yellowCard) {
+        yellowCard.style.cursor = 'pointer';
+        yellowCard.onclick = () => showTimeoutDeviceDetails('yellow');
+    }
+
+    if (redCard) {
+        redCard.style.cursor = 'pointer';
+        redCard.onclick = () => showTimeoutDeviceDetails('red');
+    }
+
+    console.log('✅ Timeout Dashboard click handler\'ları başlatıldı');
+}
+
 
 function openTimeoutModal() {
     const modal = document.getElementById('timeoutModal');
