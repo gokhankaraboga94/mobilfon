@@ -452,10 +452,10 @@
                 <div>
                     <label>İstenilen Parçalar (1-4 adet):</label>
                     <div class="part-inputs-grid">
-                  <div class="part-input-group">
-    <label>Parça 1:</label>
-    <input type="text" id="partOrderPart1" placeholder="Opsiyonel">
-</div>
+                        <div class="part-input-group">
+                            <label>Parça 1:</label>
+                            <input type="text" id="partOrderPart1" placeholder="Opsiyonel">
+                        </div>
                         <div class="part-input-group">
                             <label>Parça 2:</label>
                             <input type="text" id="partOrderPart2" placeholder="Opsiyonel">
@@ -1035,7 +1035,7 @@
                                 <select id="logsListFilter"
                                     style="width: 100%; padding: 8px; border-radius: 6px; border: none;">
                                     <option value="">Tümü</option>
-                                     <option value="partOrders">Teknisyen Adetleri / Parça İstekleri</option>
+                                    <option value="partOrders">Teknisyen Adetleri / Parça İstekleri</option>
 
                                     <option value="atanacak">📋 Atanacak</option>
                                     <option value="parcaBekliyor">⚙️ Parça Bekliyor</option>
@@ -1046,7 +1046,7 @@
                                     <option value="yusuf">🧑‍🔧 Yusuf</option>
                                     <option value="samet">🧑‍🔧 Samet</option>
                                     <option value="engin">🧑‍🔧 Engin</option>
-                                    
+
                                     <option value="ismail">🧑‍🔧 İsmail</option>
                                     <option value="mehmet">🧑‍🔧 Mehmet</option>
                                     <option value="onCamDisServis">🔨 Ön Cam Dış Servis</option>
@@ -1104,56 +1104,59 @@
 
 
 
-<div id="timeoutWarning" class="timeout-warning" onclick="openTimeoutModal()">
-    <div class="timeout-icon">⚠️</div>
-    <div class="timeout-content">
-        <div class="timeout-title">Zaman Aşımı!</div>
-        <div class="timeout-text"><span id="timeoutCount">0</span> cihaz 3 günden fazladır bekliyor.</div>
-        <div class="timeout-subtext">Detaylar için tıklayın</div>
-    </div>
-</div>
+            <div id="timeoutWarning" class="timeout-warning" onclick="openTimeoutModal()">
+                <div class="timeout-icon">⚠️</div>
+                <div class="timeout-content">
+                    <div class="timeout-title">Zaman Aşımı!</div>
+                    <div class="timeout-text"><span id="timeoutCount">0</span> cihaz 3 günden fazladır bekliyor.</div>
+                    <div class="timeout-subtext">Detaylar için tıklayın</div>
+                </div>
+            </div>
 
-<div class="modal-overlay" id="timeoutModal">
-    <div class="modal" style="max-width: 900px;">
-        <div class="modal-header">
-            <h2>⚠️ Zaman Aşımına Uğrayan Cihazlar</h2>
-            <button class="close-modal-btn" onclick="closeTimeoutModal()">✕</button>
-        </div>
-        
-        <div class="timeout-info-box">
-            <p>Aşağıdaki cihazlar <strong>3 günden uzun süredir</strong> ilgili listelerde beklemektedir ve henüz teslim edilmemiştir.</p>
-        </div>
+            <div class="modal-overlay" id="timeoutModal">
+                <div class="modal" style="max-width: 900px;">
+                    <div class="modal-header">
+                        <h2>⚠️ Zaman Aşımına Uğrayan Cihazlar</h2>
+                        <button class="close-modal-btn" onclick="closeTimeoutModal()">✕</button>
+                    </div>
 
-        <div class="timeout-table-container">
-            <table class="timeout-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40px;"><input type="checkbox" id="selectAllTimeout" onchange="toggleAllTimeout(this)"></th>
-                        <th>Barkod</th>
-                        <th>Bulunduğu Liste</th>
-                        <th>Bekleme Süresi</th>
-                        <th>Son İşlem</th>
-                        <th>Kullanıcı</th>
-                    </tr>
-                </thead>
-                <tbody id="timeoutListBody">
-                    </tbody>
-            </table>
-        </div>
+                    <div class="timeout-info-box">
+                        <p>Aşağıdaki cihazlar <strong>3 günden uzun süredir</strong> ilgili listelerde beklemektedir ve
+                            henüz teslim edilmemiştir.</p>
+                    </div>
 
-        <div class="modal-buttons" style="margin-top: 20px;">
-            <button class="modal-button secondary" onclick="ignoreSelectedTimeouts()">
-                👁️ Dikkate Alma / Bir Daha Gösterme
-            </button>
-            <button class="modal-button primary" onclick="transferSelectedToDelivered()">
-                ✅ Seçilenleri Teslim Edilenlere Gönder
-            </button>
-            <button class="modal-button" style="background: #3498db; color: white;" onclick="checkTimeouts()">
-                🔄 Yenile
-            </button>
-        </div>
-    </div>
-</div>
+                    <div class="timeout-table-container">
+                        <table class="timeout-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAllTimeout"
+                                            onchange="toggleAllTimeout(this)"></th>
+                                    <th>Barkod</th>
+                                    <th>Bulunduğu Liste</th>
+                                    <th>Bekleme Süresi</th>
+                                    <th>Son İşlem</th>
+                                    <th>Kullanıcı</th>
+                                </tr>
+                            </thead>
+                            <tbody id="timeoutListBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="modal-buttons" style="margin-top: 20px;">
+                        <button class="modal-button secondary" onclick="ignoreSelectedTimeouts()">
+                            👁️ Dikkate Alma / Bir Daha Gösterme
+                        </button>
+                        <button class="modal-button primary" onclick="transferSelectedToDelivered()">
+                            ✅ Seçilenleri Teslim Edilenlere Gönder
+                        </button>
+                        <button class="modal-button" style="background: #3498db; color: white;"
+                            onclick="checkTimeouts()">
+                            🔄 Yenile
+                        </button>
+                    </div>
+                </div>
+            </div>
 
 
 
