@@ -8530,19 +8530,13 @@ async function calculateTimeoutDevices() {
         // timeoutDevices array'inden kategorilere ayır
         if (timeoutDevices && timeoutDevices.length > 0) {
             timeoutDevices.forEach(device => {
-                // Model bilgisini almaya çalış (varsa)
-                const deviceWithModel = {
-                    ...device,
-                    model: 'Bilinmiyor' // Varsayılan değer
-                };
-
                 // Kategorilere ayır
                 if (device.days >= 3 && device.days < 10) {
-                    cachedTimeoutDevices.green.push(deviceWithModel);
+                    cachedTimeoutDevices.green.push(device);
                 } else if (device.days >= 10 && device.days < 20) {
-                    cachedTimeoutDevices.yellow.push(deviceWithModel);
+                    cachedTimeoutDevices.yellow.push(device);
                 } else if (device.days >= 20) {
-                    cachedTimeoutDevices.red.push(deviceWithModel);
+                    cachedTimeoutDevices.red.push(device);
                 }
             });
 
@@ -8634,10 +8628,10 @@ function renderTimeoutDeviceModal(devices, category) {
             <tr style="border-left: 4px solid ${info.color};">
                 <td style="padding: 12px; text-align: center; font-weight: 600;">${index + 1}</td>
                 <td style="padding: 12px; font-family: monospace; font-weight: 600;">${device.barcode}</td>
-                <td style="padding: 12px;">${device.model}</td>
                 <td style="padding: 12px;">${listDisplayName}</td>
                 <td style="padding: 12px; text-align: center; font-weight: 600; color: ${info.color};">${device.days} gün</td>
                 <td style="padding: 12px; text-align: center;">${device.lastActionDate}</td>
+                <td style="padding: 12px;">👤 ${device.user}</td>
             </tr>
         `;
     });
@@ -8658,10 +8652,10 @@ function renderTimeoutDeviceModal(devices, category) {
                             <tr>
                                 <th style="padding: 12px; text-align: center; width: 50px;">#</th>
                                 <th style="padding: 12px; text-align: left;">Barkod</th>
-                                <th style="padding: 12px; text-align: left;">Model</th>
                                 <th style="padding: 12px; text-align: left;">Bulunduğu Liste</th>
                                 <th style="padding: 12px; text-align: center; width: 100px;">Bekleyen Gün</th>
                                 <th style="padding: 12px; text-align: center; width: 120px;">Son İşlem</th>
+                                <th style="padding: 12px; text-align: left;">Transfer Eden Kullanıcı</th>
                             </tr>
                         </thead>
                         <tbody>
