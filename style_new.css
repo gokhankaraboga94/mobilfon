@@ -3387,12 +3387,14 @@ button[id*="Btn"] {
     right: 20px;
     top: 50%;
     transform: translateY(-50%);
-    background: linear-gradient(135deg, #3498db, #2980b9); /* Açık Mavi Tonları */
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    /* Açık Mavi Tonları */
     color: white;
     padding: 15px 20px;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(52, 152, 219, 0.4);
-    display: none; /* JS ile açılacak */
+    display: none;
+    /* JS ile açılacak */
     align-items: center;
     gap: 15px;
     cursor: pointer;
@@ -3694,8 +3696,224 @@ button[id*="Btn"] {
         font-size: 28px;
     }
 
-    .timeout-stat-label {
+}
+
+
+/* ========================================
+   TIMEOUT DEVICE MODAL
+   ======================================== */
+.timeout-device-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10002;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.timeout-device-modal-overlay.active {
+    opacity: 1;
+}
+
+.timeout-device-modal {
+    background: rgba(30, 35, 60, 0.98);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-radius: var(--radius-lg);
+    max-width: 1200px;
+    width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timeout-device-modal-overlay.active .timeout-device-modal {
+    transform: scale(1);
+}
+
+.timeout-device-modal-header {
+    padding: 20px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.timeout-device-modal-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.timeout-device-modal-header p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.timeout-device-modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.timeout-device-modal-close:hover {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: #e74c3c;
+    color: #e74c3c;
+    transform: rotate(90deg);
+}
+
+.timeout-device-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 25px 25px 25px;
+}
+
+.timeout-device-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.timeout-device-table thead {
+    background: rgba(255, 255, 255, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.timeout-device-table thead tr th {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+.timeout-device-table tbody tr {
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.3s ease;
+}
+
+.timeout-device-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(3px);
+}
+
+.timeout-device-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.timeout-device-table tbody tr:nth-child(even):hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.timeout-device-table td {
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+/* Scrollbar Styling for Modal */
+.timeout-device-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.timeout-device-modal-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.timeout-device-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.timeout-device-modal-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design for Modal */
+@media screen and (max-width: 768px) {
+    .timeout-device-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .timeout-device-modal-header {
+        padding: 15px 20px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .timeout-device-modal-header h2 {
+        font-size: 18px;
+    }
+
+    .timeout-device-modal-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+    }
+
+    .timeout-device-modal-body {
+        padding: 0 15px 15px 15px;
+    }
+
+    .timeout-device-table {
         font-size: 12px;
+    }
+
+    .timeout-device-table th,
+    .timeout-device-table td {
+        padding: 8px !important;
+    }
+
+    /* Hide model column on mobile */
+    .timeout-device-table th:nth-child(3),
+    .timeout-device-table td:nth-child(3) {
+        display: none;
     }
 }
 
+@media screen and (max-width: 480px) {
+    .timeout-device-modal {
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .timeout-device-table {
+        font-size: 11px;
+    }
+
+    /* Hide last action date on very small screens */
+    .timeout-device-table th:nth-child(6),
+    .timeout-device-table td:nth-child(6) {
+        display: none;
+    }
+}
