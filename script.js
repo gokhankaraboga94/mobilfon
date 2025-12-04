@@ -78,8 +78,8 @@ function showMainView() {
             document.getElementById('dashboardPanel').style.display = 'none';
         }
 
-        // ✅ TIMEOUT DASHBOARD - SADECE ADMIN VE SEMI-ADMIN
-        if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+        // ✅ TIMEOUT DASHBOARD - TÜM KULLANICILAR (DEPOCU HARİÇ)
+        if (currentUserRole !== 'warehouse') {
             document.getElementById('timeoutDashboardPanel').style.display = 'block';
             loadTimeoutDashboard(); // Son kaydedilen veriyi yükle
 
@@ -8462,8 +8462,8 @@ async function updateTimeoutDashboard() {
 // TIMEOUT DASHBOARD YÜKLEME (Sayfa açılışında)
 // ========================================
 async function loadTimeoutDashboard() {
-    // Sadece admin ve semi-admin için
-    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+    // Tüm kullanıcılar için (depocu hariç)
+    if (currentUserRole === 'warehouse') return;
 
     try {
         // Dashboard sayılarını yükle
@@ -8517,8 +8517,8 @@ let cachedTimeoutDevices = {
 
 // Timeout cihazlarını hesapla ve kategorilere ayır
 async function calculateTimeoutDevices() {
-    // Sadece admin ve semi-admin için
-    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+    // Tüm kullanıcılar için (depocu hariç)
+    if (currentUserRole === 'warehouse') return;
 
     cachedTimeoutDevices = {
         green: [],
@@ -8569,8 +8569,8 @@ async function calculateTimeoutDevices() {
 
 // Timeout cihaz detaylarını göster
 function showTimeoutDeviceDetails(category) {
-    // Sadece admin ve semi-admin için
-    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+    // Tüm kullanıcılar için (depocu hariç)
+    if (currentUserRole === 'warehouse') return;
 
     const devices = cachedTimeoutDevices[category] || [];
 
@@ -8704,8 +8704,8 @@ function closeTimeoutDeviceModal() {
 
 // Timeout dashboard stat-card'larına click event listener'ları ekle
 function initTimeoutDashboardClickHandlers() {
-    // Sadece admin ve semi-admin için
-    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+    // Tüm kullanıcılar için (depocu hariç)
+    if (currentUserRole === 'warehouse') return;
 
     const greenCard = document.querySelector('.timeout-stat-card.green');
     const yellowCard = document.querySelector('.timeout-stat-card.yellow');
