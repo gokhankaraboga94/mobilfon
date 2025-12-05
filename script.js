@@ -730,7 +730,7 @@ async function generatePartOrdersReport(startDateInput, endDateInput) {
           ${order.service ? `<div class="info"><strong>🔧 Hizmet:</strong> ${order.service}</div>` : ''}
           ${order.technicianDamage ? `<div class="info"><strong>⚠️ Teknisyen Hasarı:</strong> ${order.technicianDamage}</div>` : ''}
           <div class="info"><strong>🧑‍🔧 Teknisyen:</strong> ${order.technician}</div>
-          <div class="info"><strong>📦 Parçalar:</strong> ${order.parts.map(p => p.name).join(', ')}</div>
+          <div class="info"><strong>📦 Parçalar:</strong> ${order.parts && Array.isArray(order.parts) ? order.parts.map(p => p.name).join(', ') : 'Parça bilgisi yok'}</div>
           ${order.note ? `<div class="info" style="background: rgba(241, 196, 15, 0.1); padding: 8px; border-radius: 6px; margin-top: 5px;"><strong>📝 Not:</strong> ${order.note}</div>` : ''}
           <div class="info"><strong>📅 Tarih:</strong> ${order.timestampReadable}</div>
           <div class="info" style="color: ${statusColor}; font-weight: bold;">
@@ -1700,11 +1700,12 @@ function exportPartOrdersReportToExcel() {
             ];
 
             const detailRows = currentReportData.ordersArray.map(order => {
-                // Parçaları ayır (maksimum 4)
-                const part1 = order.parts[0] ? order.parts[0].name : '';
-                const part2 = order.parts[1] ? order.parts[1].name : '';
-                const part3 = order.parts[2] ? order.parts[2].name : '';
-                const part4 = order.parts[3] ? order.parts[3].name : '';
+                // Parçaları ayır (maksimum 4) - güvenli kontrol ekle
+                const parts = order.parts && Array.isArray(order.parts) ? order.parts : [];
+                const part1 = parts[0] ? parts[0].name : '';
+                const part2 = parts[1] ? parts[1].name : '';
+                const part3 = parts[2] ? parts[2].name : '';
+                const part4 = parts[3] ? parts[3].name : '';
 
                 return [
                     order.timestampReadable,
