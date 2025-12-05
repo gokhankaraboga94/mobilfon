@@ -3540,11 +3540,17 @@ async function markAllOrdersReady() {
 }
 
 // Parça bilgilerini gösterme fonksiyonu - Aynı barkoda birden fazla sipariş olabileceği için güncelledik
+
 async function displayPartInfo(barcode, containerElementId) {
     try {
         const snapshot = await db.ref('partOrders').once('value');
         const allOrders = snapshot.val();
         const container = document.getElementById(containerElementId);
+
+        if (!container) {
+            console.error(`❌ Container element bulunamadı: ${containerElementId}`);
+            return;
+        }
 
         if (!allOrders) {
             container.style.display = 'none';
@@ -3561,42 +3567,62 @@ async function displayPartInfo(barcode, containerElementId) {
             return;
         }
 
-        let html = '<div class="part-info-display">';
-        html += '<h4>🔧 Parça Sipariş Bilgileri</h4>';
+        let html = '<div class="part-info-display" style="background: rgba(46, 204, 113, 0.1); padding: 15px; border-radius: 8px; border: 2px solid #2ecc71; margin-top: 15px;">';
+        html += '<h4 style="margin: 0 0 15px 0; color: #2ecc71;">🔧 Parça Sipariş Bilgileri</h4>';
 
         // Her sipariş için ayrı gösterim
         matchingOrders.forEach(([orderId, order], index) => {
-            html += '<div class="part-info-history" style="margin-bottom: 15px; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 15px;">';
+            const statusIcon = order.status === 'ready' ? '✅' : '⏳';
+            const statusText = order.status === 'ready' ? 'Hazır' : 'Bekliyor';
+            const statusColor = order.status === 'ready' ? '#2ecc71' : '#f39c12';
+
+            html += `<div class="part-info-order" style="margin-bottom: 15px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; border-left: 4px solid ${statusColor};">`;
 
             if (matchingOrders.length > 1) {
-                html += `<div class="part-info-item"><strong>Sipariş #${index + 1}</strong></div>`;
+                html += `<div style="font-weight: bold; margin-bottom: 10px; font-size: 15px;">📦 Sipariş #${index + 1}</div>`;
             }
 
-            html += `<div class="part-info-item"><strong>Model:</strong> ${order.model}</div>`;
+            html += `<div class="part-info-item" style="margin: 5px 0;"><strong>📱 Model:</strong> ${order.model}</div>`;
+            
             if (order.customer) {
-                html += `<div class="part-info-item"><strong>Müşteri/Bayi:</strong> ${order.customer}</div>`;
+                html += `<div class="part-info-item" style="margin: 5px 0;"><strong>👤 Müşteri/Bayi:</strong> ${order.customer}</div>`;
             }
+            
             if (order.statusField) {
-                html += `<div class="part-info-item"><strong>Statü:</strong> ${order.statusField}</div>`;
+                html += `<div class="part-info-item" style="margin: 5px 0;"><strong>📊 Statü:</strong> ${order.statusField}</div>`;
             }
+            
             if (order.service) {
-                html += `<div class="part-info-item"><strong>Hizmet:</strong> ${order.service}</div>`;
+                html += `<div class="part-info-item" style="margin: 5px 0;"><strong>🔧 Hizmet:</strong> ${order.service}</div>`;
             }
+
+            if (order.technicianDamage) {
+                html += `<div class="part-info-item" style="margin: 5px 0;"><strong>⚠️ Teknisyen Hasarı:</strong> ${order.technicianDamage}</div>`;
+            }
+            
             if (order.note) {
-                html += `<div class="part-info-item"><strong>Not:</strong> ${order.note}</div>`;
+                html += `<div class="part-info-item" style="margin: 5px 0; background: rgba(241, 196, 15, 0.2); padding: 8px; border-radius: 4px;"><strong>📝 Not:</strong> ${order.note}</div>`;
             }
-            html += `<div class="part-info-item"><strong>Teknisyen:</strong> ${order.technician}</div>`;
-            html += `<div class="part-info-item"><strong>Durum:</strong> ${order.status === 'ready' ? '✅ Hazır' : '⏳ Bekliyor'}</div>`;
+            
+            html += `<div class="part-info-item" style="margin: 5px 0;"><strong>👨‍🔧 Teknisyen:</strong> ${order.technician}</div>`;
+            
+            html += `<div class="part-info-item" style="margin: 5px 0;"><strong>${statusIcon} Durum:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></div>`;
 
-            html += '<div class="part-info-item"><strong>İstenilen Parçalar:</strong><br>';
-            order.parts.forEach(part => {
-                const icon = part.status === 'available' ? '✅' :
-                    part.status === 'unavailable' ? '❌' : '⏳';
-                html += `${icon} ${part.name}<br>`;
-            });
-            html += '</div>';
+            // Parçaları listele
+            if (order.parts && Array.isArray(order.parts) && order.parts.length > 0) {
+                html += '<div class="part-info-item" style="margin: 10px 0;"><strong>🔩 İstenilen Parçalar:</strong><br>';
+                html += '<ul style="margin: 5px 0; padding-left: 20px;">';
+                order.parts.forEach(part => {
+                    const partIcon = part.status === 'available' ? '✅' : 
+                                   part.status === 'unavailable' ? '❌' : '⏳';
+                    html += `<li style="margin: 3px 0;">${partIcon} ${part.name}</li>`;
+                });
+                html += '</ul></div>';
+            } else {
+                html += '<div class="part-info-item" style="margin: 5px 0; color: #95a5a6;">📦 Parça bilgisi yok</div>';
+            }
 
-            html += `<div class="part-info-item"><strong>Sipariş Tarihi:</strong> ${order.timestampReadable}</div>`;
+            html += `<div class="part-info-item" style="margin: 5px 0; font-size: 12px; opacity: 0.8;"><strong>📅 Sipariş Tarihi:</strong> ${order.timestampReadable}</div>`;
             html += '</div>';
         });
 
@@ -3604,8 +3630,16 @@ async function displayPartInfo(barcode, containerElementId) {
 
         container.innerHTML = html;
         container.style.display = 'block';
+        
+        console.log(`✅ Parça bilgileri gösterildi: ${barcode} - ${matchingOrders.length} sipariş bulundu`);
+        
     } catch (error) {
-        console.error('Parça bilgileri yüklenirken hata:', error);
+        console.error('❌ Parça bilgileri yüklenirken hata:', error);
+        const container = document.getElementById(containerElementId);
+        if (container) {
+            container.innerHTML = '<div style="color: #e74c3c; padding: 10px;">⚠️ Parça bilgileri yüklenirken hata oluştu.</div>';
+            container.style.display = 'block';
+        }
     }
 }
 
@@ -5239,6 +5273,7 @@ if (inputs.searchNormal) {
 }
 
 // performSearch fonksiyonunu güncelleyin
+
 function performSearch(value, resultElementId, historyElementId, partInfoElementId) {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
@@ -5303,7 +5338,7 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
             searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}`;
             loadAndDisplayHistoryToElement(query, historyElementId);
 
-            // Parça bilgilerini göster
+            // ✅ PARÇA BİLGİLERİNİ GÖSTER - BU KISIM ÖNEMLİ
             if (partInfo) {
                 displayPartInfo(query, partInfoElementId);
             }
@@ -5312,7 +5347,7 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
             historyLog.style.display = "none";
             if (partInfo) partInfo.style.display = "none";
         }
-    }, 500); // Optimized debounce
+    }, 500);
 }
 
 async function loadAndDisplayHistoryToElement(code, historyElementId) {
