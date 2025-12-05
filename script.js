@@ -8319,7 +8319,7 @@ async function checkTimeouts() {
         const ignoredList = ignoredSnapshot.val() || {};
 
         // Kontrol edilecek listeleri belirle (Satış, Teslim ve Geçmiş hariç hepsi)
-        const excludeLists = ['satisa', 'sahiniden', 'SonKullanıcı', 'teslimEdilenler', 'eslesenler', 'adet', 'history', 'serviceReturns'];
+        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'eslesenler', 'adet', 'history', 'serviceReturns'];
         const targetLists = Object.keys(userCodes).filter(listName => !excludeLists.includes(listName));
 
         // PhoneCheck ve Onarım listelerini manuel olarak da garantiye al
@@ -8339,27 +8339,40 @@ async function checkTimeouts() {
                 let entryUser = 'Bilinmiyor';
 
                 // 1. YÖNTEM: History (Geçmiş) Analizi
-                // PhoneCheck ve Onarım için geçmiş kayıtlarında isim farklılıklarını tolere et
+                // Zaman aşımı hesaplaması için DOĞRU mantık:
+                // - Cihazın ilk giriş tarihini bul
+                // - ANCAK eğer cihaz "Teslim Edilenler" veya "Son Kullanıcı"ya girdiyse, ondan SONRAKİ ilk girişi al
                 const historySnapshot = await db.ref(`servis/history/${barcode}`).once('value');
                 const history = historySnapshot.val();
 
                 if (history) {
-                    const entries = Object.values(history).sort((a, b) => b.timestampRaw - a.timestampRaw);
+                    // Tüm kayıtları zamana göre sırala (en eskiden en yeniye)
+                    const entries = Object.values(history).sort((a, b) => a.timestampRaw - b.timestampRaw);
 
-                    // Cihazın bu listeye girdiği SON kaydı bul (Büyük/Küçük harf duyarsız)
-                    const lastEntry = entries.find(e => {
-                        const to = (e.to || '').toLowerCase();
-                        const current = listName.toLowerCase();
+                    // "Teslim Edilenler" veya "Son Kullanıcı"ya en son ne zaman girdiğini bul
+                    let lastResetIndex = -1;
+                    for (let i = entries.length - 1; i >= 0; i--) {
+                        const to = (entries[i].to || '').toLowerCase();
+                        if (to === 'teslimedilenler' || to === 'sonkullanıcı') {
+                            lastResetIndex = i;
+                            break;
+                        }
+                    }
 
-                        // Tam eşleşme veya özel durumlar (onarim <-> onarimTamamlandi)
-                        return to === current ||
-                            (current === 'onarim' && to.includes('onarim')) ||
-                            (current === 'phonecheck' && to.includes('phonecheck'));
-                    });
+                    // lastResetIndex'ten SONRA gelen ilk kaydı bul (reset listelerine giriş hariç)
+                    let firstEntryAfterReset = null;
+                    for (let i = lastResetIndex + 1; i < entries.length; i++) {
+                        const to = (entries[i].to || '').toLowerCase();
+                        // "Teslim Edilenler" ve "Son Kullanıcı" hariç herhangi bir listeye giriş
+                        if (to !== 'teslimedilenler' && to !== 'sonkullanıcı' && entries[i].timestampRaw) {
+                            firstEntryAfterReset = entries[i];
+                            break;
+                        }
+                    }
 
-                    if (lastEntry && lastEntry.timestampRaw) {
-                        entryTimeRaw = lastEntry.timestampRaw;
-                        entryUser = lastEntry.user || 'Bilinmiyor';
+                    if (firstEntryAfterReset) {
+                        entryTimeRaw = firstEntryAfterReset.timestampRaw;
+                        entryUser = firstEntryAfterReset.user || 'Bilinmiyor';
                     }
                 }
 
