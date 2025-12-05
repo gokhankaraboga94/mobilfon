@@ -1,3 +1,5 @@
+Çalış
+
 // ========================================
 // PERFORMANCE OPTIMIZATION
 // ========================================
@@ -89,6 +91,17 @@ function showMainView() {
             }, 100);
         } else {
             document.getElementById('timeoutDashboardPanel').style.display = 'none';
+        }
+
+        // ✅ PARÇA İSTEKLERİ DASHBOARD - SADECE ADMIN VE SEMI-ADMIN
+        if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
+            document.getElementById('partRequestsDashboardPanel').style.display = 'block';
+            // Dashboard verilerini güncelle
+            setTimeout(() => {
+                updatePartRequestsDashboard();
+            }, 100);
+        } else {
+            document.getElementById('partRequestsDashboardPanel').style.display = 'none';
         }
 
         if (document.getElementById('reportsModal').classList.contains('active')) {
@@ -3344,6 +3357,11 @@ async function loadWarehouseOrders() {
         }
 
         updateWarehouseStats(pendingOrders.length, readyOrders.length);
+
+        // Parça istekleri dashboard'unu da güncelle (admin/semi-admin için)
+        if (typeof updatePartRequestsDashboard === 'function') {
+            updatePartRequestsDashboard();
+        }
     } catch (error) {
         console.error('Depo siparişleri yüklenirken hata:', error);
     }
@@ -5223,10 +5241,9 @@ Object.entries(inputs).forEach(([name, textarea]) => {
 
 let searchTimeout;
 
-if (inputs.search) {
-    inputs.search.addEventListener("input", e => {
-        performSearch(e.target.value, 'searchResult', 'historyLog', 'partInfoAdmin');
-        // 4 parametre gönderiliyor ↓
+if (inputs.searchNormal) {
+    inputs.searchNormal.addEventListener("input", e => {
+        performSearch(e.target.value, 'searchResultNormal', 'historyLogNormal', 'partInfoNormal');
     });
 }
 
@@ -8470,7 +8487,54 @@ async function updateTimeoutDashboard() {
     } catch (error) {
         console.error('❌ Timeout Dashboard kaydedilemedi:', error);
     }
+
+    // Parça istatistiklerini de güncelle
+    updatePartRequestsDashboard();
 }
+
+// ========================================
+// PARÇA İSTEKLERİ DASHBOARD GÜNCELLEME
+// ========================================
+async function updatePartRequestsDashboard() {
+    // Sadece admin ve semi-admin için
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+
+    try {
+        // Part orders verilerini database'den çek
+        const snapshot = await db.ref('partOrders').once('value');
+        const orders = snapshot.val();
+
+        let pending = 0;
+        let ready = 0;
+
+        if (orders) {
+            // Bekleyen ve hazır siparişleri say
+            Object.values(orders).forEach(order => {
+                if (order.status === 'pending') {
+                    pending++;
+                } else if (order.status === 'ready') {
+                    ready++;
+                }
+            });
+        }
+
+        const total = pending + ready;
+
+        // DOM elementlerini güncelle (yeni ID'ler)
+        const pendingElement = document.getElementById('partDashboardPending');
+        const readyElement = document.getElementById('partDashboardReady');
+        const totalElement = document.getElementById('partDashboardTotal');
+
+        if (pendingElement) pendingElement.textContent = pending;
+        if (readyElement) readyElement.textContent = ready;
+        if (totalElement) totalElement.textContent = total;
+
+        console.log(`📦 Parça İstekleri Dashboard güncellendi: Bekleyen=${pending}, Hazır=${ready}, Toplam=${total}`);
+    } catch (error) {
+        console.error('❌ Parça İstekleri Dashboard güncellenemedi:', error);
+    }
+}
+
 
 // ========================================
 // TIMEOUT DASHBOARD YÜKLEME (Sayfa açılışında)
