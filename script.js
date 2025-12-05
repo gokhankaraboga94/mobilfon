@@ -8431,9 +8431,9 @@ async function updateTimeoutDashboard() {
     if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
 
     // Kategorilere ayır
-    const green = timeoutDevices.filter(d => d.days >= 3 && d.days < 10).length;
-    const yellow = timeoutDevices.filter(d => d.days >= 10 && d.days < 20).length;
-    const red = timeoutDevices.filter(d => d.days >= 20).length;
+    const green = timeoutDevices.filter(d => d.days >= 3 && d.days < 7).length;
+    const yellow = timeoutDevices.filter(d => d.days >= 7 && d.days < 14).length;
+    const red = timeoutDevices.filter(d => d.days >= 14).length;
 
     // DOM elementlerini kontrol et ve güncelle
     const greenElement = document.getElementById('timeoutDashboardGreen');
@@ -8491,12 +8491,37 @@ async function loadTimeoutDashboard() {
         const detailsData = detailsSnapshot.val();
 
         if (detailsData) {
+            // ÖNEMLİ: Eski kategorileme ile kaydedilmiş olabilir, yeni aralıklara göre yeniden kategorile
+            // Tüm cihazları birleştir
+            const allDevices = [
+                ...(detailsData.green || []),
+                ...(detailsData.yellow || []),
+                ...(detailsData.red || [])
+            ];
+
+            // Yeni aralıklara göre yeniden kategorile
             cachedTimeoutDevices = {
-                green: detailsData.green || [],
-                yellow: detailsData.yellow || [],
-                red: detailsData.red || []
+                green: [],
+                yellow: [],
+                red: []
             };
-            console.log(`📊 Timeout cihaz detayları yüklendi: Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
+
+            allDevices.forEach(device => {
+                if (device.days >= 3 && device.days < 7) {
+                    cachedTimeoutDevices.green.push(device);
+                } else if (device.days >= 7 && device.days < 14) {
+                    cachedTimeoutDevices.yellow.push(device);
+                } else if (device.days >= 14) {
+                    cachedTimeoutDevices.red.push(device);
+                }
+            });
+
+            // Her kategoriyi gün sayısına göre sırala
+            cachedTimeoutDevices.green.sort((a, b) => b.days - a.days);
+            cachedTimeoutDevices.yellow.sort((a, b) => b.days - a.days);
+            cachedTimeoutDevices.red.sort((a, b) => b.days - a.days);
+
+            console.log(`📊 Timeout cihaz detayları yüklendi ve YENİ aralıklara göre kategorilendi: Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
         } else {
             console.log('📊 Timeout cihaz detayları bulunamadı, boş başlatıldı');
         }
@@ -8532,11 +8557,11 @@ async function calculateTimeoutDevices() {
         if (timeoutDevices && timeoutDevices.length > 0) {
             timeoutDevices.forEach(device => {
                 // Kategorilere ayır
-                if (device.days >= 3 && device.days < 10) {
+                if (device.days >= 3 && device.days < 7) {
                     cachedTimeoutDevices.green.push(device);
-                } else if (device.days >= 10 && device.days < 20) {
+                } else if (device.days >= 7 && device.days < 14) {
                     cachedTimeoutDevices.yellow.push(device);
-                } else if (device.days >= 20) {
+                } else if (device.days >= 14) {
                     cachedTimeoutDevices.red.push(device);
                 }
             });
@@ -8582,17 +8607,17 @@ function renderTimeoutDeviceModal(devices, category) {
     // Kategori bilgileri
     const categoryInfo = {
         green: {
-            title: '🟢 3-9 Gün Bekleyen Cihazlar',
+            title: '🟢 3-7 Gün Bekleyen Cihazlar',
             subtitle: 'Normal Süre',
             color: '#27ae60'
         },
         yellow: {
-            title: '🟡 10-19 Gün Bekleyen Cihazlar',
+            title: '🟡 7-14 Gün Bekleyen Cihazlar',
             subtitle: 'Dikkat Gerekli',
             color: '#f39c12'
         },
         red: {
-            title: '🔴 20+ Gün Bekleyen Cihazlar',
+            title: '🔴 14+ Gün Bekleyen Cihazlar',
             subtitle: 'Acil Müdahale',
             color: '#e74c3c'
         }
