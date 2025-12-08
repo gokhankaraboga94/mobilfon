@@ -156,6 +156,32 @@ function cacheDashboardStats(stats) {
 }
 
 // ========================================
+// DEBOUNCE UTILITY - Performans Optimizasyonu
+// ========================================
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// renderList için debounced versiyon (100ms)
+let renderListPending = false;
+function debouncedRenderList() {
+    if (renderListPending) return;
+    renderListPending = true;
+    requestAnimationFrame(() => {
+        renderList();
+        renderListPending = false;
+    });
+}
+
+// ========================================
 // HISTORY DATA CACHE - Rapor Performansı
 // ========================================
 let cachedHistoryData = null;
@@ -6130,10 +6156,10 @@ function loadData() {
     }
 } // ← loadData fonksiyonu kapanış parantezi
 
-// 4 dakikada bir otomatik sayfa yenileme
+// 30 dakikada bir otomatik sayfa yenileme (performans için artırıldı)
 setInterval(function () {
     location.reload();
-}, 10 * 60 * 1000);
+}, 30 * 60 * 1000);
 
 // ========================================
 // TOGGLE FUNCTIONS - YENİ VERSİYON
