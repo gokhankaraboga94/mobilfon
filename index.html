@@ -799,15 +799,19 @@
 
 
                 <div class="container" style="margin-top: 20px;" id="normalSearchSection">
-                    <div class="section" id="normalUserSearch" style="flex: 1 1 100%; display: none;">
-                        <label for="searchInputNormal">🔍 Barkod Ara:</label>
+                    <div class="section" id="normalUserSearch"
+                        style="flex: 1 1 100%; display: none; flex-direction: column;">
+                        <label for="searchInputNormal"
+                            style="display: block; margin-bottom: 10px; font-size: 18px; font-weight: bold;">🔍 Barkod
+                            Ara:</label>
                         <textarea id="searchInputNormal" placeholder="Aramak istediğiniz barkodu girin..."
-                            style="height: 60px;"></textarea>
+                            style="height: 60px; background: rgba(255,255,255,0.9); color: #333;"></textarea>
                         <div id="searchResultNormal"
-                            style="margin-top: 10px; padding: 10px; background: #444; border-radius: 8px; min-height: 40px; display: none;">
+                            style="margin-top: 10px; padding: 10px; background: rgba(10, 78, 180, 0.493); border-radius: 8px; min-height: 40px; display: none; color: #fff; width: 100%;">
                         </div>
-                        <div id="partInfoNormal" style="display: none;"></div>
-                        <div id="historyLogNormal" class="history-log" style="display: none; background: #ac34db;">
+                        <div id="partInfoNormal" style="display: none; width: 100%;"></div>
+                        <div id="historyLogNormal" class="history-log"
+                            style="display: none; background: rgba(255,255,255,0.1); margin-top: 10px; width: 100%;">
                         </div>
                     </div>
                 </div>
