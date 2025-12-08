@@ -2133,7 +2133,7 @@ function checkMidnightReset() {
 }
 
 
-setInterval(checkMidnightReset, 60000); // 60 saniye - Optimized
+setInterval(checkMidnightReset, 120000); // 120 saniye (2 dakika) - Performance Optimized
 
 
 
@@ -4413,7 +4413,7 @@ async function saveEditedBarcode() {
 
         showToast(`Barkod güncellendi: ${editingBarcode} → ${newCode}`, 'success');
         closeEditBarcodeModal();
-        renderList();
+        debouncedRenderList();
     } catch (error) {
         console.error('Barkod düzenleme hatası:', error);
         showToast('Barkod düzenlenirken hata oluştu!', 'error');
@@ -4437,7 +4437,7 @@ async function deleteBarcode(code, listName) {
 
         showToast(`Barkod silindi: ${code}`, 'success');
         updateLabelAndCount(listName);
-        renderList();
+        debouncedRenderList();
     } catch (error) {
         console.error('Barkod silme hatası:', error);
         showToast('Barkod silinirken hata oluştu!', 'error');
@@ -5438,7 +5438,7 @@ function saveCodes(name, value) {
         });
 
         updateLabelAndCount(name);
-        renderList();
+        debouncedRenderList();
         isUpdating = false;
         return;
     }
@@ -5458,7 +5458,7 @@ function saveCodes(name, value) {
     });
 
     updateLabelAndCount(name);
-    renderList();
+    debouncedRenderList();
 
     isUpdating = false;
 }
@@ -5670,7 +5670,7 @@ inputs.scanner.addEventListener("input", e => {
                 });
             });
 
-            renderList();
+            debouncedRenderList();
             showToast(`Barkod eşleşti: ${code}`, 'success');
         }
         e.target.value = "";
@@ -8604,8 +8604,8 @@ window.addEventListener('load', () => {
         checkTimeouts();
     }, 5000);
 
-    // Her 15 dakikada bir kontrol et
-    setInterval(checkTimeouts, 15 * 60 * 1000);
+    // Her 30 dakikada bir kontrol et (Performance Optimized)
+    setInterval(checkTimeouts, 30 * 60 * 1000);
 });
 
 async function checkTimeouts() {
@@ -9308,8 +9308,8 @@ function closeDepoStatsModal() {
 
 async function loadDepoStats() {
     try {
-        const snapshot = await db.ref('partOrders').once('value');
-        const orders = snapshot.val();
+        // ✅ CACHE'DEN YÜKLE - Her modal açılışta Firebase çağrısı yerine
+        const orders = await getPartOrdersData();
 
         let pending = 0;
         let ready = 0;
