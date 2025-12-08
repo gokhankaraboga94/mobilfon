@@ -3931,6 +3931,151 @@ button[id*="Btn"] {
 }
 
 /* ========================================
+   TIMEOUT DEVICE SEARCH BOX
+   ======================================== */
+.timeout-device-search-box {
+    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.timeout-device-search-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    padding: 0 15px;
+    transition: all 0.3s ease;
+}
+
+.timeout-device-search-input-wrapper:focus-within {
+    border-color: #667eea;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.timeout-device-search-icon {
+    font-size: 18px;
+    margin-right: 10px;
+    opacity: 0.7;
+}
+
+.timeout-device-search-input-wrapper input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 15px;
+    padding: 12px 0;
+    font-family: monospace;
+}
+
+.timeout-device-search-input-wrapper input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+    font-family: inherit;
+}
+
+.timeout-device-search-input-wrapper input:focus {
+    outline: none;
+}
+
+.timeout-device-search-clear {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.timeout-device-search-clear:hover {
+    background: rgba(231, 76, 60, 0.3);
+    color: #e74c3c;
+}
+
+.timeout-device-search-result {
+    margin-top: 12px;
+    padding: 10px 15px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    display: none;
+}
+
+.timeout-device-search-result.found {
+    display: block;
+    background: rgba(46, 204, 113, 0.15);
+    border: 1px solid rgba(46, 204, 113, 0.4);
+    color: #2ecc71;
+}
+
+.timeout-device-search-result.not-found {
+    display: block;
+    background: rgba(231, 76, 60, 0.15);
+    border: 1px solid rgba(231, 76, 60, 0.4);
+    color: #e74c3c;
+}
+
+.timeout-device-search-result .search-found {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.timeout-device-search-result .search-found strong {
+    font-size: 18px;
+    color: #27ae60;
+}
+
+.timeout-device-search-result .search-not-found {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+/* Highlight for found row */
+.timeout-device-table tbody tr.timeout-device-search-highlight {
+    background: rgba(46, 204, 113, 0.25) !important;
+    border-left: 4px solid #2ecc71 !important;
+    animation: highlightPulse 2s ease-in-out infinite;
+}
+
+@keyframes highlightPulse {
+    0%, 100% {
+        background: rgba(46, 204, 113, 0.25);
+    }
+    50% {
+        background: rgba(46, 204, 113, 0.4);
+    }
+}
+
+/* Responsive for search box */
+@media screen and (max-width: 768px) {
+    .timeout-device-search-box {
+        padding: 12px 15px;
+    }
+
+    .timeout-device-search-input-wrapper input {
+        font-size: 14px;
+    }
+
+    .timeout-device-search-result {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+}
+
+/* ========================================
    DEPO STATS MODAL (ADMIN & SEMI-ADMIN)
    ======================================== */
 .depo-stats-modal {
