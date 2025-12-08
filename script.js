@@ -3583,15 +3583,15 @@ async function displayPartInfo(barcode, containerElementId) {
             }
 
             html += `<div class="part-info-item" style="margin: 5px 0;"><strong>📱 Model:</strong> ${order.model}</div>`;
-            
+
             if (order.customer) {
                 html += `<div class="part-info-item" style="margin: 5px 0;"><strong>👤 Müşteri/Bayi:</strong> ${order.customer}</div>`;
             }
-            
+
             if (order.statusField) {
                 html += `<div class="part-info-item" style="margin: 5px 0;"><strong>📊 Statü:</strong> ${order.statusField}</div>`;
             }
-            
+
             if (order.service) {
                 html += `<div class="part-info-item" style="margin: 5px 0;"><strong>🔧 Hizmet:</strong> ${order.service}</div>`;
             }
@@ -3599,13 +3599,13 @@ async function displayPartInfo(barcode, containerElementId) {
             if (order.technicianDamage) {
                 html += `<div class="part-info-item" style="margin: 5px 0;"><strong>⚠️ Teknisyen Hasarı:</strong> ${order.technicianDamage}</div>`;
             }
-            
+
             if (order.note) {
                 html += `<div class="part-info-item" style="margin: 5px 0; background: rgba(241, 196, 15, 0.2); padding: 8px; border-radius: 4px;"><strong>📝 Not:</strong> ${order.note}</div>`;
             }
-            
+
             html += `<div class="part-info-item" style="margin: 5px 0;"><strong>👨‍🔧 Teknisyen:</strong> ${order.technician}</div>`;
-            
+
             html += `<div class="part-info-item" style="margin: 5px 0;"><strong>${statusIcon} Durum:</strong> <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span></div>`;
 
             // Parçaları listele
@@ -3613,8 +3613,8 @@ async function displayPartInfo(barcode, containerElementId) {
                 html += '<div class="part-info-item" style="margin: 10px 0;"><strong>🔩 İstenilen Parçalar:</strong><br>';
                 html += '<ul style="margin: 5px 0; padding-left: 20px;">';
                 order.parts.forEach(part => {
-                    const partIcon = part.status === 'available' ? '✅' : 
-                                   part.status === 'unavailable' ? '❌' : '⏳';
+                    const partIcon = part.status === 'available' ? '✅' :
+                        part.status === 'unavailable' ? '❌' : '⏳';
                     html += `<li style="margin: 3px 0;">${partIcon} ${part.name}</li>`;
                 });
                 html += '</ul></div>';
@@ -3630,9 +3630,9 @@ async function displayPartInfo(barcode, containerElementId) {
 
         container.innerHTML = html;
         container.style.display = 'block';
-        
+
         console.log(`✅ Parça bilgileri gösterildi: ${barcode} - ${matchingOrders.length} sipariş bulundu`);
-        
+
     } catch (error) {
         console.error('❌ Parça bilgileri yüklenirken hata:', error);
         const container = document.getElementById(containerElementId);
@@ -8426,9 +8426,10 @@ async function checkTimeouts() {
                     const waitingTime = Date.now() - entryTimeRaw;
                     const daysWaiting = Math.floor(waitingTime / (24 * 60 * 60 * 1000));
 
-                    if (waitingTime > TIMEOUT_DURATION) {
-                        // Debug için konsola yaz (Sadece PhoneCheck ve Onarım için)
-                        if (listName === 'phonecheck' || listName === 'onarim') {
+                    // ✅ TÜM cihazları dahil et (0+ gün) - Böylece beyaz liste (0-2 gün) de hesaplanacak
+                    if (daysWaiting >= 0) {
+                        // Debug için konsola yaz (Sadece PhoneCheck ve Onarım için, 3+ gün)
+                        if ((listName === 'phonecheck' || listName === 'onarim') && daysWaiting >= 3) {
                             console.log(`⚠️ Tespit: ${listName} - ${barcode} (${daysWaiting} gün)`);
                         }
 
@@ -8480,29 +8481,43 @@ async function updateTimeoutDashboard() {
     if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
 
     // Kategorilere ayır
+    const white = timeoutDevices.filter(d => d.days >= 0 && d.days < 3).length;
     const green = timeoutDevices.filter(d => d.days >= 3 && d.days < 7).length;
     const yellow = timeoutDevices.filter(d => d.days >= 7 && d.days < 14).length;
     const red = timeoutDevices.filter(d => d.days >= 14).length;
 
     // DOM elementlerini kontrol et ve güncelle
+    const whiteElement = document.getElementById('timeoutDashboardWhite');
     const greenElement = document.getElementById('timeoutDashboardGreen');
     const yellowElement = document.getElementById('timeoutDashboardYellow');
     const redElement = document.getElementById('timeoutDashboardRed');
 
+    if (whiteElement) whiteElement.textContent = white;
     if (greenElement) greenElement.textContent = green;
     if (yellowElement) yellowElement.textContent = yellow;
     if (redElement) redElement.textContent = red;
 
     // Database'e kaydet
+    saveTimeoutDashboard(white, green, yellow, red);
+}
+
+// ========================================
+// TIMEOUT DASHBOARD KAYDETME (Admin/Semi-Admin)
+// ========================================
+async function saveTimeoutDashboard(white, green, yellow, red) {
+    // Tüm kullanıcılar için (depocu hariç)
+    if (currentUserRole === 'warehouse') return;
+
     try {
         await db.ref('timeoutDashboardData').set({
+            white: white,
             green: green,
             yellow: yellow,
             red: red,
             lastUpdated: Date.now(),
             timestamp: new Date().toLocaleString('tr-TR')
         });
-        console.log(`📊 Timeout Dashboard güncellendi ve kaydedildi: Yeşil=${green}, Sarı=${yellow}, Kırmızı=${red}`);
+        console.log(`📊 Timeout Dashboard güncellendi ve kaydedildi: Beyaz=${white}, Yeşil=${green}, Sarı=${yellow}, Kırmızı=${red}`);
     } catch (error) {
         console.error('❌ Timeout Dashboard kaydedilemedi:', error);
     }
@@ -8522,15 +8537,17 @@ async function loadTimeoutDashboard() {
 
         if (data) {
             // Son kaydedilen verileri göster
+            const whiteElement = document.getElementById('timeoutDashboardWhite');
             const greenElement = document.getElementById('timeoutDashboardGreen');
             const yellowElement = document.getElementById('timeoutDashboardYellow');
             const redElement = document.getElementById('timeoutDashboardRed');
 
+            if (whiteElement) whiteElement.textContent = data.white || 0;
             if (greenElement) greenElement.textContent = data.green || 0;
             if (yellowElement) yellowElement.textContent = data.yellow || 0;
             if (redElement) redElement.textContent = data.red || 0;
 
-            console.log(`📊 Timeout Dashboard yüklendi (${data.timestamp}): Yeşil=${data.green}, Sarı=${data.yellow}, Kırmızı=${data.red}`);
+            console.log(`📊 Timeout Dashboard yüklendi (${data.timestamp}): Beyaz=${data.white}, Yeşil=${data.green}, Sarı=${data.yellow}, Kırmızı=${data.red}`);
         } else {
             console.log('📊 Timeout Dashboard verisi bulunamadı, varsayılan değerler gösteriliyor');
         }
@@ -8543,6 +8560,7 @@ async function loadTimeoutDashboard() {
             // ÖNEMLİ: Eski kategorileme ile kaydedilmiş olabilir, yeni aralıklara göre yeniden kategorile
             // Tüm cihazları birleştir
             const allDevices = [
+                ...(detailsData.white || []),
                 ...(detailsData.green || []),
                 ...(detailsData.yellow || []),
                 ...(detailsData.red || [])
@@ -8550,13 +8568,16 @@ async function loadTimeoutDashboard() {
 
             // Yeni aralıklara göre yeniden kategorile
             cachedTimeoutDevices = {
+                white: [],
                 green: [],
                 yellow: [],
                 red: []
             };
 
             allDevices.forEach(device => {
-                if (device.days >= 3 && device.days < 7) {
+                if (device.days >= 0 && device.days < 3) {
+                    cachedTimeoutDevices.white.push(device);
+                } else if (device.days >= 3 && device.days < 7) {
                     cachedTimeoutDevices.green.push(device);
                 } else if (device.days >= 7 && device.days < 14) {
                     cachedTimeoutDevices.yellow.push(device);
@@ -8566,11 +8587,12 @@ async function loadTimeoutDashboard() {
             });
 
             // Her kategoriyi gün sayısına göre sırala
+            cachedTimeoutDevices.white.sort((a, b) => b.days - a.days);
             cachedTimeoutDevices.green.sort((a, b) => b.days - a.days);
             cachedTimeoutDevices.yellow.sort((a, b) => b.days - a.days);
             cachedTimeoutDevices.red.sort((a, b) => b.days - a.days);
 
-            console.log(`📊 Timeout cihaz detayları yüklendi ve YENİ aralıklara göre kategorilendi: Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
+            console.log(`📊 Timeout cihaz detayları yüklendi ve YENİ aralıklara göre kategorilendi: Beyaz=${cachedTimeoutDevices.white.length}, Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
         } else {
             console.log('📊 Timeout cihaz detayları bulunamadı, boş başlatıldı');
         }
@@ -8585,6 +8607,7 @@ async function loadTimeoutDashboard() {
 
 // Global değişken: timeout cihaz detaylarını sakla
 let cachedTimeoutDevices = {
+    white: [],
     green: [],
     yellow: [],
     red: []
@@ -8596,6 +8619,7 @@ async function calculateTimeoutDevices() {
     if (currentUserRole === 'warehouse') return;
 
     cachedTimeoutDevices = {
+        white: [],
         green: [],
         yellow: [],
         red: []
@@ -8606,7 +8630,9 @@ async function calculateTimeoutDevices() {
         if (timeoutDevices && timeoutDevices.length > 0) {
             timeoutDevices.forEach(device => {
                 // Kategorilere ayır
-                if (device.days >= 3 && device.days < 7) {
+                if (device.days >= 0 && device.days < 3) {
+                    cachedTimeoutDevices.white.push(device);
+                } else if (device.days >= 3 && device.days < 7) {
                     cachedTimeoutDevices.green.push(device);
                 } else if (device.days >= 7 && device.days < 14) {
                     cachedTimeoutDevices.yellow.push(device);
@@ -8616,6 +8642,7 @@ async function calculateTimeoutDevices() {
             });
 
             // Her kategoriyi gün sayısına göre sırala (en çok bekleyenden en aza)
+            cachedTimeoutDevices.white.sort((a, b) => b.days - a.days);
             cachedTimeoutDevices.green.sort((a, b) => b.days - a.days);
             cachedTimeoutDevices.yellow.sort((a, b) => b.days - a.days);
             cachedTimeoutDevices.red.sort((a, b) => b.days - a.days);
@@ -8623,6 +8650,7 @@ async function calculateTimeoutDevices() {
 
         // Database'e kaydet (önceki tarama verilerini sakla)
         await db.ref('timeoutDeviceDetails').set({
+            white: cachedTimeoutDevices.white,
             green: cachedTimeoutDevices.green,
             yellow: cachedTimeoutDevices.yellow,
             red: cachedTimeoutDevices.red,
@@ -8630,7 +8658,7 @@ async function calculateTimeoutDevices() {
             timestamp: new Date().toLocaleString('tr-TR')
         });
 
-        console.log(`📊 Timeout cihazları hesaplandı ve kaydedildi: Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
+        console.log(`📊 Timeout cihazları hesaplandı ve kaydedildi: Beyaz=${cachedTimeoutDevices.white.length}, Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
     } catch (error) {
         console.error('❌ Timeout cihazları hesaplanamadı:', error);
     }
@@ -8655,6 +8683,11 @@ function showTimeoutDeviceDetails(category) {
 function renderTimeoutDeviceModal(devices, category) {
     // Kategori bilgileri
     const categoryInfo = {
+        white: {
+            title: '⚪ 0-2 Gün Bekleyen Cihazlar',
+            subtitle: 'Yeni Giriş',
+            color: '#95a5a6'
+        },
         green: {
             title: '🟢 3-7 Gün Bekleyen Cihazlar',
             subtitle: 'Normal Süre',
@@ -8776,9 +8809,15 @@ function initTimeoutDashboardClickHandlers() {
     // Tüm kullanıcılar için (depocu hariç)
     if (currentUserRole === 'warehouse') return;
 
+    const whiteCard = document.querySelector('.timeout-stat-card.white');
     const greenCard = document.querySelector('.timeout-stat-card.green');
     const yellowCard = document.querySelector('.timeout-stat-card.yellow');
     const redCard = document.querySelector('.timeout-stat-card.red');
+
+    if (whiteCard) {
+        whiteCard.style.cursor = 'pointer';
+        whiteCard.onclick = () => showTimeoutDeviceDetails('white');
+    }
 
     if (greenCard) {
         greenCard.style.cursor = 'pointer';
