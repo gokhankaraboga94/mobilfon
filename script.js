@@ -52,6 +52,165 @@ const CACHED_LIST_NAMES = {
     teslimEdilenler: '✅ Teslim Edilenler'
 };
 
+// ========================================
+// LOCALSTORAGE CACHE SYSTEM - Hızlı Sayfa Yükleme
+// ========================================
+const CACHE_KEY_PREFIX = 'mobilfon_cache_';
+const CACHE_VERSION = 'v1';
+const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 saat
+
+// Cache'e veri kaydet
+function saveToCacheData(key, data) {
+    try {
+        const cacheItem = {
+            version: CACHE_VERSION,
+            timestamp: Date.now(),
+            data: data
+        };
+        localStorage.setItem(CACHE_KEY_PREFIX + key, JSON.stringify(cacheItem));
+        console.log(`💾 Cache kaydedildi: ${key}`);
+    } catch (e) {
+        console.warn('Cache kaydedilemedi:', e);
+    }
+}
+
+// Cache'den veri oku
+function loadFromCacheData(key) {
+    try {
+        const cached = localStorage.getItem(CACHE_KEY_PREFIX + key);
+        if (!cached) return null;
+
+        const cacheItem = JSON.parse(cached);
+
+        // Versiyon kontrolü
+        if (cacheItem.version !== CACHE_VERSION) {
+            console.log(`⚠️ Cache versiyonu uyumsuz: ${key}`);
+            return null;
+        }
+
+        // Süre kontrolü (24 saat)
+        if (Date.now() - cacheItem.timestamp > CACHE_EXPIRY_MS) {
+            console.log(`⚠️ Cache süresi dolmuş: ${key}`);
+            return null;
+        }
+
+        console.log(`📦 Cache'den yüklendi: ${key}`);
+        return cacheItem.data;
+    } catch (e) {
+        console.warn('Cache okunamadı:', e);
+        return null;
+    }
+}
+
+// Tüm liste verilerini cache'le
+function cacheAllListData() {
+    try {
+        const dataToCache = {};
+        for (const [listName, codeSet] of Object.entries(userCodes)) {
+            dataToCache[listName] = {
+                codes: Array.from(codeSet),
+                timestamps: codeTimestamps[listName] || {},
+                users: codeUsers[listName] || {}
+            };
+        }
+        saveToCacheData('listData', dataToCache);
+    } catch (e) {
+        console.warn('Liste cache kaydedilemedi:', e);
+    }
+}
+
+// Cache'den liste verilerini yükle
+function loadListDataFromCache() {
+    const cachedData = loadFromCacheData('listData');
+    if (!cachedData) return false;
+
+    try {
+        for (const [listName, data] of Object.entries(cachedData)) {
+            if (userCodes[listName]) {
+                userCodes[listName] = new Set(data.codes || []);
+                codeTimestamps[listName] = data.timestamps || {};
+                codeUsers[listName] = data.users || {};
+            }
+        }
+        console.log('✅ Liste verileri cache\'den yüklendi');
+        return true;
+    } catch (e) {
+        console.warn('Liste cache yüklenemedi:', e);
+        return false;
+    }
+}
+
+// Timeout Dashboard verilerini cache'le
+function cacheTimeoutDashboard(white, green, yellow, red) {
+    saveToCacheData('timeoutDashboard', { white, green, yellow, red });
+}
+
+// Timeout cihaz detaylarını cache'le
+function cacheTimeoutDevices(devices) {
+    saveToCacheData('timeoutDevices', devices);
+}
+
+// Dashboard istatistiklerini cache'le
+function cacheDashboardStats(stats) {
+    saveToCacheData('dashboardStats', stats);
+}
+
+// ========================================
+// HISTORY DATA CACHE - Rapor Performansı
+// ========================================
+let cachedHistoryData = null;
+let historyDataLastFetch = 0;
+const HISTORY_CACHE_DURATION = 10 * 60 * 1000; // 10 dakika
+
+// History verisini cache'den veya Firebase'den getir
+async function getHistoryData(forceRefresh = false) {
+    const now = Date.now();
+
+    // Cache geçerli mi kontrol et
+    if (!forceRefresh && cachedHistoryData && (now - historyDataLastFetch) < HISTORY_CACHE_DURATION) {
+        console.log('⚡ History verisi CACHE\'den alındı');
+        return cachedHistoryData;
+    }
+
+    // Firebase'den yükle
+    console.log('📥 History verisi Firebase\'den yükleniyor...');
+    try {
+        const snapshot = await db.ref('servis/history').once('value');
+        cachedHistoryData = snapshot.val();
+        historyDataLastFetch = now;
+        console.log('✅ History verisi yüklendi ve cache\'lendi');
+        return cachedHistoryData;
+    } catch (error) {
+        console.error('❌ History verisi yüklenemedi:', error);
+        return cachedHistoryData; // Eski cache'i döndür
+    }
+}
+
+// Part Orders verisini cache'den veya Firebase'den getir  
+let cachedPartOrdersData = null;
+let partOrdersLastFetch = 0;
+
+async function getPartOrdersData(forceRefresh = false) {
+    const now = Date.now();
+
+    if (!forceRefresh && cachedPartOrdersData && (now - partOrdersLastFetch) < HISTORY_CACHE_DURATION) {
+        console.log('⚡ Part Orders verisi CACHE\'den alındı');
+        return cachedPartOrdersData;
+    }
+
+    console.log('📥 Part Orders verisi Firebase\'den yükleniyor...');
+    try {
+        const snapshot = await db.ref('partOrders').once('value');
+        cachedPartOrdersData = snapshot.val();
+        partOrdersLastFetch = now;
+        console.log('✅ Part Orders verisi yüklendi ve cache\'lendi');
+        return cachedPartOrdersData;
+    } catch (error) {
+        console.error('❌ Part Orders verisi yüklenemedi:', error);
+        return cachedPartOrdersData;
+    }
+}
+
 function showMainView() {
     if (isNavigationInProgress) return;
     isNavigationInProgress = true;
@@ -302,9 +461,12 @@ async function generateReport() {
         let userStats = {};
         let detailsData = [];
 
+        // ✅ PARÇA SİPARİŞLERİNİ DÖNGÜ DIŞINDA BİR KEZ YÜKLE
+        const allPartOrders = await getPartOrdersData();
+
         for (const listName of listsToCheck) {
-            const snapshot = await db.ref(`servis/history`).once('value');
-            const historyData = snapshot.val();
+            // ✅ CACHE'DEN YÜKLE - Çok daha hızlı
+            const historyData = await getHistoryData();
 
             if (!historyData) continue;
 
@@ -405,32 +567,26 @@ async function generateReport() {
                 const fromName = listNames[entryToList.from] || entryToList.from;
                 const toName = listNames[entryToList.to] || entryToList.to;
 
-                // Parça sipariş bilgilerini al
+                // Parça sipariş bilgilerini al (ÖNCEDEN YÜKLENMİŞ VERİDEN)
                 let partOrderInfo = null;
-                try {
-                    const partOrdersSnapshot = await db.ref('partOrders').once('value');
-                    const allPartOrders = partOrdersSnapshot.val();
-                    if (allPartOrders) {
-                        // Bu barkoda ait tüm siparişleri bul
-                        const matchingOrders = Object.entries(allPartOrders)
-                            .filter(([_, order]) => order.barcode === barcode)
-                            .sort(([_, a], [__, b]) => b.timestamp - a.timestamp);
+                if (allPartOrders) {
+                    // Bu barkoda ait tüm siparişleri bul
+                    const matchingOrders = Object.entries(allPartOrders)
+                        .filter(([_, order]) => order.barcode === barcode)
+                        .sort(([_, a], [__, b]) => b.timestamp - a.timestamp);
 
-                        if (matchingOrders.length > 0) {
-                            partOrderInfo = matchingOrders.map(([orderId, order]) => ({
-                                model: order.model,
-                                customer: order.customer || '',
-                                statusField: order.statusField || '',
-                                service: order.service || '',
-                                note: order.note || '',
-                                parts: order.parts.map(p => p.name).join(', '),
-                                technician: order.technician,
-                                status: order.status
-                            }));
-                        }
+                    if (matchingOrders.length > 0) {
+                        partOrderInfo = matchingOrders.map(([orderId, order]) => ({
+                            model: order.model,
+                            customer: order.customer || '',
+                            statusField: order.statusField || '',
+                            service: order.service || '',
+                            note: order.note || '',
+                            parts: (order.parts && Array.isArray(order.parts)) ? order.parts.map(p => p.name).join(', ') : 'Parça bilgisi yok',
+                            technician: order.technician,
+                            status: order.status
+                        }));
                     }
-                } catch (error) {
-                    console.error('Parça bilgileri alınırken hata:', error);
                 }
 
                 detailsData.push({
@@ -628,8 +784,8 @@ async function generatePartOrdersReport(startDateInput, endDateInput) {
         reportResults.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
         reportResults.classList.add('active');
 
-        const snapshot = await db.ref('partOrders').once('value');
-        const ordersData = snapshot.val();
+        // ✅ CACHE'DEN YÜKLE - Çok daha hızlı
+        const ordersData = await getPartOrdersData();
 
         if (!ordersData) {
             reportResults.innerHTML = `
@@ -787,8 +943,8 @@ async function generateDeliveryReport(startDateInput, endDateInput) {
         reportResults.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="display: inline-block; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div></div>';
         reportResults.classList.add('active');
 
-        const snapshot = await db.ref(`servis/history`).once('value');
-        const historyData = snapshot.val();
+        // ✅ CACHE'DEN YÜKLE - Çok daha hızlı
+        const historyData = await getHistoryData();
 
         if (!historyData) {
             reportResults.innerHTML = `
@@ -5803,6 +5959,39 @@ function syncTextareaWithData(name) {
 }
 
 function loadData() {
+    // ✅ ÖNCE CACHE'DEN YÜKLE (Anında gösterim)
+    const cachedListData = loadFromCacheData('listData');
+    if (cachedListData) {
+        console.log('⚡ Liste verileri CACHE\'den yükleniyor...');
+        for (const [listName, data] of Object.entries(cachedListData)) {
+            if (!userCodes[listName]) {
+                userCodes[listName] = new Set();
+                codeTimestamps[listName] = {};
+                codeUsers[listName] = {};
+            }
+            userCodes[listName] = new Set(data.codes || []);
+            codeTimestamps[listName] = data.timestamps || {};
+            codeUsers[listName] = data.users || {};
+
+            // allCodes'a da ekle (teslimEdilenler hariç)
+            if (listName !== 'teslimEdilenler') {
+                (data.codes || []).forEach(code => allCodes.add(code));
+            }
+        }
+
+        // Anında UI'ı render et
+        dataLoaded = true;
+        renderList();
+
+        // Label ve sayıları güncelle
+        Object.keys(cachedListData).forEach(listName => {
+            updateLabelAndCount(listName);
+        });
+
+        console.log('⚡ CACHE\'den yükleme tamamlandı - UI anında gösteriliyor');
+    }
+
+    // ✅ SONRA FİREBASE'DEN GÜNCELLE (Arka planda)
     db.ref('servis').once('value', snapshot => {
         const data = snapshot.val();
         if (!data) return;
@@ -5923,6 +6112,11 @@ function loadData() {
             if (loadedCount === totalLists) {
                 dataLoaded = true;
                 renderList();
+
+                // ✅ CACHE'İ GÜNCELLE - Firebase'den güncel veri yüklendi
+                cacheAllListData();
+                console.log('💾 Liste verileri cache\'e kaydedildi');
+
                 setTimeout(() => {
                     setupAllSectionToggles();
                 }, 500);
@@ -8517,6 +8711,10 @@ async function saveTimeoutDashboard(white, green, yellow, red) {
             lastUpdated: Date.now(),
             timestamp: new Date().toLocaleString('tr-TR')
         });
+
+        // ✅ Cache'i de güncelle
+        cacheTimeoutDashboard(white, green, yellow, red);
+
         console.log(`📊 Timeout Dashboard güncellendi ve kaydedildi: Beyaz=${white}, Yeşil=${green}, Sarı=${yellow}, Kırmızı=${red}`);
     } catch (error) {
         console.error('❌ Timeout Dashboard kaydedilemedi:', error);
@@ -8530,6 +8728,30 @@ async function loadTimeoutDashboard() {
     // Tüm kullanıcılar için (depocu hariç)
     if (currentUserRole === 'warehouse') return;
 
+    // ✅ ÖNCE CACHE'DEN YÜKLE (Hızlı görüntüleme)
+    const cachedDashboard = loadFromCacheData('timeoutDashboard');
+    if (cachedDashboard) {
+        const whiteElement = document.getElementById('timeoutDashboardWhite');
+        const greenElement = document.getElementById('timeoutDashboardGreen');
+        const yellowElement = document.getElementById('timeoutDashboardYellow');
+        const redElement = document.getElementById('timeoutDashboardRed');
+
+        if (whiteElement) whiteElement.textContent = cachedDashboard.white || 0;
+        if (greenElement) greenElement.textContent = cachedDashboard.green || 0;
+        if (yellowElement) yellowElement.textContent = cachedDashboard.yellow || 0;
+        if (redElement) redElement.textContent = cachedDashboard.red || 0;
+
+        console.log('⚡ Timeout Dashboard CACHE\'den hızlıca yüklendi');
+    }
+
+    // Cache'den cihaz detaylarını da yükle
+    const cachedDevices = loadFromCacheData('timeoutDevices');
+    if (cachedDevices) {
+        cachedTimeoutDevices = cachedDevices;
+        console.log('⚡ Timeout cihaz detayları CACHE\'den yüklendi');
+    }
+
+    // ✅ SONRA FİREBASE'DEN GÜNCELLE (Arka planda)
     try {
         // Dashboard sayılarını yükle
         const snapshot = await db.ref('timeoutDashboardData').once('value');
@@ -8547,7 +8769,10 @@ async function loadTimeoutDashboard() {
             if (yellowElement) yellowElement.textContent = data.yellow || 0;
             if (redElement) redElement.textContent = data.red || 0;
 
-            console.log(`📊 Timeout Dashboard yüklendi (${data.timestamp}): Beyaz=${data.white}, Yeşil=${data.green}, Sarı=${data.yellow}, Kırmızı=${data.red}`);
+            // Cache'i güncelle
+            cacheTimeoutDashboard(data.white || 0, data.green || 0, data.yellow || 0, data.red || 0);
+
+            console.log(`📊 Timeout Dashboard Firebase'den güncellendi (${data.timestamp}): Beyaz=${data.white}, Yeşil=${data.green}, Sarı=${data.yellow}, Kırmızı=${data.red}`);
         } else {
             console.log('📊 Timeout Dashboard verisi bulunamadı, varsayılan değerler gösteriliyor');
         }
@@ -8592,7 +8817,10 @@ async function loadTimeoutDashboard() {
             cachedTimeoutDevices.yellow.sort((a, b) => b.days - a.days);
             cachedTimeoutDevices.red.sort((a, b) => b.days - a.days);
 
-            console.log(`📊 Timeout cihaz detayları yüklendi ve YENİ aralıklara göre kategorilendi: Beyaz=${cachedTimeoutDevices.white.length}, Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
+            // Cache'i güncelle
+            cacheTimeoutDevices(cachedTimeoutDevices);
+
+            console.log(`📊 Timeout cihaz detayları Firebase'den güncellendi: Beyaz=${cachedTimeoutDevices.white.length}, Yeşil=${cachedTimeoutDevices.green.length}, Sarı=${cachedTimeoutDevices.yellow.length}, Kırmızı=${cachedTimeoutDevices.red.length}`);
         } else {
             console.log('📊 Timeout cihaz detayları bulunamadı, boş başlatıldı');
         }
