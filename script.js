@@ -6161,6 +6161,11 @@ setInterval(function () {
     location.reload();
 }, 30 * 60 * 1000);
 
+// ✅ SAYFA YÜKLENDİĞİNDE EN ÜSTE SCROLL
+window.addEventListener('load', function () {
+    window.scrollTo(0, 0);
+});
+
 // ========================================
 // TOGGLE FUNCTIONS - YENİ VERSİYON
 // ========================================
