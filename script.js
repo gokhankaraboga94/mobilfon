@@ -8379,8 +8379,8 @@ function selectPartOrderType(type) {
         multipleInput.value = '';
         updateBarcodeCount();
 
-        // Add input listener for count update
-        multipleInput.addEventListener('input', updateBarcodeCount);
+        // Add input listener for count update (debounced for performance)
+        multipleInput.addEventListener('input', debouncedUpdateBarcodeCount);
     }
 
     // Clear all other fields
@@ -8394,6 +8394,17 @@ function selectPartOrderType(type) {
     document.getElementById('partOrderPart2').value = '';
     document.getElementById('partOrderPart3').value = '';
     document.getElementById('partOrderPart4').value = '';
+}
+
+// ========================================
+// DEBOUNCED BARCODE COUNT UPDATE
+// ========================================
+let barcodeCountTimer = null;
+function debouncedUpdateBarcodeCount() {
+    if (barcodeCountTimer) clearTimeout(barcodeCountTimer);
+    barcodeCountTimer = setTimeout(() => {
+        updateBarcodeCount();
+    }, BATCH_DELAY);
 }
 
 // Update barcode count for multiple input
