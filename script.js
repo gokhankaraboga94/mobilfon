@@ -4490,6 +4490,7 @@ auth.onAuthStateChanged(async user => {
                 currentUserRole = 'admin';
                 document.getElementById('userManagementBtn').style.display = 'block';
                 document.getElementById('systemLogsBtn').style.display = 'block'; // Sistem Logları butonu
+                document.getElementById('depoStatsBtn').style.display = 'block'; // Depo Stats butonu
                 document.getElementById('resetDashboardBtn').style.display = 'block';
                 document.getElementById('restoreDashboardBtn').style.display = 'inline-block';
                 currentUserPermissions = null;
@@ -4631,6 +4632,7 @@ auth.onAuthStateChanged(async user => {
             // Dashboard kontrolü
             if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
                 document.getElementById('dashboardPanel').style.display = 'block';
+                document.getElementById('depoStatsBtn').style.display = 'block'; // Depo Stats butonu
                 updateDashboardDate();
                 loadDashboardStats();
             } else {
@@ -9241,3 +9243,61 @@ async function transferSelectedToDelivered() {
         showToast('Transfer sırasında hata oluştu.', 'error');
     }
 }
+
+// ========================================
+// DEPO STATS MODAL FUNCTIONS (ADMIN & SEMI-ADMIN)
+// ========================================
+
+function showDepoStatsModal() {
+    const modal = document.getElementById('depoStatsModal');
+    if (modal) {
+        modal.classList.add('active');
+        loadDepoStats();
+    }
+}
+
+function closeDepoStatsModal() {
+    const modal = document.getElementById('depoStatsModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+async function loadDepoStats() {
+    try {
+        const snapshot = await db.ref('partOrders').once('value');
+        const orders = snapshot.val();
+
+        let pending = 0;
+        let ready = 0;
+
+        if (orders) {
+            Object.values(orders).forEach(order => {
+                if (order.status === 'pending') {
+                    pending++;
+                } else if (order.status === 'ready') {
+                    ready++;
+                }
+            });
+        }
+
+        const total = pending + ready;
+
+        // Update modal values
+        document.getElementById('depoStatPending').textContent = pending;
+        document.getElementById('depoStatReady').textContent = ready;
+        document.getElementById('depoStatTotal').textContent = total;
+
+    } catch (error) {
+        console.error('Depo istatistikleri yüklenirken hata:', error);
+        showToast('Depo istatistikleri yüklenirken hata oluştu!', 'error');
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function (event) {
+    const modal = document.getElementById('depoStatsModal');
+    if (event.target === modal) {
+        closeDepoStatsModal();
+    }
+});
