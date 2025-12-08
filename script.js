@@ -992,6 +992,9 @@ async function generateDeliveryReport(startDateInput, endDateInput) {
         let dailyBreakdown = {};
         let userStats = {};
 
+        // ✅ PARÇA SİPARİŞLERİNİ DÖNGÜ DIŞINDA BİR KEZ YÜKLE (Cache'den)
+        const allPartOrders = await getPartOrdersData();
+
         for (const [barcode, barcodeHistory] of Object.entries(historyData)) {
             const historyArray = Object.values(barcodeHistory);
 
@@ -1032,11 +1035,9 @@ async function generateDeliveryReport(startDateInput, endDateInput) {
                 };
             }
 
-            // Parça sipariş bilgilerini al
+            // Parça sipariş bilgilerini al (Cache'den yüklenmiş allPartOrders kullanılıyor)
             let partOrderInfo = null;
             try {
-                const partOrdersSnapshot = await db.ref('partOrders').once('value');
-                const allPartOrders = partOrdersSnapshot.val();
                 if (allPartOrders) {
                     // Bu barkoda ait tüm siparişleri bul
                     const matchingOrders = Object.entries(allPartOrders)
@@ -1050,7 +1051,7 @@ async function generateDeliveryReport(startDateInput, endDateInput) {
                             statusField: order.statusField || '',
                             service: order.service || '',
                             note: order.note || '',
-                            parts: order.parts.map(p => p.name).join(', '),
+                            parts: (order.parts || []).map(p => p?.name || '').filter(Boolean).join(', '),
                             technician: order.technician,
                             status: order.status
                         }));
@@ -3160,6 +3161,13 @@ let dataLoaded = false;
 let editingBarcode = null;
 let editingList = null;
 let editingUserId = null;
+
+// ========================================
+// BATCH SAVE SYSTEM - Performance Optimization
+// ========================================
+const pendingBatches = {};  // Buffer for pending input values per list
+const batchTimers = {};     // Debounce timers per list
+const BATCH_DELAY = 300;    // ms to wait after last input before saving
 
 // ========================================
 // TOAST NOTIFICATION SYSTEM
@@ -5302,7 +5310,7 @@ function reinitializeAllInputListeners() {
                     inputs[key] = newInput;
 
                     newInput.addEventListener("input", () => {
-                        saveCodes(key, newInput.value);
+                        debouncedSaveCodes(key, newInput.value);
                     });
 
                     console.log(`✅ ${key} (dinamik teknisyen) input listener yenilendi`);
@@ -5310,6 +5318,30 @@ function reinitializeAllInputListeners() {
             }
         }
     });
+}
+
+// ========================================
+// DEBOUNCED SAVE - Batch multiple inputs together
+// ========================================
+function debouncedSaveCodes(name, value) {
+    // Clear existing timer for this list
+    if (batchTimers[name]) {
+        clearTimeout(batchTimers[name]);
+    }
+
+    // Store the latest value
+    pendingBatches[name] = value;
+
+    // Set new timer - will call saveCodes after BATCH_DELAY ms of inactivity
+    batchTimers[name] = setTimeout(() => {
+        const valueToSave = pendingBatches[name];
+        delete pendingBatches[name];
+        delete batchTimers[name];
+
+        if (valueToSave !== undefined) {
+            saveCodes(name, valueToSave);
+        }
+    }, BATCH_DELAY);
 }
 
 function saveCodes(name, value) {
@@ -5435,7 +5467,7 @@ Object.entries(inputs).forEach(([name, textarea]) => {
     if (textarea) {
         textarea.addEventListener("input", () => {
             if (name === "scanner" || name === "search") return;
-            saveCodes(name, textarea.value);
+            debouncedSaveCodes(name, textarea.value);  // Use debounced version for batch saving
         });
     }
 });
