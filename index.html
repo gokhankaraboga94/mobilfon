@@ -71,6 +71,7 @@
                 <button onclick="location.reload()" id="mainViewBtn">🏠 Ana Sayfa</button>
                 <button onclick="showReportsView()" id="reportsBtn">📊 Raporlar</button>
                 <button onclick="showSystemLogs()" id="systemLogsBtn" style="display: none;">📋 Sistem Logları</button>
+                <button onclick="showDepoStatsModal()" id="depoStatsBtn" style="display: none;">📦 Depo</button>
                 <button onclick="openPriceList()" id="priceListBtn">💰 Fiyat Listesi Sistemi</button>
                 <button onclick="openAccounting()" id="accountingBtn">📒 Muhasebe Sistemi</button>
                 <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı
@@ -1108,6 +1109,35 @@
                     </div>
                 </div>
             </div>
+
+            <!-- DEPO STATS MODAL (ADMIN & SEMI-ADMIN) -->
+            <div class="depo-stats-modal" id="depoStatsModal">
+                <div class="depo-stats-content">
+                    <div class="depo-stats-header">
+                        <h2>📦 Depo İstatistikleri</h2>
+                        <button class="depo-stats-close" onclick="closeDepoStatsModal()">✕</button>
+                    </div>
+                    <p class="depo-stats-subtitle">Parça Sipariş Durumu</p>
+                    <div class="depo-stats-grid">
+                        <div class="depo-stat-card pending">
+                            <div class="depo-stat-icon">⏳</div>
+                            <div class="depo-stat-value" id="depoStatPending">0</div>
+                            <div class="depo-stat-label">Bekleyen İstekler</div>
+                        </div>
+                        <div class="depo-stat-card ready">
+                            <div class="depo-stat-icon">✅</div>
+                            <div class="depo-stat-value" id="depoStatReady">0</div>
+                            <div class="depo-stat-label">Hazır Olanlar</div>
+                        </div>
+                        <div class="depo-stat-card total">
+                            <div class="depo-stat-icon">📊</div>
+                            <div class="depo-stat-value" id="depoStatTotal">0</div>
+                            <div class="depo-stat-label">Toplam İstekler</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ORIGINAL: <script> -->
             <script src="script.js"></script> <!-- ORIGINAL: </script> -->
             <script src="fiyatlar.html"></script> <!-- ORIGINAL: </script> -->
