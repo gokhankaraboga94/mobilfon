@@ -9048,6 +9048,9 @@ function renderTimeoutDeviceModal(devices, category) {
         `;
     });
 
+    // Global değişkene mevcut listeyi kaydet (arama için)
+    window.currentTimeoutDevicesList = devices;
+
     const modalHTML = `
         <div class="timeout-device-modal-overlay" id="timeoutDeviceModalOverlay" onclick="closeTimeoutDeviceModal()">
             <div class="timeout-device-modal" onclick="event.stopPropagation()" style="border-top: 4px solid ${info.color};">
@@ -9058,6 +9061,21 @@ function renderTimeoutDeviceModal(devices, category) {
                     </div>
                     <button class="timeout-device-modal-close" onclick="closeTimeoutDeviceModal()">✕</button>
                 </div>
+                
+                <!-- SEARCH BOX -->
+                <div class="timeout-device-search-box">
+                    <div class="timeout-device-search-input-wrapper">
+                        <span class="timeout-device-search-icon">🔍</span>
+                        <input type="text" 
+                               id="timeoutDeviceSearchInput" 
+                               placeholder="Barkod ara veya okut..." 
+                               autocomplete="off"
+                               onkeyup="searchBarcodeInTimeoutList(event)">
+                        <button class="timeout-device-search-clear" onclick="clearTimeoutDeviceSearch()" title="Aramayı Temizle">✕</button>
+                    </div>
+                    <div id="timeoutDeviceSearchResult" class="timeout-device-search-result"></div>
+                </div>
+                
                 <div class="timeout-device-modal-body">
                     <table class="timeout-device-table">
                         <thead>
@@ -9106,6 +9124,87 @@ function closeTimeoutDeviceModal() {
             modal.remove();
         }, 300);
     }
+    // Global değişkeni temizle
+    window.currentTimeoutDevicesList = null;
+}
+
+// Timeout device list içinde barkod ara
+function searchBarcodeInTimeoutList(event) {
+    const searchInput = document.getElementById('timeoutDeviceSearchInput');
+    const resultDiv = document.getElementById('timeoutDeviceSearchResult');
+
+    if (!searchInput || !resultDiv) return;
+
+    const searchValue = searchInput.value.trim().toUpperCase();
+
+    // Önceki highlight'ları temizle
+    const allRows = document.querySelectorAll('#timeoutDeviceModalOverlay .timeout-device-table tbody tr');
+    allRows.forEach(row => {
+        row.classList.remove('timeout-device-search-highlight');
+    });
+
+    // Boş arama
+    if (!searchValue) {
+        resultDiv.innerHTML = '';
+        resultDiv.className = 'timeout-device-search-result';
+        return;
+    }
+
+    // Listede ara
+    const devices = window.currentTimeoutDevicesList || [];
+    let foundIndex = -1;
+
+    for (let i = 0; i < devices.length; i++) {
+        if (devices[i].barcode.toUpperCase() === searchValue) {
+            foundIndex = i;
+            break;
+        }
+    }
+
+    if (foundIndex !== -1) {
+        // Bulundu
+        const position = foundIndex + 1; // 1-indexed
+        resultDiv.innerHTML = `<span class="search-found">✅ Bulundu! Sıra: <strong>${position}</strong> / ${devices.length}</span>`;
+        resultDiv.className = 'timeout-device-search-result found';
+
+        // İlgili satırı highlight et ve scroll yap
+        const targetRow = allRows[foundIndex];
+        if (targetRow) {
+            targetRow.classList.add('timeout-device-search-highlight');
+
+            // Smooth scroll
+            targetRow.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+    } else {
+        // Bulunamadı
+        resultDiv.innerHTML = `<span class="search-not-found">❌ Bu listede bulunamadı</span>`;
+        resultDiv.className = 'timeout-device-search-result not-found';
+    }
+}
+
+// Timeout device arama kutusunu temizle
+function clearTimeoutDeviceSearch() {
+    const searchInput = document.getElementById('timeoutDeviceSearchInput');
+    const resultDiv = document.getElementById('timeoutDeviceSearchResult');
+
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+
+    if (resultDiv) {
+        resultDiv.innerHTML = '';
+        resultDiv.className = 'timeout-device-search-result';
+    }
+
+    // Highlight'ları temizle
+    const allRows = document.querySelectorAll('#timeoutDeviceModalOverlay .timeout-device-table tbody tr');
+    allRows.forEach(row => {
+        row.classList.remove('timeout-device-search-highlight');
+    });
 }
 
 // Timeout dashboard stat-card'larına click event listener'ları ekle
