@@ -9135,7 +9135,20 @@ function searchBarcodeInTimeoutList(event) {
 
     if (!searchInput || !resultDiv) return;
 
-    const searchValue = searchInput.value.trim().toUpperCase();
+    let searchValue = searchInput.value.trim().toUpperCase();
+
+    // ✅ Peş peşe barkod okutma desteği:
+    // Eğer input 15 haneden uzunsa, yeni bir barkod okutulmuş demektir
+    // Son 15 haneyi al ve input'u temizle
+    if (searchValue.length > 15) {
+        // Sadece rakamlardan oluşan son 15 karakteri bul
+        const numericOnly = searchValue.replace(/[^0-9]/g, '');
+        if (numericOnly.length >= 15) {
+            // Son 15 haneyi al (yeni okutulan barkod)
+            searchValue = numericOnly.slice(-15);
+            searchInput.value = searchValue;
+        }
+    }
 
     // Önceki highlight'ları temizle
     const allRows = document.querySelectorAll('#timeoutDeviceModalOverlay .timeout-device-table tbody tr');
@@ -9148,6 +9161,15 @@ function searchBarcodeInTimeoutList(event) {
         resultDiv.innerHTML = '';
         resultDiv.className = 'timeout-device-search-result';
         return;
+    }
+
+    // Enter tuşu ile arama yapılırsa, input'u temizle ve focus'u koru
+    // Bu sayede peş peşe okutma yapılabilir
+    if (event && event.key === 'Enter') {
+        // Arama yap, sonra input'u bir sonraki okutma için hazırla
+        setTimeout(() => {
+            searchInput.select(); // Tüm metni seç, yeni okutmada otomatik silinsin
+        }, 100);
     }
 
     // Listede ara
@@ -9178,6 +9200,11 @@ function searchBarcodeInTimeoutList(event) {
                 block: 'center'
             });
         }
+
+        // ✅ Başarılı aramadan sonra input'u seç (yeni okutma için hazır)
+        setTimeout(() => {
+            searchInput.select();
+        }, 200);
     } else {
         // Bulunamadı
         resultDiv.innerHTML = `<span class="search-not-found">❌ Bu listede bulunamadı</span>`;
