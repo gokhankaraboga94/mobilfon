@@ -2192,6 +2192,158 @@ body::before {
     border-left: 3px solid #2ecc71;
 }
 
+/* TECHNICIAN COMPACT ORDER CARDS */
+.part-order-card-compact {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+    backdrop-filter: blur(10px);
+    border-radius: 10px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.part-order-card-compact:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
+}
+
+.part-order-card-compact.ready {
+    border-left: 3px solid #2ecc71;
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+}
+
+.compact-order-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.compact-order-barcode {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    color: #4facfe;
+    letter-spacing: 0.5px;
+}
+
+.compact-order-status {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.compact-order-status.pending {
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.25) 0%, rgba(243, 156, 18, 0.15) 100%);
+    color: #f1c40f;
+    border: 1px solid rgba(243, 156, 18, 0.3);
+}
+
+.compact-order-status.ready {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.25) 0%, rgba(46, 204, 113, 0.15) 100%);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.compact-order-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.compact-order-info-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.compact-order-info-item .icon {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.compact-order-info-item .value {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.compact-order-parts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.compact-part-tag {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.15) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.25);
+    border-radius: 6px;
+    color: #a0b4f0;
+}
+
+.compact-order-note {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.65);
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-style: italic;
+    margin-top: 2px;
+}
+
+/* Parça İsteklerim Section Styling */
+.part-orders-section {
+    background: linear-gradient(135deg, rgba(40, 45, 75, 0.6) 0%, rgba(30, 35, 60, 0.5) 100%);
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.part-orders-section h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.compact-toggle-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    margin-top: 8px;
+}
+
+.compact-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
 .part-order-form {
     display: flex;
     flex-direction: column;
