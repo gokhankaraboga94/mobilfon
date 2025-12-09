@@ -2598,39 +2598,52 @@ function updateDashboardUI(data = {}) {
     document.getElementById('dashboardServiceReturnCount').textContent = data.sources?.serviceReturn || 0;
 }
 
-// Teslim alınan IMEI ekle
+// Teslim alınan IMEI ekle - Firebase Transaction kullanarak
 async function addReceivedIMEI(imei, source) {
     // Eğer IMEI daha önce eklenmemişse
     if (!dailyReceivedIMEIs.has(imei)) {
         dailyReceivedIMEIs.add(imei);
 
         const todayDate = getTodayDateString();
-        const updates = {};
-        updates[`dashboard/daily/${todayDate}/receivedIMEIs/${imei}`] = {
-            source: source,
-            timestamp: Date.now(),
-            user: currentUserName
-        };
-        updates[`dashboard/daily/${todayDate}/sources/${source}`] =
-            (await db.ref(`dashboard/daily/${todayDate}/sources/${source}`).once('value')).val() + 1 || 1;
 
         try {
-            await db.ref().update(updates);
-            // Real-time listener otomatik günceller, ekstra çağrıya gerek yok
+            // IMEI kaydını ekle
+            await db.ref(`dashboard/daily/${todayDate}/receivedIMEIs/${imei}`).set({
+                source: source,
+                timestamp: Date.now(),
+                user: currentUserName
+            });
+
+            // Source sayacını transaction ile atomik güncelle
+            await db.ref(`dashboard/daily/${todayDate}/sources/${source}`).transaction((currentValue) => {
+                return (currentValue || 0) + 1;
+            });
+
+            console.log('📥 Teslim alınan eklendi:', imei, 'Kaynak:', source);
         } catch (error) {
             console.error('IMEI eklenirken hata:', error);
+            // Hata durumunda lokal set'ten çıkar
+            dailyReceivedIMEIs.delete(imei);
         }
     }
 }
 
-// Teslim edilen sayısını artır
+// Teslim edilen sayısını artır - Firebase Transaction kullanarak
 async function incrementDeliveredCount() {
-    dailyDeliveredCount++;
-
     const todayDate = getTodayDateString();
+    const deliveredRef = db.ref(`dashboard/daily/${todayDate}/deliveredCount`);
+
     try {
-        await db.ref(`dashboard/daily/${todayDate}/deliveredCount`).set(dailyDeliveredCount);
-        // Real-time listener otomatik günceller, ekstra çağrıya gerek yok
+        // Firebase transaction ile atomik güncelleme - eşzamanlı güncellemelerde veri kaybını önler
+        await deliveredRef.transaction((currentValue) => {
+            return (currentValue || 0) + 1;
+        });
+
+        // Transaction tamamlandıktan sonra güncel değeri al
+        const snapshot = await deliveredRef.once('value');
+        dailyDeliveredCount = snapshot.val() || 0;
+
+        console.log('📤 Teslim edilenler güncellendi:', dailyDeliveredCount);
     } catch (error) {
         console.error('Teslim edilen sayısı güncellenirken hata:', error);
     }
