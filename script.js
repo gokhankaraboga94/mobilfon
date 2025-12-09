@@ -3321,56 +3321,32 @@ async function loadTechnicianPartOrders() {
         // Eski istekler varsa açılır-kapanır bölüm oluştur
         if (olderOrders.length > 0) {
             const toggleSection = document.createElement('div');
-            toggleSection.style.marginTop = '15px';
-            toggleSection.style.borderTop = '2px solid rgba(255,255,255,0.2)';
-            toggleSection.style.paddingTop = '15px';
+            toggleSection.style.marginTop = '10px';
+            toggleSection.style.borderTop = '1px solid rgba(255,255,255,0.1)';
+            toggleSection.style.paddingTop = '10px';
 
             const toggleButton = document.createElement('button');
-            toggleButton.style.width = '100%';
-            toggleButton.style.padding = '12px';
-            toggleButton.style.background = 'rgba(255,255,255,0.1)';
-            toggleButton.style.border = '2px solid rgba(255,255,255,0.3)';
-            toggleButton.style.borderRadius = '8px';
-            toggleButton.style.color = '#fff';
-            toggleButton.style.fontSize = '15px';
-            toggleButton.style.fontWeight = '600';
-            toggleButton.style.cursor = 'pointer';
-            toggleButton.style.transition = 'all 0.3s ease';
-            toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) - Göster ▼`;
+            toggleButton.className = 'compact-toggle-btn';
+            toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) ▼`;
 
             const olderOrdersContainer = document.createElement('div');
             olderOrdersContainer.style.display = 'none';
-            olderOrdersContainer.style.marginTop = '10px';
-            olderOrdersContainer.style.animation = 'slideDown 0.3s ease';
+            olderOrdersContainer.style.marginTop = '8px';
 
             olderOrders.forEach(([orderId, order]) => {
                 const card = createTechnicianOrderCard(orderId, order);
-                card.style.opacity = '0.85';
+                card.style.opacity = '0.8';
                 olderOrdersContainer.appendChild(card);
             });
 
             toggleButton.addEventListener('click', () => {
                 if (olderOrdersContainer.style.display === 'none') {
                     olderOrdersContainer.style.display = 'block';
-                    toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) - Gizle ▲`;
-                    toggleButton.style.background = 'rgba(255,255,255,0.2)';
+                    toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) ▲`;
                 } else {
                     olderOrdersContainer.style.display = 'none';
-                    toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) - Göster ▼`;
-                    toggleButton.style.background = 'rgba(255,255,255,0.1)';
+                    toggleButton.innerHTML = `📦 Eski İstekler (${olderOrders.length}) ▼`;
                 }
-            });
-
-            toggleButton.addEventListener('mouseenter', () => {
-                toggleButton.style.background = 'rgba(255,255,255,0.2)';
-                toggleButton.style.transform = 'translateY(-2px)';
-            });
-
-            toggleButton.addEventListener('mouseleave', () => {
-                if (olderOrdersContainer.style.display === 'none') {
-                    toggleButton.style.background = 'rgba(255,255,255,0.1)';
-                }
-                toggleButton.style.transform = 'translateY(0)';
             });
 
             toggleSection.appendChild(toggleButton);
@@ -3385,74 +3361,52 @@ async function loadTechnicianPartOrders() {
 function createTechnicianOrderCard(orderId, order) {
     const isReady = order.status === 'ready';
     const card = document.createElement('div');
-    card.className = `part-order-card ${isReady ? 'ready' : ''}`;
-    card.style.marginBottom = '15px';
+    card.className = `part-order-card-compact ${isReady ? 'ready' : ''}`;
 
     // Status badge
     const statusBadge = isReady
-        ? '<span class="order-status ready">✅ Hazır</span>'
-        : '<span class="order-status pending">⏳ Bekliyor</span>';
+        ? '<span class="compact-order-status ready">Hazır</span>'
+        : '<span class="compact-order-status pending">Bekliyor</span>';
 
-    // Parts list
-    let partsHTML = '<div class="order-parts"><div class="order-parts-title">🔧 İstenen Parçalar:</div><div class="order-parts-list">';
+    // Parts tags - compact format
+    let partsHTML = '';
+    const parts = order.parts || [];
+    if (parts.length > 0) {
+        partsHTML = '<div class="compact-order-parts">';
+        parts.forEach((part) => {
+            if (part && part.name) {
+                partsHTML += `<span class="compact-part-tag">${part.name}</span>`;
+            }
+        });
+        partsHTML += '</div>';
+    }
 
-    // EĞER order.parts VARSA döngüye gir, YOKSA boş dizi ([]) kabul et
-    (order.parts || []).forEach((part) => {
-        // part nesnesinin ve isminin varlığını da kontrol edelim
-        if (part && part.name) {
-            partsHTML += `<span class="part-tag">${part.name}</span>`;
-        }
-    });
-    partsHTML += '</div></div>';
+    // Build inline info items
+    let infoItems = `<span class="compact-order-info-item"><span class="icon">📱</span><span class="value">${order.model}</span></span>`;
+
+    if (order.statusField) {
+        infoItems += `<span class="compact-order-info-item"><span class="icon">📊</span><span class="value">${order.statusField}</span></span>`;
+    }
+
+    if (order.service) {
+        infoItems += `<span class="compact-order-info-item"><span class="icon">🔧</span><span class="value">${order.service}</span></span>`;
+    }
+
+    // Simplified date
+    const dateStr = order.timestampReadable ? order.timestampReadable.split(' ')[0] : '';
+    if (dateStr) {
+        infoItems += `<span class="compact-order-info-item"><span class="icon">📅</span><span class="value">${dateStr}</span></span>`;
+    }
 
     card.innerHTML = `
-        <div class="order-header">
-          <div class="order-barcode">${order.barcode}</div>
-          ${statusBadge}
+        <div class="compact-order-header">
+            <span class="compact-order-barcode">${order.barcode}</span>
+            ${statusBadge}
         </div>
-        
-        <div class="order-body">
-          <div class="order-field">
-            <div class="order-field-label">Model</div>
-            <div class="order-field-value">📱 ${order.model}</div>
-          </div>
-          
-          ${order.customer ? `
-            <div class="order-field">
-              <div class="order-field-label">Müşteri/Bayi</div>
-              <div class="order-field-value">👤 ${order.customer}</div>
-            </div>
-          ` : ''}
-          
-          ${order.statusField ? `
-            <div class="order-field">
-              <div class="order-field-label">Statü</div>
-              <div class="order-field-value">📊 ${order.statusField}</div>
-            </div>
-          ` : ''}
-          
-          ${order.service ? `
-            <div class="order-field">
-              <div class="order-field-label">Hizmet</div>
-              <div class="order-field-value">🔧 ${order.service}</div>
-            </div>
-          ` : ''}
-          
-          <div class="order-field">
-            <div class="order-field-label">Tarih</div>
-            <div class="order-field-value">📅 ${order.timestampReadable}</div>
-          </div>
-        </div>
-        
-        ${order.note ? `
-          <div class="order-note">
-            <div class="order-field-label">Not</div>
-            <div class="order-field-value">📝 ${order.note}</div>
-          </div>
-        ` : ''}
-        
+        <div class="compact-order-info">${infoItems}</div>
         ${partsHTML}
-      `;
+        ${order.note ? `<div class="compact-order-note">📝 ${order.note}</div>` : ''}
+    `;
 
     return card;
 }
