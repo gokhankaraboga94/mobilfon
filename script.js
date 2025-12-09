@@ -5551,7 +5551,30 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
         });
 
         if (foundIn.length > 0) {
-            searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}`;
+            // ✅ ZAMAN AŞIMI KATEGORİSİNİ BUL
+            let timeoutCategoryHTML = '';
+            const timeoutCategory = getTimeoutCategoryForBarcode(query);
+            if (timeoutCategory) {
+                const categoryStyles = {
+                    white: { icon: '⚪', label: '0-2 Gün (Yeni Giriş)', color: '#95a5a6', bgColor: 'rgba(149, 165, 166, 0.2)' },
+                    green: { icon: '🟢', label: '3-7 Gün (Normal)', color: '#27ae60', bgColor: 'rgba(39, 174, 96, 0.2)' },
+                    yellow: { icon: '🟡', label: '7-14 Gün (Dikkat)', color: '#f39c12', bgColor: 'rgba(243, 156, 18, 0.2)' },
+                    red: { icon: '🔴', label: '14+ Gün (Acil)', color: '#e74c3c', bgColor: 'rgba(231, 76, 60, 0.2)' }
+                };
+                const style = categoryStyles[timeoutCategory.category];
+                if (style) {
+                    timeoutCategoryHTML = `
+                        <div style="margin-top: 10px; padding: 10px 15px; background: ${style.bgColor}; border-left: 4px solid ${style.color}; border-radius: 6px;">
+                            <strong style="color: ${style.color};">⏰ Zaman Aşımı Kategorisi:</strong><br>
+                            <span style="font-size: 18px;">${style.icon}</span> 
+                            <strong style="color: ${style.color};">${style.label}</strong>
+                            <span style="opacity: 0.8;"> (${timeoutCategory.days} gün bekliyor)</span>
+                        </div>
+                    `;
+                }
+            }
+
+            searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}${timeoutCategoryHTML}`;
             loadAndDisplayHistoryToElement(query, historyElementId);
 
             // ✅ PARÇA BİLGİLERİNİ GÖSTER - BU KISIM ÖNEMLİ
@@ -9111,6 +9134,9 @@ function renderTimeoutDeviceModal(devices, category) {
         if (modal) {
             modal.style.display = 'flex';
             modal.classList.add('active');
+
+            // ✅ Cache'den taranan barkodları yükle ve yeşil işaretle
+            applyScannedBarcodesToModal(devices);
         }
     }, 10);
 }
@@ -9194,6 +9220,12 @@ function searchBarcodeInTimeoutList(event) {
         if (targetRow) {
             targetRow.classList.add('timeout-device-search-highlight');
 
+            // ✅ Satırı kalıcı olarak YEŞİL yap (taranan olarak işaretle)
+            targetRow.classList.add('timeout-device-scanned');
+
+            // ✅ LocalStorage'a kaydet (tarayıcı cache)
+            saveScannedBarcodeToCache(searchValue);
+
             // Smooth scroll
             targetRow.scrollIntoView({
                 behavior: 'smooth',
@@ -9232,6 +9264,164 @@ function clearTimeoutDeviceSearch() {
     allRows.forEach(row => {
         row.classList.remove('timeout-device-search-highlight');
     });
+}
+
+// ========================================
+// SCANNED BARCODE CACHE FUNCTIONS
+// ========================================
+
+// Taranan barkodu LocalStorage'a kaydet
+function saveScannedBarcodeToCache(barcode) {
+    try {
+        const cacheKey = 'scannedBarcodes';
+        let scannedBarcodes = loadScannedBarcodesFromCache();
+
+        // Eğer barkod zaten listede yoksa ekle
+        if (!scannedBarcodes.includes(barcode)) {
+            scannedBarcodes.push(barcode);
+        }
+
+        // LocalStorage'a kaydet
+        const cacheItem = {
+            version: CACHE_VERSION,
+            timestamp: Date.now(),
+            data: scannedBarcodes
+        };
+        localStorage.setItem(CACHE_KEY_PREFIX + cacheKey, JSON.stringify(cacheItem));
+
+        console.log(`✅ Barkod cache'e kaydedildi: ${barcode} (Toplam: ${scannedBarcodes.length})`);
+    } catch (e) {
+        console.warn('Taranan barkod cache kaydedilemedi:', e);
+    }
+}
+
+// Taranan barkodları LocalStorage'dan yükle
+function loadScannedBarcodesFromCache() {
+    try {
+        const cacheKey = 'scannedBarcodes';
+        const cached = localStorage.getItem(CACHE_KEY_PREFIX + cacheKey);
+
+        if (!cached) return [];
+
+        const cacheItem = JSON.parse(cached);
+
+        // Versiyon kontrolü
+        if (cacheItem.version !== CACHE_VERSION) {
+            console.log('⚠️ Taranan barkod cache versiyonu uyumsuz');
+            return [];
+        }
+
+        // Süre kontrolü - Taranan barkodlar için 7 gün (daha uzun süre)
+        const SCANNED_CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 gün
+        if (Date.now() - cacheItem.timestamp > SCANNED_CACHE_EXPIRY) {
+            console.log('⚠️ Taranan barkod cache süresi dolmuş');
+            return [];
+        }
+
+        return cacheItem.data || [];
+    } catch (e) {
+        console.warn('Taranan barkod cache okunamadı:', e);
+        return [];
+    }
+}
+
+// Modal açıldığında daha önce taranan barkodları yeşil işaretle
+function applyScannedBarcodesToModal(devices) {
+    try {
+        const scannedBarcodes = loadScannedBarcodesFromCache();
+
+        if (scannedBarcodes.length === 0) {
+            console.log('📋 Henüz taranan barkod yok');
+            return;
+        }
+
+        // Tüm satırları al
+        const allRows = document.querySelectorAll('#timeoutDeviceModalOverlay .timeout-device-table tbody tr');
+
+        let highlightedCount = 0;
+
+        allRows.forEach((row, index) => {
+            if (devices[index]) {
+                const barcode = devices[index].barcode.toUpperCase();
+
+                // Eğer bu barkod daha önce tarandıysa yeşil işaretle
+                if (scannedBarcodes.includes(barcode)) {
+                    row.classList.add('timeout-device-scanned');
+                    highlightedCount++;
+                }
+            }
+        });
+
+        if (highlightedCount > 0) {
+            console.log(`🟢 ${highlightedCount} barkod daha önce tarandığından yeşil işaretlendi`);
+        }
+    } catch (e) {
+        console.warn('Taranan barkodlar uygulanamadı:', e);
+    }
+}
+
+// ========================================
+// GET TIMEOUT CATEGORY FOR BARCODE
+// ========================================
+// Barkodun zaman aşımı kategorisini bul (admin arama için)
+function getTimeoutCategoryForBarcode(barcode) {
+    try {
+        const barcodeUpper = barcode.toUpperCase();
+
+        // Önce cachedTimeoutDevices içinde ara
+        for (const category of ['white', 'green', 'yellow', 'red']) {
+            if (cachedTimeoutDevices[category] && cachedTimeoutDevices[category].length > 0) {
+                const found = cachedTimeoutDevices[category].find(device =>
+                    device.barcode.toUpperCase() === barcodeUpper
+                );
+                if (found) {
+                    return {
+                        category: category,
+                        days: found.days,
+                        listName: found.listName,
+                        user: found.user
+                    };
+                }
+            }
+        }
+
+        // Eğer cache'de bulunamazsa, timeoutDevices array'inde ara
+        if (timeoutDevices && timeoutDevices.length > 0) {
+            const device = timeoutDevices.find(d => d.barcode.toUpperCase() === barcodeUpper);
+            if (device) {
+                let category = 'white';
+                if (device.days >= 14) {
+                    category = 'red';
+                } else if (device.days >= 7) {
+                    category = 'yellow';
+                } else if (device.days >= 3) {
+                    category = 'green';
+                }
+
+                return {
+                    category: category,
+                    days: device.days,
+                    listName: device.listName,
+                    user: device.user
+                };
+            }
+        }
+
+        return null; // Barkod timeout listesinde değil
+    } catch (e) {
+        console.warn('Timeout kategorisi alınırken hata:', e);
+        return null;
+    }
+}
+
+// Taranan barkod cache'ini temizle (isteğe bağlı)
+function clearScannedBarcodesCache() {
+    try {
+        localStorage.removeItem(CACHE_KEY_PREFIX + 'scannedBarcodes');
+        console.log('🗑️ Taranan barkod cache temizlendi');
+    } catch (e) {
+        console.warn('Taranan barkod cache temizlenemedi:', e);
+    }
 }
 
 // Timeout dashboard stat-card'larına click event listener'ları ekle
