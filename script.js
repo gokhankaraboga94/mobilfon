@@ -2536,38 +2536,51 @@ function getYearRange(year) {
 }
 
 
-// Dashboard istatistiklerini yükle
-async function loadDashboardStats() {
+// Dashboard listener referansı - çoklu listener önlemek için
+let dashboardListener = null;
+
+// Dashboard istatistiklerini yükle - Gerçek zamanlı listener ile
+function loadDashboardStats() {
     const todayDate = getTodayDateString();
 
     if (!lastCheckedDate) {
         lastCheckedDate = todayDate;
     }
 
+    // Mevcut listener'ı kaldır (varsa)
+    if (dashboardListener) {
+        db.ref(`dashboard/daily/${lastCheckedDate}`).off('value', dashboardListener);
+        dashboardListener = null;
+    }
 
-
-    try {
-        const snapshot = await db.ref(`dashboard/daily/${todayDate}`).once('value');
+    // Yeni gerçek zamanlı listener oluştur
+    dashboardListener = db.ref(`dashboard/daily/${todayDate}`).on('value', (snapshot) => {
         const data = snapshot.val();
 
         if (data) {
             // Veriyi set'e çevir
             if (data.receivedIMEIs) {
                 dailyReceivedIMEIs = new Set(Object.keys(data.receivedIMEIs));
+            } else {
+                dailyReceivedIMEIs.clear();
             }
             dailyDeliveredCount = data.deliveredCount || 0;
 
             // Kaynak bazlı sayıları da yükle
             updateDashboardUI(data);
+            console.log('📊 Dashboard güncellendi - Teslim Alınan:', dailyReceivedIMEIs.size, 'Teslim Edilen:', dailyDeliveredCount);
         } else {
             // Bugün için veri yoksa sıfırla
             dailyReceivedIMEIs.clear();
             dailyDeliveredCount = 0;
             updateDashboardUI({});
         }
-    } catch (error) {
-        console.error('Dashboard verileri yüklenirken hata:', error);
-    }
+    }, (error) => {
+        console.error('Dashboard listener hatası:', error);
+    });
+
+    // lastCheckedDate'i güncelle
+    lastCheckedDate = todayDate;
 }
 
 // Dashboard UI'ını güncelle
@@ -2603,7 +2616,7 @@ async function addReceivedIMEI(imei, source) {
 
         try {
             await db.ref().update(updates);
-            loadDashboardStats(); // UI'ı güncelle
+            // Real-time listener otomatik günceller, ekstra çağrıya gerek yok
         } catch (error) {
             console.error('IMEI eklenirken hata:', error);
         }
@@ -2617,7 +2630,7 @@ async function incrementDeliveredCount() {
     const todayDate = getTodayDateString();
     try {
         await db.ref(`dashboard/daily/${todayDate}/deliveredCount`).set(dailyDeliveredCount);
-        updateDashboardUI();
+        // Real-time listener otomatik günceller, ekstra çağrıya gerek yok
     } catch (error) {
         console.error('Teslim edilen sayısı güncellenirken hata:', error);
     }
