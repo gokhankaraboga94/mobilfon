@@ -3826,22 +3826,42 @@ button[id*="Btn"] {
     border-bottom: 2px solid rgba(255, 255, 255, 0.15);
 }
 
+/* Varsayılan satır rengi: KIRMIZI (henüz taranmamış) */
 .timeout-device-table tbody tr {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(231, 76, 60, 0.15);
+    border-left: 4px solid #e74c3c !important;
     transition: all 0.3s ease;
 }
 
 .timeout-device-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(231, 76, 60, 0.25);
     transform: translateX(3px);
 }
 
 .timeout-device-table tbody tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(231, 76, 60, 0.12);
 }
 
 .timeout-device-table tbody tr:nth-child(even):hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(231, 76, 60, 0.25);
+}
+
+/* Taranan satır rengi: YEŞİL (aratılan/okutulan) */
+.timeout-device-table tbody tr.timeout-device-scanned {
+    background: rgba(46, 204, 113, 0.2) !important;
+    border-left: 4px solid #2ecc71 !important;
+}
+
+.timeout-device-table tbody tr.timeout-device-scanned:hover {
+    background: rgba(46, 204, 113, 0.3) !important;
+}
+
+.timeout-device-table tbody tr.timeout-device-scanned:nth-child(even) {
+    background: rgba(46, 204, 113, 0.18) !important;
+}
+
+.timeout-device-table tbody tr.timeout-device-scanned:nth-child(even):hover {
+    background: rgba(46, 204, 113, 0.3) !important;
 }
 
 .timeout-device-table td {
