@@ -4223,9 +4223,12 @@ button[id*="Btn"] {
 }
 
 @keyframes highlightPulse {
-    0%, 100% {
+
+    0%,
+    100% {
         background: rgba(46, 204, 113, 0.25);
     }
+
     50% {
         background: rgba(46, 204, 113, 0.4);
     }
@@ -4274,6 +4277,7 @@ button[id*="Btn"] {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -4289,7 +4293,7 @@ button[id*="Btn"] {
     width: 90%;
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
     position: relative;
     overflow: hidden;
     animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -4300,6 +4304,7 @@ button[id*="Btn"] {
         opacity: 0;
         transform: translateY(30px) scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
