@@ -2800,18 +2800,21 @@ body::before {
    ======================================== */
 .permissions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
     padding: 15px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: var(--radius-md);
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .permission-item {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
-    padding: 10px;
+    padding: 10px 12px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-sm);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2820,12 +2823,54 @@ body::before {
 
 .permission-item:hover {
     background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(102, 126, 234, 0.3);
 }
 
 .permission-item input[type="checkbox"] {
     width: 18px;
     height: 18px;
     cursor: pointer;
+    flex-shrink: 0;
+}
+
+.permission-item label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.permission-type-select {
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    min-width: 110px;
+}
+
+.permission-type-select:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.permission-type-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.permission-type-select option {
+    background: #1a1a2e;
+    color: var(--text-primary);
+    padding: 8px;
 }
 
 /* ========================================
