@@ -4951,7 +4951,7 @@ function applyPermissions() {
         }
     });
 
-    if (currentUserName === 'yusuf') {
+    if (currentUserName === 'yusuf' || currentUserName === 'mert') {
         inputs.onarim.disabled = false;
         inputs.onarim.style.opacity = '1';
         inputs.onarim.style.cursor = 'text';
@@ -4960,7 +4960,7 @@ function applyPermissions() {
         inputs.onarim.disabled = true;
         inputs.onarim.style.opacity = '0.6';
         inputs.onarim.style.cursor = 'not-allowed';
-        inputs.onarim.placeholder = '🔒 Sadece Yusuf düzenleyebilir - Görüntüleme modu';
+        inputs.onarim.placeholder = '🔒 Sadece Yusuf ve Mert düzenleyebilir - Görüntüleme modu';
     }
 
     // Teslim Edilenler: admin, mehmet ve samet erişebilir
@@ -5387,7 +5387,7 @@ function saveCodes(name, value) {
         }
     }
 
-    if (name === 'onarim' && currentUserName !== 'yusuf') {
+    if (name === 'onarim' && currentUserName !== 'yusuf' && currentUserName !== 'mert') {
         return;
     }
     // ✅ DEĞİŞTİRİLDİ: Admin, mehmet ve samet kullanıcıları teslim edilenler alanına veri girebilir
