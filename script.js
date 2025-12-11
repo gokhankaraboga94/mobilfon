@@ -17,6 +17,50 @@ let dataSyncMismatches = [];
 const DATA_SYNC_CHECK_INTERVAL = 5 * 60 * 1000; // 5 dakika
 
 // ========================================
+// THEME TOGGLE (GECE/GÜNDÜZ MODU)
+// ========================================
+const THEME_STORAGE_KEY = 'mobilfon_theme';
+
+// Temayı değiştir
+function toggleTheme() {
+    const body = document.body;
+    const themeIcon = document.getElementById('themeIcon');
+
+    if (body.classList.contains('light-mode')) {
+        // Gece moduna geç
+        body.classList.remove('light-mode');
+        if (themeIcon) themeIcon.textContent = '🌙';
+        localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+        console.log('🌙 Gece moduna geçildi');
+    } else {
+        // Gündüz moduna geç
+        body.classList.add('light-mode');
+        if (themeIcon) themeIcon.textContent = '☀️';
+        localStorage.setItem(THEME_STORAGE_KEY, 'light');
+        console.log('☀️ Gündüz moduna geçildi');
+    }
+}
+
+// Kaydedilmiş temayı uygula (sayfa yüklendiğinde)
+function applyTheme() {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const themeIcon = document.getElementById('themeIcon');
+
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        if (themeIcon) themeIcon.textContent = '☀️';
+    } else {
+        document.body.classList.remove('light-mode');
+        if (themeIcon) themeIcon.textContent = '🌙';
+    }
+}
+
+// Sayfa yüklendiğinde temayı uygula
+document.addEventListener('DOMContentLoaded', function () {
+    applyTheme();
+});
+
+// ========================================
 // ========================================
 // NAVIGATION FUNCTIONS
 // ========================================
