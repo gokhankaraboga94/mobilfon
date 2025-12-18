@@ -700,7 +700,7 @@
 <script type="text/javascript">
    (function(){
       // BURAYA EmailJS'den aldığın Public Key'i yaz
-      emailjs.init("y6qbBnWL3IJJChB4T");
+      emailjs.init("P8S5u8SSUq7djoAJt");
    })();
 </script>
 
@@ -1986,9 +1986,9 @@ async function sendEmailNotification(toRole, subject, detailMsg) {
         try {
             console.log('Mail gönderiliyor:', email);
             // BURAYA DİKKAT EDİN: Service ID ve Template ID doğru yerleşmeli
-            // 1. Parametre: Service ID (service_bxuddpn)
-            // 2. Parametre: Template ID (template_jl5821o)
-            const response = await emailjs.send('service_bxuddpn', 'template_7u5h8op', templateParams);
+            // 1. Parametre: Service ID (service_8pbwfxm)
+            // 2. Parametre: Template ID (template_5j08ipd)
+            const response = await emailjs.send('service_8pbwfxm', 'template_5j08ipd', templateParams);
             
             console.log('Mail başarıyla gönderildi!', response.status, response.text);
         } catch (error) {
