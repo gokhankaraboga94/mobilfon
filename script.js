@@ -4951,7 +4951,7 @@ function applyPermissions() {
         }
     });
 
-    if (currentUserName === 'yusuf' || currentUserName === 'mert') {
+    if (currentUserName === 'admin' || currentUserName === 'yusuf' || currentUserName === 'mert') {
         inputs.onarim.disabled = false;
         inputs.onarim.style.opacity = '1';
         inputs.onarim.style.cursor = 'text';
@@ -5387,9 +5387,10 @@ function saveCodes(name, value) {
         }
     }
 
-    if (name === 'onarim' && currentUserName !== 'yusuf' && currentUserName !== 'mert') {
-        return;
-    }
+  if (name === 'onarim' && currentUserName !== 'yusuf' && currentUserName !== 'mert' && currentUserName !== 'admin') {
+    return;
+}
+
     // ✅ DEĞİŞTİRİLDİ: Admin, mehmet ve samet kullanıcıları teslim edilenler alanına veri girebilir
     if (name === 'teslimEdilenler' && currentUserRole !== 'admin' && currentUserName !== 'mehmet' && currentUserName !== 'samet') {
         showToast('Sadece admin, mehmet ve samet kullanıcıları teslim edilenler listesine veri girebilir!', 'warning');
