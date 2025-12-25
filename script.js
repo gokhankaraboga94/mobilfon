@@ -5387,9 +5387,9 @@ function saveCodes(name, value) {
         }
     }
 
-  if (name === 'onarim' && currentUserName !== 'yusuf' && currentUserName !== 'mert' && currentUserName !== 'admin') {
-    return;
-}
+    if (name === 'onarim' && currentUserName !== 'yusuf' && currentUserName !== 'mert' && currentUserName !== 'admin') {
+        return;
+    }
 
     // ✅ DEĞİŞTİRİLDİ: Admin, mehmet ve samet kullanıcıları teslim edilenler alanına veri girebilir
     if (name === 'teslimEdilenler' && currentUserRole !== 'admin' && currentUserName !== 'mehmet' && currentUserName !== 'samet') {
@@ -5853,7 +5853,7 @@ function renderMiniList(name) {
         <span style="flex: 1;">${codeDisplay}</span>
         <span class="status"></span>
       </div>
-      <div class="mini-item-time">📅 ${item.timestamp}${item.user ? ' • ' + item.user : ''}</div>
+      <div class="mini-item-time">📅 ${item.timestamp}${item.user ? ' • ' + item.user : ''}${technicianLists.includes(name) ? getTimeoutCategoryDisplay(code) : ''}</div>
       ${currentUserRole === 'admin' ? `
         <div class="mini-item-actions">
           <button class="item-action-btn edit" onclick="openEditBarcodeModal('${code}', '${name}')">✏️ Düzenle</button>
@@ -5868,6 +5868,26 @@ function renderMiniList(name) {
     list.appendChild(fragment);
 }
 
+// ========================================
+// ✅ TIMEOUT CATEGORY DISPLAY HELPER
+// ========================================
+// Teknisyen mini-listelerinde bekleme süresi kategorisini göster
+function getTimeoutCategoryDisplay(barcode) {
+    const category = getTimeoutCategoryForBarcode(barcode);
+    if (!category) return '';
+
+    const categoryLabels = {
+        white: { label: '0-2 Gün (Yeni Giriş)', color: '#95a5a6', icon: '⚪' },
+        green: { label: '3-7 Gün (Normal)', color: '#27ae60', icon: '🟢' },
+        yellow: { label: '7-14 Gün (Dikkat)', color: '#f39c12', icon: '🟡' },
+        red: { label: '14+ Gün (Kritik)', color: '#e74c3c', icon: '🔴' }
+    };
+
+    const style = categoryLabels[category.category];
+    if (!style) return '';
+
+    return ` <span style="color: ${style.color}; font-weight: bold; font-size: 11px; margin-left: 8px;">| ${style.icon} ${style.label} (${category.days} gün bekliyor)</span>`;
+}
 
 function convertToTimestamp(dateString) {
     if (!dateString || dateString === "Tarih yok") return 0;
