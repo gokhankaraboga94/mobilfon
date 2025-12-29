@@ -591,15 +591,15 @@
                     <div id="adminTotalBarcodes" class="value">0</div>
                 </div>
                 <!-- EŞLEŞME ORANI VE EŞLEŞEN BARKOD SİLİNDİ -->
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminAtanacakBox">
                     <div class="label">Atanacak Cihazlar</div>
                     <div id="adminAtanacak" class="value">0</div>
                 </div>
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminParcaBekliyorBox">
                     <div class="label">Parça Bekliyor</div>
                     <div id="adminParcaBekliyor" class="value">0</div>
                 </div>
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminPhonecheckBox">
                     <div class="label">PhoneCheck</div>
                     <div id="adminPhonecheck" class="value">0</div>
                 </div>
@@ -610,12 +610,12 @@
                 </div>
 
 
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminOnarimBox">
                     <div class="label">Onarım Tamamlandı</div>
                     <div id="adminOnarim" class="value">0</div>
                 </div>
                 <!-- YENİ EKLENEN DIŞ SERVİSLER -->
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminOnCamDisServisBox">
                     <div class="label">Ön Cam Dış Servis</div>
                     <div id="adminOnCamDisServis" class="value">0</div>
                 </div>
@@ -625,11 +625,11 @@
                 </div>
                 <!-- ESKİ DIŞ SERVİS SİLİNDİ -->
 
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminSatisaBox">
                     <div class="label">Satışa Gidecek</div>
                     <div id="adminSatisa" class="value">0</div>
                 </div>
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminSahinidenBox">
                     <div class="label">Sahibinden</div>
                     <div id="adminSahiniden" class="value">0</div>
                 </div>
@@ -698,6 +698,132 @@
                     <div class="timeout-stat-value" id="timeoutDashboardRed">0</div>
                     <div class="timeout-stat-label">14+ Gün Bekleyenler</div>
                     <div class="timeout-stat-sublabel">Acil Müdahale</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PARÇA TÜRLERİ DASHBOARD PANELİ -->
+        <div id="partTypesDashboardPanel" class="parts-dashboard-panel">
+            <div class="parts-dashboard-header">
+                <h2>🔧 Parça/İşlem Türleri Dashboard</h2>
+                <p style="opacity: 0.9; margin-top: 5px;">Her parça türünde bekleyen cihaz sayıları</p>
+            </div>
+
+            <div class="parts-dashboard-stats">
+                <!-- Mevcut Listeler -->
+                <div class="parts-stat-card parcaBekliyor">
+                    <div class="parts-stat-icon">⚙️</div>
+                    <div class="parts-stat-value" id="partsDashboardParcaBekliyor">0</div>
+                    <div class="parts-stat-label">PARÇA BEKLİYOR</div>
+                </div>
+
+                <div class="parts-stat-card phonecheck">
+                    <div class="parts-stat-icon">📱</div>
+                    <div class="parts-stat-value" id="partsDashboardPhonecheck">0</div>
+                    <div class="parts-stat-label">PHONECHECK</div>
+                </div>
+
+                <div class="parts-stat-card onarim">
+                    <div class="parts-stat-icon">🔧</div>
+                    <div class="parts-stat-value" id="partsDashboardOnarim">0</div>
+                    <div class="parts-stat-label">ONARIM TAMAMLANDI</div>
+                </div>
+
+                <div class="parts-stat-card atanacak">
+                    <div class="parts-stat-icon">📋</div>
+                    <div class="parts-stat-value" id="partsDashboardAtanacak">0</div>
+                    <div class="parts-stat-label">ATANACAKLAR</div>
+                </div>
+
+                <div class="parts-stat-card satisa">
+                    <div class="parts-stat-icon">💰</div>
+                    <div class="parts-stat-value" id="partsDashboardSatisa">0</div>
+                    <div class="parts-stat-label">SATIŞA GİDECEK</div>
+                </div>
+
+                <div class="parts-stat-card sahiniden">
+                    <div class="parts-stat-icon">🏪</div>
+                    <div class="parts-stat-value" id="partsDashboardSahiniden">0</div>
+                    <div class="parts-stat-label">SAHİBİNDEN</div>
+                </div>
+
+                <div class="parts-stat-card onCamDisServis">
+                    <div class="parts-stat-icon">🔨</div>
+                    <div class="parts-stat-value" id="partsDashboardOnCamDisServis">0</div>
+                    <div class="parts-stat-label">ÖN CAM DIŞ SERVİS</div>
+                </div>
+
+                <!-- Yeni Parça Türleri -->
+                <div class="parts-stat-card pil">
+                    <div class="parts-stat-icon">🔋</div>
+                    <div class="parts-stat-value" id="partsDashboardPil">0</div>
+                    <div class="parts-stat-label">PİL</div>
+                </div>
+
+                <div class="parts-stat-card kasa">
+                    <div class="parts-stat-icon">📱</div>
+                    <div class="parts-stat-value" id="partsDashboardKasa">0</div>
+                    <div class="parts-stat-label">KASA</div>
+                </div>
+
+                <div class="parts-stat-card ekran">
+                    <div class="parts-stat-icon">🖥️</div>
+                    <div class="parts-stat-value" id="partsDashboardEkran">0</div>
+                    <div class="parts-stat-label">EKRAN</div>
+                </div>
+
+                <div class="parts-stat-card onCam">
+                    <div class="parts-stat-icon">🪟</div>
+                    <div class="parts-stat-value" id="partsDashboardOnCam">0</div>
+                    <div class="parts-stat-label">ÖN CAM</div>
+                </div>
+
+                <div class="parts-stat-card pilKasa">
+                    <div class="parts-stat-icon">🔋📱</div>
+                    <div class="parts-stat-value" id="partsDashboardPilKasa">0</div>
+                    <div class="parts-stat-label">PİL + KASA</div>
+                </div>
+
+                <div class="parts-stat-card pilEkran">
+                    <div class="parts-stat-icon">🔋🖥️</div>
+                    <div class="parts-stat-value" id="partsDashboardPilEkran">0</div>
+                    <div class="parts-stat-label">PİL + EKRAN</div>
+                </div>
+
+                <div class="parts-stat-card ekranKasa">
+                    <div class="parts-stat-icon">🖥️📱</div>
+                    <div class="parts-stat-value" id="partsDashboardEkranKasa">0</div>
+                    <div class="parts-stat-label">EKRAN + KASA</div>
+                </div>
+
+                <div class="parts-stat-card pilEkranKasa">
+                    <div class="parts-stat-icon">🔋🖥️📱</div>
+                    <div class="parts-stat-value" id="partsDashboardPilEkranKasa">0</div>
+                    <div class="parts-stat-label">PİL + EKRAN + KASA</div>
+                </div>
+
+                <div class="parts-stat-card demontaj">
+                    <div class="parts-stat-icon">🔧</div>
+                    <div class="parts-stat-value" id="partsDashboardDemontaj">0</div>
+                    <div class="parts-stat-label">DEMONTAJ</div>
+                </div>
+
+                <div class="parts-stat-card montaj">
+                    <div class="parts-stat-icon">⚙️</div>
+                    <div class="parts-stat-value" id="partsDashboardMontaj">0</div>
+                    <div class="parts-stat-label">MONTAJ</div>
+                </div>
+
+                <div class="parts-stat-card yetkilendirme">
+                    <div class="parts-stat-icon">✅</div>
+                    <div class="parts-stat-value" id="partsDashboardYetkilendirme">0</div>
+                    <div class="parts-stat-label">YETKİLENDİRME</div>
+                </div>
+
+                <div class="parts-stat-card total">
+                    <div class="parts-stat-icon">📊</div>
+                    <div class="parts-stat-value" id="partsDashboardTotal">0</div>
+                    <div class="parts-stat-label">TOPLAM</div>
                 </div>
             </div>
         </div>
@@ -780,7 +906,8 @@
 
 
                     <div class="section" data-section="engin">
-                        <label for="enginInput"><span id="enginLabel">🧑‍🔧 Montaj / Engin'in Cihazları - 0</span></label>
+                        <label for="enginInput"><span id="enginLabel">🧑‍🔧 Montaj / Engin'in Cihazları -
+                                0</span></label>
                         <textarea id="enginInput" placeholder="engin'in barkodlarını buraya yapıştır..."></textarea>
                         <div id="enginList" class="mini-list"></div>
                     </div>
@@ -936,6 +1063,109 @@
                         <div id="mediaMarktList" class="mini-list"></div>
                     </div>
 
+                    <!-- ========== PARÇA/İŞLEM TÜRLERİ BÖLÜMÜ ========== -->
+
+                    <!-- PİL Section -->
+                    <div class="section" data-section="pil">
+                        <label for="pilInput">
+                            <span id="pilLabel">🔋 PİL - 0</span>
+                        </label>
+                        <textarea id="pilInput" placeholder="Pil değişimi yapılacak cihazlar..."></textarea>
+                        <div id="pilList" class="mini-list"></div>
+                    </div>
+
+                    <!-- KASA Section -->
+                    <div class="section" data-section="kasa">
+                        <label for="kasaInput">
+                            <span id="kasaLabel">📱 KASA - 0</span>
+                        </label>
+                        <textarea id="kasaInput" placeholder="Kasa değişimi yapılacak cihazlar..."></textarea>
+                        <div id="kasaList" class="mini-list"></div>
+                    </div>
+
+                    <!-- EKRAN Section -->
+                    <div class="section" data-section="ekran">
+                        <label for="ekranInput">
+                            <span id="ekranLabel">🖥️ EKRAN - 0</span>
+                        </label>
+                        <textarea id="ekranInput" placeholder="Ekran değişimi yapılacak cihazlar..."></textarea>
+                        <div id="ekranList" class="mini-list"></div>
+                    </div>
+
+                    <!-- ÖN CAM Section -->
+                    <div class="section" data-section="onCam">
+                        <label for="onCamInput">
+                            <span id="onCamLabel">🪟 ÖN CAM - 0</span>
+                        </label>
+                        <textarea id="onCamInput" placeholder="Ön cam değişimi yapılacak cihazlar..."></textarea>
+                        <div id="onCamList" class="mini-list"></div>
+                    </div>
+
+                    <!-- PİL + KASA Section -->
+                    <div class="section" data-section="pilKasa">
+                        <label for="pilKasaInput">
+                            <span id="pilKasaLabel">🔋📱 PİL + KASA - 0</span>
+                        </label>
+                        <textarea id="pilKasaInput" placeholder="Pil + Kasa değişimi yapılacak cihazlar..."></textarea>
+                        <div id="pilKasaList" class="mini-list"></div>
+                    </div>
+
+                    <!-- PİL + EKRAN Section -->
+                    <div class="section" data-section="pilEkran">
+                        <label for="pilEkranInput">
+                            <span id="pilEkranLabel">🔋🖥️ PİL + EKRAN - 0</span>
+                        </label>
+                        <textarea id="pilEkranInput"
+                            placeholder="Pil + Ekran değişimi yapılacak cihazlar..."></textarea>
+                        <div id="pilEkranList" class="mini-list"></div>
+                    </div>
+
+                    <!-- EKRAN + KASA Section -->
+                    <div class="section" data-section="ekranKasa">
+                        <label for="ekranKasaInput">
+                            <span id="ekranKasaLabel">🖥️📱 EKRAN + KASA - 0</span>
+                        </label>
+                        <textarea id="ekranKasaInput"
+                            placeholder="Ekran + Kasa değişimi yapılacak cihazlar..."></textarea>
+                        <div id="ekranKasaList" class="mini-list"></div>
+                    </div>
+
+                    <!-- PİL + EKRAN + KASA Section -->
+                    <div class="section" data-section="pilEkranKasa">
+                        <label for="pilEkranKasaInput">
+                            <span id="pilEkranKasaLabel">🔋🖥️📱 PİL + EKRAN + KASA - 0</span>
+                        </label>
+                        <textarea id="pilEkranKasaInput"
+                            placeholder="Pil + Ekran + Kasa değişimi yapılacak cihazlar..."></textarea>
+                        <div id="pilEkranKasaList" class="mini-list"></div>
+                    </div>
+
+                    <!-- DEMONTAJ Section -->
+                    <div class="section" data-section="demontaj">
+                        <label for="demontajInput">
+                            <span id="demontajLabel">🔧 DEMONTAJ - 0</span>
+                        </label>
+                        <textarea id="demontajInput" placeholder="Demontaj yapılacak cihazlar..."></textarea>
+                        <div id="demontajList" class="mini-list"></div>
+                    </div>
+
+                    <!-- MONTAJ Section -->
+                    <div class="section" data-section="montaj">
+                        <label for="montajInput">
+                            <span id="montajLabel">⚙️ MONTAJ - 0</span>
+                        </label>
+                        <textarea id="montajInput" placeholder="Montaj yapılacak cihazlar..."></textarea>
+                        <div id="montajList" class="mini-list"></div>
+                    </div>
+
+                    <!-- YETKİLENDİRME Section -->
+                    <div class="section" data-section="yetkilendirme">
+                        <label for="yetkilendirmeInput">
+                            <span id="yetkilendirmeLabel">✅ YETKİLENDİRME - 0</span>
+                        </label>
+                        <textarea id="yetkilendirmeInput" placeholder="Yetkilendirme bekleyen cihazlar..."></textarea>
+                        <div id="yetkilendirmeList" class="mini-list"></div>
+                    </div>
 
                 </div>
 
