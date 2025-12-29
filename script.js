@@ -65,6 +65,34 @@ document.addEventListener('DOMContentLoaded', function () {
 // NAVIGATION FUNCTIONS
 // ========================================
 
+// ========================================
+// ADMIN PANEL DASHBOARD ITEMS GİZLEME
+// Admin Panel'den belirli alanları gizler, veriler korunur
+// ========================================
+function hideAdminPanelItems() {
+    // Gizlenecek stat-box ID'leri
+    const itemsToHide = [
+        'adminAtanacakBox',        // ATANACAKLAR
+        'adminParcaBekliyorBox',   // PARÇA BEKLİYOR
+        'adminPhonecheckBox',      // PHONECHECK
+        'adminOnarimBox',          // ONARIM TAMAMLANDI
+        'adminOnCamDisServisBox',  // ÖN CAM DIŞ SERVİS
+        'adminSatisaBox',          // SATIŞA GİDECEK
+        'adminSahinidenBox'        // SAHİBİNDEN
+    ];
+
+    itemsToHide.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.display = 'none';
+        }
+    });
+
+    console.log('✅ Admin Panel Dashboard: 7 alan gizlendi (veriler korunuyor)');
+}
+
+
+
 
 
 // ========================================
@@ -93,7 +121,19 @@ const CACHED_LIST_NAMES = {
     sahiniden: '🏪 Sahibinden',
     mediaMarkt: '🛒 Media Markt',
     SonKullanıcı: '👤 Son Kullanıcı',
-    teslimEdilenler: '✅ Teslim Edilenler'
+    teslimEdilenler: '✅ Teslim Edilenler',
+    // Parça/İşlem Türleri
+    pil: '🔋 PİL',
+    kasa: '📱 KASA',
+    ekran: '🖥️ EKRAN',
+    onCam: '🪟 ÖN CAM',
+    pilKasa: '🔋📱 PİL + KASA',
+    pilEkran: '🔋🖥️ PİL + EKRAN',
+    ekranKasa: '🖥️📱 EKRAN + KASA',
+    pilEkranKasa: '🔋🖥️📱 PİL + EKRAN + KASA',
+    demontaj: '🔧 DEMONTAJ',
+    montaj: '⚙️ MONTAJ',
+    yetkilendirme: '✅ YETKİLENDİRME'
 };
 
 // ========================================
@@ -297,6 +337,8 @@ function showMainView() {
         // ✅ ADMIN PANEL - SADECE ADMIN VE SEMI-ADMIN
         if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
             document.getElementById('adminPanel').style.display = 'block';
+            // Admin Panel Dashboard'tan belirli alanları gizle
+            hideAdminPanelItems();
         }
 
         // ✅ DASHBOARD - SADECE ADMIN VE SEMI-ADMIN
@@ -3102,14 +3144,26 @@ const inputs = {
     search: document.getElementById("searchInput"),
     searchNormal: document.getElementById("searchInputNormal"),
     onarim: document.getElementById("onarimInput"),
-    onCamDisServis: document.getElementById("onCamDisServisInput"),        // YENİ EKLENDİ
-    anakartDisServis: document.getElementById("anakartDisServisInput"),    // YENİ EKLENDİ
+    onCamDisServis: document.getElementById("onCamDisServisInput"),
+    anakartDisServis: document.getElementById("anakartDisServisInput"),
 
     satisa: document.getElementById("satisaInput"),
     sahiniden: document.getElementById("sahinidenInput"),
     mediaMarkt: document.getElementById("mediaMarktInput"),
     SonKullanıcı: document.getElementById("SonKullanıcıInput"),
-    teslimEdilenler: document.getElementById("teslimEdilenlerInput")
+    teslimEdilenler: document.getElementById("teslimEdilenlerInput"),
+    // Parça/İşlem Türleri
+    pil: document.getElementById("pilInput"),
+    kasa: document.getElementById("kasaInput"),
+    ekran: document.getElementById("ekranInput"),
+    onCam: document.getElementById("onCamInput"),
+    pilKasa: document.getElementById("pilKasaInput"),
+    pilEkran: document.getElementById("pilEkranInput"),
+    ekranKasa: document.getElementById("ekranKasaInput"),
+    pilEkranKasa: document.getElementById("pilEkranKasaInput"),
+    demontaj: document.getElementById("demontajInput"),
+    montaj: document.getElementById("montajInput"),
+    yetkilendirme: document.getElementById("yetkilendirmeInput")
 };
 
 const labels = {
@@ -3126,12 +3180,24 @@ const labels = {
     mehmet: document.getElementById("mehmetLabel"),
     onarim: document.getElementById("onarimLabel"),
     SonKullanıcı: document.getElementById("SonKullanıcıLabel"),
-    onCamDisServis: document.getElementById("onCamDisServisLabel"),        // YENİ EKLENDİ
-    anakartDisServis: document.getElementById("anakartDisServisLabel"),    // YENİ EKLENDİ
+    onCamDisServis: document.getElementById("onCamDisServisLabel"),
+    anakartDisServis: document.getElementById("anakartDisServisLabel"),
     satisa: document.getElementById("satisaLabel"),
     sahiniden: document.getElementById("sahinidenLabel"),
     mediaMarkt: document.getElementById("mediaMarktLabel"),
-    teslimEdilenler: document.getElementById("teslimEdilenlerLabel")
+    teslimEdilenler: document.getElementById("teslimEdilenlerLabel"),
+    // Parça/İşlem Türleri
+    pil: document.getElementById("pilLabel"),
+    kasa: document.getElementById("kasaLabel"),
+    ekran: document.getElementById("ekranLabel"),
+    onCam: document.getElementById("onCamLabel"),
+    pilKasa: document.getElementById("pilKasaLabel"),
+    pilEkran: document.getElementById("pilEkranLabel"),
+    ekranKasa: document.getElementById("ekranKasaLabel"),
+    pilEkranKasa: document.getElementById("pilEkranKasaLabel"),
+    demontaj: document.getElementById("demontajLabel"),
+    montaj: document.getElementById("montajLabel"),
+    yetkilendirme: document.getElementById("yetkilendirmeLabel")
 };
 
 const miniLists = {
@@ -3153,7 +3219,19 @@ const miniLists = {
     satisa: document.getElementById("satisaList"),
     sahiniden: document.getElementById("sahinidenList"),
     mediaMarkt: document.getElementById("mediaMarktList"),
-    teslimEdilenler: document.getElementById("teslimEdilenlerList")
+    teslimEdilenler: document.getElementById("teslimEdilenlerList"),
+    // Parça/İşlem Türleri
+    pil: document.getElementById("pilList"),
+    kasa: document.getElementById("kasaList"),
+    ekran: document.getElementById("ekranList"),
+    onCam: document.getElementById("onCamList"),
+    pilKasa: document.getElementById("pilKasaList"),
+    pilEkran: document.getElementById("pilEkranList"),
+    ekranKasa: document.getElementById("ekranKasaList"),
+    pilEkranKasa: document.getElementById("pilEkranKasaList"),
+    demontaj: document.getElementById("demontajList"),
+    montaj: document.getElementById("montajList"),
+    yetkilendirme: document.getElementById("yetkilendirmeList")
 };
 
 const searchResult = document.getElementById("searchResult");
@@ -3172,14 +3250,26 @@ const userCodes = {
     engin: new Set(),
     ismail: new Set(),
     mehmet: new Set(),
-    onCamDisServis: new Set(),    // YENİ EKLENDİ
-    anakartDisServis: new Set(),  // YENİ EKLENDİ
+    onCamDisServis: new Set(),
+    anakartDisServis: new Set(),
     onarim: new Set(),
     SonKullanıcı: new Set(),
     satisa: new Set(),
     sahiniden: new Set(),
     mediaMarkt: new Set(),
-    teslimEdilenler: new Set()
+    teslimEdilenler: new Set(),
+    // Parça/İşlem Türleri
+    pil: new Set(),
+    kasa: new Set(),
+    ekran: new Set(),
+    onCam: new Set(),
+    pilKasa: new Set(),
+    pilEkran: new Set(),
+    ekranKasa: new Set(),
+    pilEkranKasa: new Set(),
+    demontaj: new Set(),
+    montaj: new Set(),
+    yetkilendirme: new Set()
 };
 const codeTimestamps = {
     atanacak: {},
@@ -3195,12 +3285,24 @@ const codeTimestamps = {
     mehmet: {},
     onarim: {},
     SonKullanıcı: {},
-    onCamDisServis: {},    // YENİ EKLENDİ
-    anakartDisServis: {},  // YENİ EKLENDİ
+    onCamDisServis: {},
+    anakartDisServis: {},
     satisa: {},
     sahiniden: {},
     mediaMarkt: {},
-    teslimEdilenler: {}
+    teslimEdilenler: {},
+    // Parça/İşlem Türleri
+    pil: {},
+    kasa: {},
+    ekran: {},
+    onCam: {},
+    pilKasa: {},
+    pilEkran: {},
+    ekranKasa: {},
+    pilEkranKasa: {},
+    demontaj: {},
+    montaj: {},
+    yetkilendirme: {}
 };
 const codeUsers = {
     atanacak: {},
@@ -3212,15 +3314,27 @@ const codeUsers = {
     samet: {},
     engin: {},
     ismail: {},
-    onCamDisServis: {},    // YENİ EKLENDİ
-    anakartDisServis: {},  // YENİ EKLENDİ
+    onCamDisServis: {},
+    anakartDisServis: {},
     mehmet: {},
     onarim: {},
     SonKullanıcı: {},
     satisa: {},
     sahiniden: {},
     mediaMarkt: {},
-    teslimEdilenler: {}
+    teslimEdilenler: {},
+    // Parça/İşlem Türleri
+    pil: {},
+    kasa: {},
+    ekran: {},
+    onCam: {},
+    pilKasa: {},
+    pilEkran: {},
+    ekranKasa: {},
+    pilEkranKasa: {},
+    demontaj: {},
+    montaj: {},
+    yetkilendirme: {}
 };
 
 let currentUserRole = null;
@@ -3260,6 +3374,40 @@ function showToast(message, type = 'info') {
             container.removeChild(toast);
         }, 300);
     }, 3000);
+}
+
+// ========================================
+// PARÇA TÜRLERİ DASHBOARD GÜNCELLEME
+// ========================================
+const PART_TYPE_LISTS = [
+    // Mevcut listeler
+    'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa', 'sahiniden', 'onCamDisServis',
+    // Yeni parça türleri
+    'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'
+];
+
+function updatePartTypesDashboard() {
+    let total = 0;
+
+    PART_TYPE_LISTS.forEach(listName => {
+        const count = userCodes[listName] ? userCodes[listName].size : 0;
+        total += count;
+
+        // Dashboard değerini güncelle - element ID'sini doğru oluştur
+        const elementId = 'partsDashboard' + listName.charAt(0).toUpperCase() + listName.slice(1);
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = count;
+        }
+    });
+
+    // Toplam sayısını güncelle
+    const totalElement = document.getElementById('partsDashboardTotal');
+    if (totalElement) {
+        totalElement.textContent = total;
+    }
+
+    console.log('🔧 Parça Türleri Dashboard güncellendi - Toplam:', total);
 }
 
 // ========================================
@@ -3873,13 +4021,25 @@ let ALL_SECTIONS = [
     { id: 'ismail', name: '🧑‍🔧 İsmail' },
     { id: 'mehmet', name: '🧑‍🔧 Mehmet' },
     { id: 'onarim', name: '🔧 Onarım Tamamlandı' },
-    { id: 'onCamDisServis', name: '🔨 Ön Cam Dış Servis' },      // YENİ EKLENDİ
-    { id: 'anakartDisServis', name: '🔨 Anakart Dış Servis' },  // YENİ EKLENDİ
+    { id: 'onCamDisServis', name: '🔨 Ön Cam Dış Servis' },
+    { id: 'anakartDisServis', name: '🔨 Anakart Dış Servis' },
     { id: 'satisa', name: '💰 Satışa Gidecek' },
     { id: 'sahiniden', name: '🏪 Sahibinden' },
     { id: 'mediaMarkt', name: '🛒 Media Markt' },
     { id: 'SonKullanıcı', name: '🛒 Son Kullanıcı' },
-    { id: 'teslimEdilenler', name: '✅ Teslim Edilenler' }
+    { id: 'teslimEdilenler', name: '✅ Teslim Edilenler' },
+    // ========== PARÇA/İŞLEM TÜRLERİ ==========
+    { id: 'pil', name: '🔋 PİL' },
+    { id: 'kasa', name: '📱 KASA' },
+    { id: 'ekran', name: '🖥️ EKRAN' },
+    { id: 'onCam', name: '🪟 ÖN CAM' },
+    { id: 'pilKasa', name: '🔋📱 PİL + KASA' },
+    { id: 'pilEkran', name: '🔋🖥️ PİL + EKRAN' },
+    { id: 'ekranKasa', name: '🖥️📱 EKRAN + KASA' },
+    { id: 'pilEkranKasa', name: '🔋🖥️📱 PİL + EKRAN + KASA' },
+    { id: 'demontaj', name: '🔧 DEMONTAJ' },
+    { id: 'montaj', name: '⚙️ MONTAJ' },
+    { id: 'yetkilendirme', name: '✅ YETKİLENDİRME' }
 ];
 
 async function updateAllSectionsList() {
@@ -4976,7 +5136,89 @@ function applyPermissions() {
         inputs.teslimEdilenler.placeholder = '🔒 Sadece Admin, Mehmet ve Samet düzenleyebilir - Görüntüleme modu';
     }
 
+    // ========================================
+    // PARÇA/İŞLEM TÜRLERİ YETKİLENDİRME
+    // Teknisyen ve Editor rollerine read/write yetkisi ver
+    // Semi-admin hariç (read-only kalacak)
+    // ========================================
+    const partTypeSections = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
+
+    // Teknisyen kullanıcı listesi (rol 'viewer' olsa bile bu isimler teknisyen sayılır)
+    const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+    const isTechnicianUser = currentUserRole === 'technician' || currentUserRole === 'editor' || technicianUserNames.includes(currentUserName);
+
+    // Teknisyen ve Editor için Parça Türleri erişimi (semi-admin hariç)
+    if (isTechnicianUser && currentUserRole !== 'semi-admin') {
+        partTypeSections.forEach(name => {
+            // Section'ı görünür yap
+            const section = document.querySelector(`[data-section="${name}"]`);
+            if (section) {
+                section.style.display = 'block';
+            }
+            // Input'u aktif et
+            if (inputs[name]) {
+                inputs[name].disabled = false;
+                inputs[name].style.opacity = '1';
+                inputs[name].style.cursor = 'text';
+                inputs[name].placeholder = `${CACHED_LIST_NAMES[name] || name} barkodlarını girin...`;
+            }
+        });
+        console.log('✅ Parça/İşlem Türleri: Teknisyen/Editor için görünürlük ve read/write yetkisi verildi');
+    }
+    // Admin için de tam yetki
+    else if (currentUserRole === 'admin') {
+        partTypeSections.forEach(name => {
+            // Section'ı görünür yap
+            const section = document.querySelector(`[data-section="${name}"]`);
+            if (section) {
+                section.style.display = 'block';
+            }
+            if (inputs[name]) {
+                inputs[name].disabled = false;
+                inputs[name].style.opacity = '1';
+                inputs[name].style.cursor = 'text';
+            }
+        });
+    }
+    // Semi-admin için görünür ama read-only
+    else if (currentUserRole === 'semi-admin') {
+        partTypeSections.forEach(name => {
+            // Section'ı görünür yap
+            const section = document.querySelector(`[data-section="${name}"]`);
+            if (section) {
+                section.style.display = 'block';
+            }
+            if (inputs[name]) {
+                inputs[name].disabled = true;
+                inputs[name].style.opacity = '0.7';
+                inputs[name].style.cursor = 'not-allowed';
+                inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+            }
+        });
+    }
+
     if (currentUserRole === 'viewer') {
+        // ✅ Viewer rolündeki teknisyenler için parça türü section'larını görünür yap
+        const technicianUserNamesForViewer = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+        if (technicianUserNamesForViewer.includes(currentUserName)) {
+            const partTypeSectionsForViewer = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
+            partTypeSectionsForViewer.forEach(name => {
+                // Section'ı görünür yap
+                const section = document.querySelector(`[data-section="${name}"]`);
+                if (section) {
+                    section.style.display = 'block';
+                }
+                // Input'u aktif et
+                if (inputs[name]) {
+                    inputs[name].disabled = false;
+                    inputs[name].style.opacity = '1';
+                    inputs[name].style.cursor = 'text';
+                    inputs[name].placeholder = `${CACHED_LIST_NAMES[name] || name} barkodlarını girin...`;
+                }
+            });
+            console.log('✅ Parça/İşlem Türleri: Viewer rolündeki teknisyen için görünürlük ve read/write yetkisi verildi');
+        }
+
         normalUsers.forEach(name => {
             if (inputs[name]) {
                 inputs[name].disabled = true;
@@ -5239,6 +5481,9 @@ function renderList() {
     if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
         updateAdminStats();
     }
+
+    // ✅ TÜM KULLANICILAR İÇİN Parça Türleri Dashboard'unu güncelle
+    updatePartTypesDashboard();
 }
 
 function updateLabelAndCount(name) {
@@ -5297,7 +5542,9 @@ function reinitializeAllInputListeners() {
         'atanacak', 'parcaBekliyor', 'phonecheck',
         'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet',
         'onarim', 'onCamDisServis', 'anakartDisServis',
-        'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
+        'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler',
+        // Yeni parça türleri
+        'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'
     ];
 
     allSections.forEach(section => {
@@ -5375,14 +5622,32 @@ function saveCodes(name, value) {
         return;
     }
 
-    if (currentUserRole === 'technician') {
+    // Teknisyen kullanıcı listesi (rol 'viewer' olsa bile bu isimler teknisyen sayılır)
+    const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+    const partTypeSections = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
+    const isTechnicianUser = currentUserRole === 'technician' || currentUserRole === 'editor' || technicianUserNames.includes(currentUserName);
+
+    // Teknisyen kullanıcılar için parça türleri izni
+    if (isTechnicianUser && partTypeSections.includes(name)) {
+        // Parça türleri için teknisyenlere izin var, devam et (semi-admin hariç yukarıda kontrol edildi)
+    } else if (currentUserRole === 'technician') {
         if (name === currentUserName) {
-            // İzin var, devam et
+            // Kendi listesi için izin var, devam et
         } else if (currentUserPermissions && currentUserPermissions[name]) {
             if (currentUserPermissions[name] === 'view') {
                 return;
             }
-        } else {
+        } else if (!partTypeSections.includes(name)) {
+            return;
+        }
+    } else if (currentUserRole === 'viewer' && technicianUserNames.includes(currentUserName)) {
+        // Viewer rolündeki teknisyenler için - sadece kendi listesi ve parça türleri
+        if (name !== currentUserName && !partTypeSections.includes(name)) {
+            return;
+        }
+    } else if (currentUserRole === 'editor') {
+        if (!partTypeSections.includes(name) && name !== currentUserName) {
+            // Editor sadece parça türleri ve kendi listesini düzenleyebilir
             return;
         }
     }
@@ -5407,7 +5672,7 @@ function saveCodes(name, value) {
 
     const timestamp = getTimestamp();
 
-    const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
+    const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler', 'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
     const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
@@ -5463,6 +5728,10 @@ function saveCodes(name, value) {
         });
 
         updateLabelAndCount(name);
+        // Parça türleri dashboard'unu güncelle
+        if (PART_TYPE_LISTS.includes(name)) {
+            updatePartTypesDashboard();
+        }
         debouncedRenderList();
         isUpdating = false;
         return;
@@ -6076,6 +6345,9 @@ function updateAdminStats() {
     document.getElementById('adminSatisa').textContent = userCodes.satisa ? userCodes.satisa.size : 0;
     document.getElementById('adminSahiniden').textContent = userCodes.sahiniden ? userCodes.sahiniden.size : 0;
     document.getElementById('adminMediaMarkt').textContent = userCodes.mediaMarkt ? userCodes.mediaMarkt.size : 0;
+
+    // Parça türleri dashboard'unu güncelle
+    updatePartTypesDashboard();
 }
 function syncTextareaWithData(name) {
     if (!dataLoaded || !inputs[name]) return;
