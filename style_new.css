@@ -5184,3 +5184,361 @@ button[id*="Btn"] {
         font-size: 28px;
     }
 }
+
+/* ========================================
+   PARÇA TÜRLERİ DASHBOARD PANELİ
+   ======================================== */
+.parts-dashboard-panel {
+    background: linear-gradient(135deg, rgba(30, 35, 60, 0.95) 0%, rgba(45, 53, 97, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 25px;
+    margin: 20px auto;
+    max-width: 1400px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.parts-dashboard-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.parts-dashboard-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 5px 0;
+}
+
+.parts-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+}
+
+.parts-stat-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 18px 12px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.parts-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+}
+
+.parts-stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.parts-stat-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.parts-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1;
+}
+
+.parts-stat-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* Parça türü renkleri */
+
+/* Mevcut listeler */
+.parts-stat-card.parcaBekliyor::before {
+    background: linear-gradient(90deg, #9b59b6, #8e44ad);
+}
+
+.parts-stat-card.parcaBekliyor .parts-stat-value {
+    color: #9b59b6;
+}
+
+.parts-stat-card.parcaBekliyor:hover {
+    box-shadow: 0 8px 25px rgba(155, 89, 182, 0.3);
+}
+
+.parts-stat-card.phonecheck::before {
+    background: linear-gradient(90deg, #3498db, #2980b9);
+}
+
+.parts-stat-card.phonecheck .parts-stat-value {
+    color: #3498db;
+}
+
+.parts-stat-card.phonecheck:hover {
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+}
+
+.parts-stat-card.onarim::before {
+    background: linear-gradient(90deg, #2ecc71, #27ae60);
+}
+
+.parts-stat-card.onarim .parts-stat-value {
+    color: #2ecc71;
+}
+
+.parts-stat-card.onarim:hover {
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.3);
+}
+
+.parts-stat-card.atanacak::before {
+    background: linear-gradient(90deg, #e67e22, #d35400);
+}
+
+.parts-stat-card.atanacak .parts-stat-value {
+    color: #e67e22;
+}
+
+.parts-stat-card.atanacak:hover {
+    box-shadow: 0 8px 25px rgba(230, 126, 34, 0.3);
+}
+
+.parts-stat-card.satisa::before {
+    background: linear-gradient(90deg, #f1c40f, #f39c12);
+}
+
+.parts-stat-card.satisa .parts-stat-value {
+    color: #f1c40f;
+}
+
+.parts-stat-card.satisa:hover {
+    box-shadow: 0 8px 25px rgba(241, 196, 15, 0.3);
+}
+
+.parts-stat-card.sahiniden::before {
+    background: linear-gradient(90deg, #1abc9c, #16a085);
+}
+
+.parts-stat-card.sahiniden .parts-stat-value {
+    color: #1abc9c;
+}
+
+.parts-stat-card.sahiniden:hover {
+    box-shadow: 0 8px 25px rgba(26, 188, 156, 0.3);
+}
+
+.parts-stat-card.onCamDisServis::before {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+.parts-stat-card.onCamDisServis .parts-stat-value {
+    color: #e74c3c;
+}
+
+.parts-stat-card.onCamDisServis:hover {
+    box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+}
+
+/* Yeni parça türleri */
+.parts-stat-card.pil::before {
+    background: linear-gradient(90deg, #f39c12, #e67e22);
+}
+
+.parts-stat-card.pil .parts-stat-value {
+    color: #f39c12;
+}
+
+.parts-stat-card.pil:hover {
+    box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
+}
+
+.parts-stat-card.kasa::before {
+    background: linear-gradient(90deg, #9b59b6, #8e44ad);
+}
+
+.parts-stat-card.kasa .parts-stat-value {
+    color: #9b59b6;
+}
+
+.parts-stat-card.kasa:hover {
+    box-shadow: 0 8px 25px rgba(155, 89, 182, 0.3);
+}
+
+.parts-stat-card.ekran::before {
+    background: linear-gradient(90deg, #3498db, #2980b9);
+}
+
+.parts-stat-card.ekran .parts-stat-value {
+    color: #3498db;
+}
+
+.parts-stat-card.ekran:hover {
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+}
+
+.parts-stat-card.onCam::before {
+    background: linear-gradient(90deg, #1abc9c, #16a085);
+}
+
+.parts-stat-card.onCam .parts-stat-value {
+    color: #1abc9c;
+}
+
+.parts-stat-card.onCam:hover {
+    box-shadow: 0 8px 25px rgba(26, 188, 156, 0.3);
+}
+
+.parts-stat-card.pilKasa::before {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+}
+
+.parts-stat-card.pilKasa .parts-stat-value {
+    color: #e74c3c;
+}
+
+.parts-stat-card.pilKasa:hover {
+    box-shadow: 0 8px 25px rgba(231, 76, 60, 0.3);
+}
+
+.parts-stat-card.pilEkran::before {
+    background: linear-gradient(90deg, #f1c40f, #f39c12);
+}
+
+.parts-stat-card.pilEkran .parts-stat-value {
+    color: #f1c40f;
+}
+
+.parts-stat-card.pilEkran:hover {
+    box-shadow: 0 8px 25px rgba(241, 196, 15, 0.3);
+}
+
+.parts-stat-card.ekranKasa::before {
+    background: linear-gradient(90deg, #e67e22, #d35400);
+}
+
+.parts-stat-card.ekranKasa .parts-stat-value {
+    color: #e67e22;
+}
+
+.parts-stat-card.ekranKasa:hover {
+    box-shadow: 0 8px 25px rgba(230, 126, 34, 0.3);
+}
+
+.parts-stat-card.pilEkranKasa::before {
+    background: linear-gradient(90deg, #16a085, #1abc9c);
+}
+
+.parts-stat-card.pilEkranKasa .parts-stat-value {
+    color: #16a085;
+}
+
+.parts-stat-card.pilEkranKasa:hover {
+    box-shadow: 0 8px 25px rgba(22, 160, 133, 0.3);
+}
+
+.parts-stat-card.demontaj::before {
+    background: linear-gradient(90deg, #2ecc71, #27ae60);
+}
+
+.parts-stat-card.demontaj .parts-stat-value {
+    color: #2ecc71;
+}
+
+.parts-stat-card.demontaj:hover {
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.3);
+}
+
+.parts-stat-card.montaj::before {
+    background: linear-gradient(90deg, #34495e, #2c3e50);
+}
+
+.parts-stat-card.montaj .parts-stat-value {
+    color: #7f8c8d;
+}
+
+.parts-stat-card.montaj:hover {
+    box-shadow: 0 8px 25px rgba(52, 73, 94, 0.3);
+}
+
+.parts-stat-card.yetkilendirme::before {
+    background: linear-gradient(90deg, #27ae60, #2ecc71);
+}
+
+.parts-stat-card.yetkilendirme .parts-stat-value {
+    color: #27ae60;
+}
+
+.parts-stat-card.yetkilendirme:hover {
+    box-shadow: 0 8px 25px rgba(39, 174, 96, 0.3);
+}
+
+.parts-stat-card.total::before {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.parts-stat-card.total .parts-stat-value {
+    color: #667eea;
+}
+
+.parts-stat-card.total:hover {
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.parts-stat-card.total {
+    background: rgba(102, 126, 234, 0.15);
+}
+
+/* Light Mode for Parts Dashboard */
+body.light-mode .parts-dashboard-panel {
+    background: var(--light-panel-bg);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .parts-dashboard-header h2 {
+    background: none;
+    -webkit-text-fill-color: #1a1a2e;
+    color: #1a1a2e;
+}
+
+body.light-mode .parts-stat-card {
+    background: var(--light-card-bg);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .parts-stat-label {
+    color: var(--light-text-secondary);
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .parts-dashboard-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .parts-dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .parts-stat-value {
+        font-size: 22px;
+    }
+}
