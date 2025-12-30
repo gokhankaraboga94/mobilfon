@@ -118,6 +118,7 @@ const CACHED_LIST_NAMES = {
     engin: '🧑‍🔧 Engin',
     ismail: '🧑‍🔧 İsmail',
     mehmet: '🧑‍🔧 Mehmet',
+    mert: '🧑‍🔧 Mert',
     onarim: '🔧 Onarım Tamamlandı',
     onCamDisServis: '🔨 Ön Cam Dış Servis',
     anakartDisServis: '🔨 Anakart Dış Servis',
@@ -3144,6 +3145,7 @@ const inputs = {
     engin: document.getElementById("enginInput"),
     ismail: document.getElementById("ismailInput"),
     mehmet: document.getElementById("mehmetInput"),
+    mert: document.getElementById("mertInput"),
     scanner: document.getElementById("scannerInput"),
     search: document.getElementById("searchInput"),
     searchNormal: document.getElementById("searchInputNormal"),
@@ -3182,6 +3184,7 @@ const labels = {
     engin: document.getElementById("enginLabel"),
     ismail: document.getElementById("ismailLabel"),
     mehmet: document.getElementById("mehmetLabel"),
+    mert: document.getElementById("mertLabel"),
     onarim: document.getElementById("onarimLabel"),
     SonKullanıcı: document.getElementById("SonKullanıcıLabel"),
     onCamDisServis: document.getElementById("onCamDisServisLabel"),
@@ -3216,6 +3219,7 @@ const miniLists = {
     engin: document.getElementById("enginList"),
     ismail: document.getElementById("ismailList"),
     mehmet: document.getElementById("mehmetList"),
+    mert: document.getElementById("mertList"),
     onarim: document.getElementById("onarimList"),
     SonKullanıcı: document.getElementById("SonKullanıcıList"),
     onCamDisServis: document.getElementById("onCamDisServisList"),
@@ -3254,6 +3258,7 @@ const userCodes = {
     engin: new Set(),
     ismail: new Set(),
     mehmet: new Set(),
+    mert: new Set(),
     onCamDisServis: new Set(),
     anakartDisServis: new Set(),
     onarim: new Set(),
@@ -3287,6 +3292,7 @@ const codeTimestamps = {
     engin: {},
     ismail: {},
     mehmet: {},
+    mert: {},
     onarim: {},
     SonKullanıcı: {},
     onCamDisServis: {},
@@ -3321,6 +3327,7 @@ const codeUsers = {
     onCamDisServis: {},
     anakartDisServis: {},
     mehmet: {},
+    mert: {},
     onarim: {},
     SonKullanıcı: {},
     satisa: {},
@@ -4302,6 +4309,7 @@ let ALL_SECTIONS = [
     { id: 'engin', name: '🧑‍🔧 Engin' },
     { id: 'ismail', name: '🧑‍🔧 İsmail' },
     { id: 'mehmet', name: '🧑‍🔧 Mehmet' },
+    { id: 'mert', name: '🧑‍🔧 Mert' },
     { id: 'onarim', name: '🔧 Onarım Tamamlandı' },
     { id: 'onCamDisServis', name: '🔨 Ön Cam Dış Servis' },
     { id: 'anakartDisServis', name: '🔨 Anakart Dış Servis' },
@@ -4342,7 +4350,7 @@ async function updateAllSectionsList() {
 
         // Mevcut statik listeden teknisyen bölümlerini çıkar
         const staticSections = ALL_SECTIONS.filter(section =>
-            !['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet'].includes(section.id)
+            !['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'].includes(section.id)
         );
 
         // Statik bölümler + dinamik teknisyenler
@@ -5705,7 +5713,7 @@ async function loadAndDisplayHistory(code) {
 }
 
 function removeFromOtherLists(code, exceptList) {
-    const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onarim', 'onCamDisServis', 'anakartDisServis', 'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
+    const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert', 'onarim', 'onCamDisServis', 'anakartDisServis', 'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'];
 
     // Dinamik olarak eklenen tüm listeleri dahil et
     Object.keys(userCodes).forEach(key => {
@@ -5803,7 +5811,7 @@ async function handleServiceReturn(code, targetList) {
 
 
 function renderList() {
-    const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "onarim", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
+    const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "mert", "onarim", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
 
     Object.keys(userCodes).forEach(key => {
         if (!allLists.includes(key)) {
@@ -5875,7 +5883,7 @@ function reinitializeAllInputListeners() {
     // Tüm bölüm isimleri
     const allSections = [
         'atanacak', 'parcaBekliyor', 'phonecheck',
-        'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet',
+        'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert',
         'onarim', 'onCamDisServis', 'anakartDisServis',
         'SonKullanıcı', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler',
         // Yeni parça türleri
@@ -5958,7 +5966,7 @@ function saveCodes(name, value) {
     }
 
     // Teknisyen kullanıcı listesi (rol 'viewer' olsa bile bu isimler teknisyen sayılır)
-    const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+    const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes', 'mert'];
     const partTypeSections = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
 
     // ========================================
@@ -5968,7 +5976,7 @@ function saveCodes(name, value) {
     // Örnek: samet -> gokhan OK, samet -> samet YASAK
     // İSTİSNA: Düzenleyici (editor) rolü kendi listesine atama yapabilir
     // ========================================
-    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes', 'mert'];
     const isTechnicianRole = currentUserRole === 'technician' || technicianUserNames.includes(currentUserName);
 
     // Teknisyen kendi listesine yazamaz (ama editor yazabilir)
@@ -6231,7 +6239,7 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
 
         searchResult.style.display = "block";
         const foundIn = [];
-        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "onarim", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
+        const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "mert", "onarim", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
 
         Object.keys(userCodes).forEach(key => {
             if (!allLists.includes(key)) {
@@ -10255,7 +10263,7 @@ function renderTimeoutList() {
         onarim: '🔧 Onarım',
         mediaMarkt: '🛒 Media Markt',
         gokhan: '🧑‍🔧 Gökhan', enes: '🧑‍🔧 Enes', yusuf: '🧑‍🔧 Yusuf',
-        samet: '🧑‍🔧 Samet', engin: '🧑‍🔧 Engin', ismail: '🧑‍🔧 İsmail', mehmet: '🧑‍🔧 Mehmet',
+        samet: '🧑‍🔧 Samet', engin: '🧑‍🔧 Engin', ismail: '🧑‍🔧 İsmail', mehmet: '🧑‍🔧 Mehmet', mert: '🧑‍🔧 Mert',
         onCamDisServis: '🔨 Ön Cam', anakartDisServis: '🔨 Anakart'
     };
 
