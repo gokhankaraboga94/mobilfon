@@ -6414,7 +6414,7 @@ inputs.scanner.addEventListener("input", e => {
 
         if (code) {
             // ========================================
-            // GRİ LİSTE KONTROLÜ - Önce gri listede mi bak
+            // GRİ LİSTE KONTROLÜ - Barkod gri listede mi bak
             // ========================================
             if (griListeData[code]) {
                 // Gri listedeki barkodu onayla ve hedef listeye transfer et
@@ -6423,23 +6423,9 @@ inputs.scanner.addEventListener("input", e => {
                 return;
             }
             // ========================================
-
-            if (!scannedCodes.has(code)) {
-                scannedCodes.add(code);
-                const timestamp = getTimestamp();
-                db.ref(`servis/eslesenler/${code}`).set(timestamp);
-
-                Object.keys(userCodes).forEach(name => {
-                    db.ref(`servis/${name}/${code}`).once("value", snap => {
-                        if (snap.exists()) {
-                            db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
-                        }
-                    });
-                });
-
-                debouncedRenderList();
-                showToast(`Barkod eşleşti: ${code}`, 'success');
-            }
+            
+            // Gri listede değilse bilgi ver
+            showToast(`Barkod gri listede bulunamadı: ${code}`, 'info');
         }
         e.target.value = "";
     }, 150);
@@ -6540,16 +6526,17 @@ function renderMiniList(name) {
             SonKullanıcı: "waiting"
         };
 
-        // Teknisyen listesi kontrol - gokhan, yusuf, enes, samet, engin, mehmet, ismail
-        const technicianLists = ['gokhan', 'yusuf', 'enes', 'samet', 'engin', 'mehmet', 'ismail'];
+        // Teknisyen listesi kontrol - gokhan, yusuf, enes, samet, engin, mehmet, ismail, mert
+        const technicianLists = ['gokhan', 'yusuf', 'enes', 'samet', 'engin', 'mehmet', 'ismail', 'mert'];
 
         if (specialClasses[name]) {
             div.classList.add(specialClasses[name]);
         } else if (technicianLists.includes(name)) {
-            // Teknisyen listelerinde: tarandıysa yeşil (matched), taranmadıysa kırmızı (unmatched)
-            div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
+            // Teknisyen listelerinde: sabit renk kullanımı (kırmızı/yeşil eşleşme mantığı kaldırıldı)
+            div.classList.add("technician");
         } else {
-            div.classList.add(scannedCodes.has(code) ? "matched" : "unmatched");
+            // Diğer listeler için de sabit renk
+            div.classList.add("default-item");
         }
 
         let codeDisplay = code;
