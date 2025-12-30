@@ -4819,10 +4819,11 @@ function createTechnicianSection(techName, container) {
 
     setTimeout(() => {
         const sectionElem = document.querySelector(`[data-section="${techName}"]`);
-        const list = document.getElementById(`${techName}List`);
+        const labelElem = document.getElementById(`${techName}Label`);
 
-        if (sectionElem && list && !list.dataset.toggleSetup) {
-            list.dataset.toggleSetup = 'true';
+        // Sadece sectionElem ve labelElem yeterli - list boş olabilir
+        if (sectionElem && labelElem && !sectionElem.dataset.toggleSetup) {
+            sectionElem.dataset.toggleSetup = 'true';
             setupSectionToggle(sectionElem, `${techName}List`, `${techName}Label`);
         }
     }, 100);
@@ -6037,8 +6038,18 @@ function saveCodes(name, value) {
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
     if (specialLists.includes(name)) {
+        // userCodes[name] yoksa oluştur
+        if (!userCodes[name]) {
+            userCodes[name] = new Set();
+            codeTimestamps[name] = {};
+            codeUsers[name] = {};
+        }
+        
         codes.forEach(code => {
-            if (!userCodes[name].has(code) && !griListeData[code]) {
+            const alreadyInList = userCodes[name] && userCodes[name].has && userCodes[name].has(code);
+            const alreadyInGriListe = griListeData && griListeData[code];
+            
+            if (!alreadyInList && !alreadyInGriListe) {
                 // Barkodun şu anki listesini bul
                 let previousList = null;
                 for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -6135,9 +6146,19 @@ function saveCodes(name, value) {
     // ========================================
     const griListeExcludedForOthers = ['teslimEdilenler'];
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
+    
+    // userCodes[name] yoksa oluştur
+    if (!userCodes[name]) {
+        userCodes[name] = new Set();
+        codeTimestamps[name] = {};
+        codeUsers[name] = {};
+    }
 
     codes.forEach(code => {
-        if (!userCodes[name].has(code) && !griListeData[code]) {
+        const alreadyInList = userCodes[name] && userCodes[name].has && userCodes[name].has(code);
+        const alreadyInGriListe = griListeData && griListeData[code];
+        
+        if (!alreadyInList && !alreadyInGriListe) {
             
             // Gri Liste kontrolü - Tüm kullanıcılar için
             if (shouldUseGriListeForAll) {
@@ -7045,10 +7066,11 @@ function setupAllSectionToggles() {
         const sectionName = section.getAttribute('data-section');
         const listId = `${sectionName}List`;
         const labelId = `${sectionName}Label`;
+        const label = document.getElementById(labelId);
 
-        const list = document.getElementById(listId);
-        if (list && !list.dataset.toggleSetup) {
-            list.dataset.toggleSetup = 'true';
+        // Sadece section ve label yeterli - list boş olabilir (sıfır adetli listeler için)
+        if (label && !section.dataset.toggleSetup) {
+            section.dataset.toggleSetup = 'true';
             setupSectionToggle(section, listId, labelId);
         }
     });
