@@ -3366,7 +3366,7 @@ async function addToGriListe(barcode, fromList, toList, user) {
         timestamp: timestamp,
         createdAt: Date.now()
     };
-    
+
     try {
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
@@ -3387,15 +3387,15 @@ async function approveFromGriListe(barcode) {
         console.warn(`Gri Listede bulunamadı: ${barcode}`);
         return false;
     }
-    
+
     const { fromList, toList, user } = griItem;
     const timestamp = getTimestamp();
-    
+
     try {
         // 1. Gri Listeden sil
         await db.ref(`servis/griListe/${barcode}`).remove();
         delete griListeData[barcode];
-        
+
         // 2. Hedef listeye ekle
         const dbPath = toList === 'onarim' ? 'onarimTamamlandi' : toList;
         await db.ref(`servis/${dbPath}/${barcode}`).set({
@@ -3404,37 +3404,37 @@ async function approveFromGriListe(barcode) {
             approvedFrom: 'griListe',
             originalUser: user
         });
-        
+
         // 3. Local state güncelle
         if (userCodes[toList]) {
             userCodes[toList].add(barcode);
             codeTimestamps[toList][barcode] = timestamp;
             codeUsers[toList][barcode] = currentUserName;
         }
-        
+
         // 4. allCodes'a ekle (teslimEdilenler hariç)
         if (toList !== 'teslimEdilenler') {
             allCodes.add(barcode);
         }
-        
+
         // 5. Geçmişe kaydet
         saveBarcodeHistory(barcode, 'griListe', toList, `${currentUserName} (Onaylandı - Orijinal: ${user})`);
-        
+
         // 6. UI güncelle
         updateLabelAndCount(toList);
         renderMiniList(toList);
         renderGriListe();
         updateGriListeCount();
-        
+
         // 7. Dashboard güncellemeleri
         if (toList === 'teslimEdilenler') {
             incrementDeliveredCount();
         }
-        
+
         showToast(`✅ ${barcode} → ${CACHED_LIST_NAMES[toList] || toList} listesine transfer edildi`, 'success');
         console.log(`✅ Gri Listeden onaylandı: ${barcode} → ${toList}`);
         return true;
-        
+
     } catch (error) {
         console.error('Gri Liste onaylama hatası:', error);
         showToast('Transfer sırasında hata oluştu!', 'error');
@@ -3446,12 +3446,12 @@ async function approveFromGriListe(barcode) {
 async function rejectFromGriListe(barcode) {
     const griItem = griListeData[barcode];
     if (!griItem) return false;
-    
+
     try {
         // Gri Listeden sil
         await db.ref(`servis/griListe/${barcode}`).remove();
         delete griListeData[barcode];
-        
+
         // Kaynak listeye geri ekle (eğer hala sistemde değilse)
         const fromList = griItem.fromList;
         if (fromList && fromList !== 'YENİ' && !isInAnyList(barcode)) {
@@ -3461,23 +3461,23 @@ async function rejectFromGriListe(barcode) {
                 user: currentUserName,
                 restoredFrom: 'griListe'
             });
-            
+
             if (userCodes[fromList]) {
                 userCodes[fromList].add(barcode);
                 updateLabelAndCount(fromList);
                 renderMiniList(fromList);
             }
         }
-        
+
         // Geçmişe kaydet
         saveBarcodeHistory(barcode, 'griListe', 'İPTAL', `${currentUserName} (Transfer iptal edildi)`);
-        
+
         renderGriListe();
         updateGriListeCount();
-        
+
         showToast(`❌ ${barcode} transferi iptal edildi`, 'warning');
         return true;
-        
+
     } catch (error) {
         console.error('Gri Liste reddetme hatası:', error);
         return false;
@@ -3498,9 +3498,9 @@ function isInAnyList(barcode) {
 function renderGriListe() {
     const container = document.getElementById('griListeContent');
     if (!container) return;
-    
+
     const items = Object.values(griListeData).sort((a, b) => b.createdAt - a.createdAt);
-    
+
     if (items.length === 0) {
         container.innerHTML = `
             <div class="gri-liste-empty">
@@ -3509,13 +3509,13 @@ function renderGriListe() {
         `;
         return;
     }
-    
+
     let html = '';
     items.forEach(item => {
         const fromName = CACHED_LIST_NAMES[item.fromList] || item.fromList || 'Yeni';
         const toName = CACHED_LIST_NAMES[item.toList] || item.toList;
         const timeStr = item.timestamp || '';
-        
+
         html += `
             <div class="gri-liste-item" data-barcode="${item.barcode}">
                 <div class="gri-liste-item-info">
@@ -3536,26 +3536,26 @@ function renderGriListe() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
 // Gri Liste sayısını güncelle
 function updateGriListeCount() {
     const count = Object.keys(griListeData).length;
-    
+
     // Ana gri liste label
     const label = document.getElementById('griListeLabel');
     if (label) {
         label.textContent = `⏳ Onay Bekleyen Transferler - ${count}`;
     }
-    
+
     // Admin panel sayacı
     const adminCount = document.getElementById('adminGriListeCount');
     if (adminCount) {
         adminCount.textContent = count;
     }
-    
+
     // Admin panel box'a has-pending class ekle/kaldır
     const adminBox = document.getElementById('adminGriListeBox');
     if (adminBox) {
@@ -3575,12 +3575,12 @@ function scrollToGriListe() {
             behavior: 'smooth',
             block: 'center'
         });
-        
+
         // Highlight efekti
         griListeSection.style.transition = 'all 0.3s ease';
         griListeSection.style.boxShadow = '0 0 30px rgba(255, 193, 7, 0.6)';
         griListeSection.style.transform = 'scale(1.02)';
-        
+
         setTimeout(() => {
             griListeSection.style.boxShadow = '';
             griListeSection.style.transform = '';
@@ -5313,7 +5313,7 @@ function applyPermissions() {
                     inputs[name].placeholder = '🔒 Kendi listenize cihaz atama yetkiniz yok';
                     return; // forEach içinde continue yerine return kullanılır
                 }
-                
+
                 // Diğer teknisyen listelerine yazma izni var
                 if (technicianLists.includes(name) && name !== currentUserName) {
                     inputs[name].disabled = false;
@@ -5322,7 +5322,7 @@ function applyPermissions() {
                     inputs[name].placeholder = `${CACHED_LIST_NAMES[name] || name} barkodlarını girin...`;
                     return;
                 }
-                
+
                 const permission = currentUserPermissions[name];
 
                 if (!permission) {
@@ -5526,12 +5526,12 @@ function applyPermissions() {
                 }
             });
             console.log('✅ Parça/İşlem Türleri: Viewer rolündeki teknisyen için görünürlük ve read/write yetkisi verildi');
-            
+
             // ========================================
             // TEKNİSYEN LİSTELERİNE CİHAZ ATAMA
             // Sadece kendi listesine yazma yasak, diğer teknisyenlere izin var
             // ========================================
-            
+
             // Kendi listesi disabled
             if (inputs[currentUserName]) {
                 inputs[currentUserName].disabled = true;
@@ -5539,7 +5539,7 @@ function applyPermissions() {
                 inputs[currentUserName].style.cursor = 'not-allowed';
                 inputs[currentUserName].placeholder = '🔒 Kendi listenize cihaz atama yetkiniz yok';
             }
-            
+
             // Diğer teknisyen listeleri açık
             technicianUserNamesForViewer.forEach(techName => {
                 if (techName !== currentUserName && inputs[techName]) {
@@ -5960,23 +5960,24 @@ function saveCodes(name, value) {
     // Teknisyen kullanıcı listesi (rol 'viewer' olsa bile bu isimler teknisyen sayılır)
     const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
     const partTypeSections = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
-    
+
     // ========================================
     // TEKNİSYEN LİSTELERİNE CİHAZ ATAMA YETKİSİ
     // Teknisyenler KENDİ listelerine cihaz atayamaz
     // Ancak DİĞER teknisyen listelerine atama yapabilir
     // Örnek: samet -> gokhan OK, samet -> samet YASAK
+    // İSTİSNA: Düzenleyici (editor) rolü kendi listesine atama yapabilir
     // ========================================
     const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
     const isTechnicianRole = currentUserRole === 'technician' || technicianUserNames.includes(currentUserName);
-    
-    // Teknisyen kendi listesine yazamaz
-    if (technicianLists.includes(name) && name === currentUserName && isTechnicianRole) {
+
+    // Teknisyen kendi listesine yazamaz (ama editor yazabilir)
+    if (technicianLists.includes(name) && name === currentUserName && isTechnicianRole && currentUserRole !== 'editor') {
         showToast('Kendi listenize cihaz atama yetkiniz yok! Sadece admin/düzenleyici atama yapabilir.', 'warning');
         return;
     }
     // ========================================
-    
+
     const isTechnicianUser = currentUserRole === 'technician' || currentUserRole === 'editor' || technicianUserNames.includes(currentUserName);
 
     // Teknisyen kullanıcılar için parça türleri izni
@@ -6047,7 +6048,7 @@ function saveCodes(name, value) {
                         break;
                     }
                 }
-                
+
                 // ========================================
                 // GRİ LİSTEYE YÖNLENDIR (Tüm kullanıcılar)
                 // ========================================
@@ -6062,14 +6063,14 @@ function saveCodes(name, value) {
                         updateLabelAndCount(previousList);
                         renderMiniList(previousList);
                     }
-                    
+
                     // Gri listeye ekle
                     addToGriListe(code, previousList || 'YENİ', name, currentUserName);
                     showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
                     return; // forEach'ten çık, bir sonraki koda geç
                 }
                 // ========================================
-                
+
                 const removedFrom = removeFromOtherLists(code, name);
 
                 saveBarcodeHistory(code, removedFrom, name, currentUserName);
@@ -6138,7 +6139,7 @@ function saveCodes(name, value) {
 
     codes.forEach(code => {
         if (!userCodes[name].has(code) && !griListeData[code]) {
-            
+
             // Gri Liste kontrolü - Tüm kullanıcılar için
             if (shouldUseGriListeForAll) {
                 // Barkodun şu anki listesini bul
@@ -6149,7 +6150,7 @@ function saveCodes(name, value) {
                         break;
                     }
                 }
-                
+
                 // Önce kaynak listeden sil
                 if (previousList) {
                     const dbPathFrom = previousList === 'onarim' ? 'onarimTamamlandi' : previousList;
@@ -6160,13 +6161,13 @@ function saveCodes(name, value) {
                     updateLabelAndCount(previousList);
                     renderMiniList(previousList);
                 }
-                
+
                 // Gri listeye ekle
                 addToGriListe(code, previousList || 'YENİ', name, currentUserName);
                 showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
                 return; // forEach'ten çık
             }
-            
+
             const previousList = removeFromOtherLists(code, name);
 
             saveBarcodeHistory(code, previousList, name, currentUserName);
@@ -6402,7 +6403,7 @@ inputs.scanner.addEventListener("input", e => {
         const raw = e.target.value.trim();
         const m = raw.match(/(\d{15})/);
         const code = m ? m[1] : null;
-        
+
         if (code) {
             // ========================================
             // GRİ LİSTE KONTROLÜ - Önce gri listede mi bak
@@ -6414,7 +6415,7 @@ inputs.scanner.addEventListener("input", e => {
                 return;
             }
             // ========================================
-            
+
             if (!scannedCodes.has(code)) {
                 scannedCodes.add(code);
                 const timestamp = getTimestamp();
@@ -6970,14 +6971,14 @@ function loadData() {
     if (currentUserRole === 'admin') {
         loadDashboardStats();
     }
-    
+
     // ========================================
     // GRİ LİSTE VERİLERİNİ YÜKLE
     // ========================================
     loadGriListeData();
     setupGriListeListener();
     console.log('✅ Gri Liste sistemi başlatıldı');
-    
+
 } // ← loadData fonksiyonu kapanış parantezi
 
 // 30 dakikada bir otomatik sayfa yenileme (performans için artırıldı)
