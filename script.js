@@ -1,4 +1,3 @@
-
 // ========================================
 // PERFORMANCE OPTIMIZATION
 // ========================================
@@ -3531,13 +3530,8 @@ function renderGriListe() {
                     <span class="gri-liste-user">👤 ${item.user}</span>
                     <span class="gri-liste-time">🕐 ${timeStr}</span>
                 </div>
-                <div class="gri-liste-actions">
-                    <button class="gri-liste-btn approve" onclick="approveFromGriListe('${item.barcode}')" title="Onayla ve Transfer Et">
-                        ✓
-                    </button>
-                    <button class="gri-liste-btn reject" onclick="rejectFromGriListe('${item.barcode}')" title="İptal Et">
-                        ✕
-                    </button>
+                <div class="gri-liste-scan-hint">
+                    <span>📡 Barkod okutarak onayla</span>
                 </div>
             </div>
         `;
