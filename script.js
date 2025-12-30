@@ -3368,35 +3368,10 @@ async function addToGriListe(barcode, fromList, toList, user) {
     };
     
     try {
-        // ========================================
-        // TEKNİSYEN ARASI TRANSFER - EŞLEŞME SIFIRLAMA
-        // Teknisyen listeleri arasında transfer olunca
-        // eşleşme (yeşil) durumu sıfırlanır (kırmızıya döner)
-        // ========================================
-        const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
-        
-        if (technicianLists.includes(toList)) {
-            // Eşleşme verisini sil (kırmızıya dönsün)
-            await db.ref(`servis/eslesenler/${barcode}`).remove();
-            scannedCodes.delete(barcode);
-            
-            // Tüm listelerdeki eslesenler'den de sil
-            for (const listName of Object.keys(userCodes)) {
-                await db.ref(`servis/${listName}/eslesenler/${barcode}`).remove();
-            }
-            
-            console.log(`🔴 Eşleşme sıfırlandı: ${barcode} (teknisyen transferi)`);
-        }
-        // ========================================
-        
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
         renderGriListe();
         updateGriListeCount();
-        
-        // UI'ı güncelle (renk değişikliği için)
-        debouncedRenderList();
-        
         console.log(`⏳ Gri Listeye eklendi: ${barcode} (${fromList} → ${toList})`);
         return true;
     } catch (error) {
@@ -3442,19 +3417,6 @@ async function approveFromGriListe(barcode) {
             allCodes.add(barcode);
         }
         
-        // ========================================
-        // BARKOD OKUT İLE ONAYLANDI - EŞLEŞME YEŞİLE ÇEVİR
-        // Scanner ile onaylandığında eşleşme kaydedilir (yeşil)
-        // ========================================
-        scannedCodes.add(barcode);
-        await db.ref(`servis/eslesenler/${barcode}`).set(timestamp);
-        
-        // Hedef listedeki eslesenler'e de ekle
-        await db.ref(`servis/${dbPath}/eslesenler/${barcode}`).set(timestamp);
-        
-        console.log(`🟢 Eşleşme kaydedildi: ${barcode} (yeşil)`);
-        // ========================================
-        
         // 5. Geçmişe kaydet
         saveBarcodeHistory(barcode, 'griListe', toList, `${currentUserName} (Onaylandı - Orijinal: ${user})`);
         
@@ -3463,7 +3425,6 @@ async function approveFromGriListe(barcode) {
         renderMiniList(toList);
         renderGriListe();
         updateGriListeCount();
-        debouncedRenderList();
         
         // 7. Dashboard güncellemeleri
         if (toList === 'teslimEdilenler') {
@@ -6076,15 +6037,8 @@ function saveCodes(name, value) {
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
     if (specialLists.includes(name)) {
-        console.log(`📝 specialLists bloğu: name=${name}, shouldUseGriListe=${shouldUseGriListe}`);
-        
         codes.forEach(code => {
-            const alreadyInList = userCodes[name] && userCodes[name].has(code);
-            const alreadyInGriListe = griListeData && griListeData[code];
-            
-            console.log(`🔍 [specialLists] Barkod: ${code}, alreadyInList=${alreadyInList}, alreadyInGriListe=${alreadyInGriListe}`);
-            
-            if (!alreadyInList && !alreadyInGriListe) {
+            if (!userCodes[name].has(code) && !griListeData[code]) {
                 // Barkodun şu anki listesini bul
                 let previousList = null;
                 for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -6181,23 +6135,9 @@ function saveCodes(name, value) {
     // ========================================
     const griListeExcludedForOthers = ['teslimEdilenler'];
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
-    
-    // userCodes[name] yoksa oluştur
-    if (!userCodes[name]) {
-        userCodes[name] = new Set();
-        codeTimestamps[name] = {};
-        codeUsers[name] = {};
-    }
-
-    console.log(`📝 saveCodes çağrıldı: name=${name}, codes=${codes.length}, shouldUseGriListe=${shouldUseGriListeForAll}`);
 
     codes.forEach(code => {
-        const alreadyInList = userCodes[name] && userCodes[name].has(code);
-        const alreadyInGriListe = griListeData && griListeData[code];
-        
-        console.log(`🔍 Barkod kontrolü: ${code}, alreadyInList=${alreadyInList}, alreadyInGriListe=${alreadyInGriListe}`);
-        
-        if (!alreadyInList && !alreadyInGriListe) {
+        if (!userCodes[name].has(code) && !griListeData[code]) {
             
             // Gri Liste kontrolü - Tüm kullanıcılar için
             if (shouldUseGriListeForAll) {
@@ -6209,8 +6149,6 @@ function saveCodes(name, value) {
                         break;
                     }
                 }
-                
-                console.log(`⏳ Gri Listeye ekleniyor: ${code}, from=${previousList}, to=${name}`);
                 
                 // Önce kaynak listeden sil
                 if (previousList) {
@@ -6818,8 +6756,8 @@ function updateAdminStats() {
 
     const totalBarcodes = totalCodesWithOnarim.size;
 
-    // Teknisyen cihazlarını hesapla - SADECE BİLİNEN TEKNİSYEN LİSTELERİ
-    const teknisyenListeleri = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
+    // Teknisyen cihazlarını hesapla
+    const teknisyenListeleri = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet'];
     let toplamTeknisyenCihazlari = 0;
 
     teknisyenListeleri.forEach(teknisyen => {
@@ -6828,24 +6766,13 @@ function updateAdminStats() {
         }
     });
 
-    // Dinamik teknisyenleri de ekle (Firebase'den gelen, yukarıdaki listede olmayan teknisyenler)
-    // SADECE gerçek teknisyen pattern'ine uyan listeler eklenir
-    // Hariç tutulanlar: tüm sistem ve özel listeler
-    const excludeFromTechCount = [
-        // Sistem listeleri
-        'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onarimTamamlandi',
-        'onCamDisServis', 'anakartDisServis', 
-        'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler', 'SonKullanıcı',
-        // Parça türleri
-        'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 
-        'demontaj', 'montaj', 'yetkilendirme',
-        // Özel sistem listeleri
-        'eslesenler', 'history', 'adet', 'griListe', 'serviceReturns', 'partOrders', 'dashboard'
-    ];
-    
-    // Dinamik teknisyenler için: exclude listesinde OLMAYAN ve bilinen teknisyen listesinde de OLMAYAN
-    // KALDIRILDI - Sadece bilinen teknisyen listelerini say, dinamik ekleme yapma
-    // Bu sayede sadece gerçek teknisyenler sayılır
+    // Dinamik teknisyenleri de ekle
+    Object.keys(userCodes).forEach(key => {
+        if (!teknisyenListeleri.includes(key) &&
+            !['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'].includes(key)) {
+            toplamTeknisyenCihazlari += userCodes[key].size;
+        }
+    });
 
     document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
     document.getElementById('adminTeknisyenler').textContent = toplamTeknisyenCihazlari;
@@ -7071,57 +6998,38 @@ function setupSectionToggle(sectionElement, listId, labelId) {
     const label = document.getElementById(labelId);
     const textarea = list ? list.previousElementSibling : null;
 
-    // ✅ Sadece section ve label varsa devam et (list ve textarea boş olabilir)
-    if (sectionElement && label) {
-        // List ve textarea yoksa bul
-        const actualTextarea = textarea || sectionElement.querySelector('textarea');
-        const actualList = list || sectionElement.querySelector('.mini-list');
-        
-        if (actualList) actualList.style.display = 'none';
-        if (actualTextarea) actualTextarea.style.display = 'none';
+    if (sectionElement && list && textarea && label) {
+        list.style.display = 'none';
+        textarea.style.display = 'none';
         sectionElement.style.cursor = 'pointer';
 
         if (!label.textContent.includes('(Gizli)') && !label.textContent.includes('(Açık)')) {
             label.textContent = label.textContent.replace(' - ', ' - ') + ' (Gizli)';
         }
 
-        // Önceki event listener'ı kaldır (varsa)
-        const newSection = sectionElement.cloneNode(true);
-        if (sectionElement.parentNode) {
-            sectionElement.parentNode.replaceChild(newSection, sectionElement);
-        }
-        
-        // Yeni referansları al
-        const newTextarea = newSection.querySelector('textarea');
-        const newList = newSection.querySelector('.mini-list');
-        const newLabel = newSection.querySelector('label span') || newSection.querySelector('label');
-
-        newSection.addEventListener('click', (event) => {
-            if (event.target.tagName === 'TEXTAREA' ||
+        sectionElement.addEventListener('click', (event) => {
+            if (event.target === textarea ||
+                event.target.tagName === 'TEXTAREA' ||
                 event.target.tagName === 'INPUT' ||
                 event.target.closest('textarea') ||
                 event.target.closest('input')) {
                 return;
             }
 
-            const isHidden = !newList || newList.style.display === 'none';
-            
-            if (newList) newList.style.display = isHidden ? 'flex' : 'none';
-            if (newTextarea) newTextarea.style.display = isHidden ? 'block' : 'none';
-            
-            if (newLabel) {
-                newLabel.textContent = newLabel.textContent.replace(
-                    isHidden ? ' (Gizli)' : ' (Açık)',
-                    isHidden ? ' (Açık)' : ' (Gizli)'
-                );
+            if (list.style.display === 'none') {
+                list.style.display = 'flex';
+                textarea.style.display = 'block';
+                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
+            } else {
+                list.style.display = 'none';
+                textarea.style.display = 'none';
+                label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)');
             }
         });
 
-        if (newTextarea) {
-            newTextarea.addEventListener('click', (event) => {
-                event.stopPropagation();
-            });
-        }
+        textarea.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
     }
 }
 
@@ -7167,13 +7075,12 @@ function setupRightSectionToggles() {
         const textarea = section.querySelector('textarea');
         const miniList = section.querySelector('.mini-list');
 
-        // ✅ Sadece label varsa devam et (textarea ve miniList boş olabilir - sıfır adetli listeler için)
-        if (label && !section.dataset.toggleSetup) {
+        if (label && textarea && miniList && !section.dataset.toggleSetup) {
             section.dataset.toggleSetup = 'true'; // Tekrar kurulmasını önle
 
             // Başlangıçta gizli
-            if (textarea) textarea.style.display = 'none';
-            if (miniList) miniList.style.display = 'none';
+            textarea.style.display = 'none';
+            miniList.style.display = 'none';
 
             // Tüm section'a tıklanabilir yap
             section.style.cursor = 'pointer';
@@ -7185,18 +7092,13 @@ function setupRightSectionToggles() {
 
             // Section'a tıklama event'i
             section.addEventListener('click', (event) => {
-                if (event.target.tagName === 'TEXTAREA' || 
-                    event.target.tagName === 'INPUT' ||
-                    event.target.closest('textarea') ||
-                    event.target.closest('input')) {
-                    return; // Textarea/Input'a tıklandıysa işlem yapma
+                if (event.target === textarea || event.target.closest('textarea')) {
+                    return; // Textarea'ya tıklandıysa işlem yapma
                 }
 
-                const isHidden = !textarea || textarea.style.display === 'none';
-                
-                if (textarea) textarea.style.display = isHidden ? 'block' : 'none';
-                if (miniList) miniList.style.display = isHidden ? 'flex' : 'none';
-                
+                const isHidden = textarea.style.display === 'none';
+                textarea.style.display = isHidden ? 'block' : 'none';
+                miniList.style.display = isHidden ? 'flex' : 'none';
                 label.textContent = label.textContent.replace(
                     isHidden ? ' (Gizli)' : ' (Açık)',
                     isHidden ? ' (Açık)' : ' (Gizli)'
@@ -7204,11 +7106,9 @@ function setupRightSectionToggles() {
             });
 
             // Textarea tıklamasını section'a yayma
-            if (textarea) {
-                textarea.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                });
-            }
+            textarea.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
         }
     });
 }
