@@ -1873,7 +1873,31 @@ body::before {
     box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
-/* TEKNISYEN BARKOD RENK SİSTEMİ - KIRMIZI/YEŞİL */
+/* TEKNİSYEN LİSTELERİ - SABİT RENK (Mavi tonları) */
+.mini-item.technician {
+    background: rgba(52, 152, 219, 0.2) !important;
+    border-color: #3498db !important;
+    border-left: 4px solid #3498db !important;
+}
+
+.mini-item.technician:hover {
+    background: rgba(52, 152, 219, 0.3) !important;
+    border-color: #2980b9 !important;
+}
+
+/* DİĞER LİSTELER - VARSAYILAN STİL */
+.mini-item.default-item {
+    background: rgba(149, 165, 166, 0.2) !important;
+    border-color: #95a5a6 !important;
+    border-left: 4px solid #95a5a6 !important;
+}
+
+.mini-item.default-item:hover {
+    background: rgba(149, 165, 166, 0.3) !important;
+    border-color: #7f8c8d !important;
+}
+
+/* LEGACY: matched/unmatched - Geriye uyumluluk için korunuyor */
 .mini-item.unmatched {
     background: rgba(231, 76, 60, 0.2) !important;
     border-color: #e74c3c !important;
