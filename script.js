@@ -3657,12 +3657,21 @@ function showToast(message, type = 'info') {
 
     container.appendChild(toast);
 
+    // Onay listesi ve transfer bildirimleri için daha uzun süre (5 saniye)
+    // Diğer bildirimler için standart süre (3.5 saniye)
+    const isImportantNotification = message.includes('onay listesine') || 
+                                    message.includes('listesine transfer edildi') ||
+                                    message.includes('listesine eklendi');
+    const displayDuration = isImportantNotification ? 5000 : 3500;
+
     setTimeout(() => {
         toast.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => {
-            container.removeChild(toast);
+            if (toast.parentNode === container) {
+                container.removeChild(toast);
+            }
         }, 300);
-    }, 3000);
+    }, displayDuration);
 }
 
 // ========================================
@@ -6025,11 +6034,26 @@ function saveCodes(name, value) {
 
     isUpdating = true;
 
-    const rawLines = value.trim().split("\n").map(l => l.trim()).filter(l => l.length > 0);
-    const codes = rawLines.map(line => {
-        const m = line.match(/(\d{15})/);
-        return m ? m[1] : null;
-    }).filter(Boolean);
+    // ========================================
+    // GELİŞTİRİLMİŞ BARKOD AYRIŞTIRMA
+    // Birden fazla IMEI yapıştırıldığında hepsini yakala
+    // Desteklenen ayraçlar: yeni satır, boşluk, tab, virgül, noktalı virgül
+    // ========================================
+    
+    // Önce tüm 15 haneli sayıları bul (global arama)
+    const allMatches = value.match(/\d{15}/g);
+    const codes = allMatches ? [...new Set(allMatches)] : []; // Tekrar edenleri kaldır
+    
+    // Eğer hiç kod bulunamazsa, eski yöntemi de dene (satır bazlı)
+    if (codes.length === 0) {
+        const rawLines = value.trim().split(/[\n\r\t,;\s]+/).map(l => l.trim()).filter(l => l.length > 0);
+        rawLines.forEach(line => {
+            const m = line.match(/(\d{15})/);
+            if (m && !codes.includes(m[1])) {
+                codes.push(m[1]);
+            }
+        });
+    }
 
     const timestamp = getTimestamp();
 
@@ -6409,24 +6433,49 @@ inputs.scanner.addEventListener("input", e => {
     clearTimeout(scannerTimeout);
     scannerTimeout = setTimeout(() => {
         const raw = e.target.value.trim();
-        const m = raw.match(/(\d{15})/);
-        const code = m ? m[1] : null;
-
-        if (code) {
-            // ========================================
-            // GRİ LİSTE KONTROLÜ - Barkod gri listede mi bak
-            // ========================================
-            if (griListeData[code]) {
-                // Gri listedeki barkodu onayla ve hedef listeye transfer et
-                approveFromGriListe(code);
-                e.target.value = "";
-                return;
-            }
-            // ========================================
+        
+        // ========================================
+        // ÇOKLU IMEI DESTEĞİ
+        // Birden fazla IMEI yapıştırıldığında hepsini işle
+        // ========================================
+        const allMatches = raw.match(/\d{15}/g);
+        
+        if (allMatches && allMatches.length > 0) {
+            // Tekrar edenleri kaldır
+            const uniqueCodes = [...new Set(allMatches)];
             
-            // Gri listede değilse bilgi ver
-            showToast(`Barkod gri listede bulunamadı: ${code}`, 'info');
+            let processedCount = 0;
+            let notFoundCount = 0;
+            
+            uniqueCodes.forEach(code => {
+                // ========================================
+                // GRİ LİSTE KONTROLÜ - Barkod gri listede mi bak
+                // ========================================
+                if (griListeData[code]) {
+                    // Gri listedeki barkodu onayla ve hedef listeye transfer et
+                    approveFromGriListe(code);
+                    processedCount++;
+                } else {
+                    notFoundCount++;
+                }
+            });
+            
+            // Sonuç bildirimi
+            if (uniqueCodes.length > 1) {
+                // Birden fazla IMEI işlendi
+                if (processedCount > 0 && notFoundCount > 0) {
+                    showToast(`${processedCount} barkod onaylandı, ${notFoundCount} barkod gri listede bulunamadı`, 'info');
+                } else if (processedCount > 0) {
+                    showToast(`${processedCount} barkod başarıyla onaylandı`, 'success');
+                } else {
+                    showToast(`${notFoundCount} barkod gri listede bulunamadı`, 'warning');
+                }
+            } else if (notFoundCount === 1) {
+                // Tek IMEI ve bulunamadı
+                showToast(`Barkod gri listede bulunamadı: ${uniqueCodes[0]}`, 'info');
+            }
         }
+        
         e.target.value = "";
     }, 150);
 });
