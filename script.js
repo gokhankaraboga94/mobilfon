@@ -9432,7 +9432,7 @@ window.addEventListener('load', () => {
     }, 5000);
 
     // Her 30 dakikada bir kontrol et (Performance Optimized)
-    setInterval(checkTimeouts, 30 * 60 * 1000);
+    setInterval(checkTimeouts, 60 * 60 * 1000);
 });
 
 async function checkTimeouts() {
