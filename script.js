@@ -3368,10 +3368,35 @@ async function addToGriListe(barcode, fromList, toList, user) {
     };
     
     try {
+        // ========================================
+        // TEKNİSYEN ARASI TRANSFER - EŞLEŞME SIFIRLAMA
+        // Teknisyen listeleri arasında transfer olunca
+        // eşleşme (yeşil) durumu sıfırlanır (kırmızıya döner)
+        // ========================================
+        const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+        
+        if (technicianLists.includes(toList)) {
+            // Eşleşme verisini sil (kırmızıya dönsün)
+            await db.ref(`servis/eslesenler/${barcode}`).remove();
+            scannedCodes.delete(barcode);
+            
+            // Tüm listelerdeki eslesenler'den de sil
+            for (const listName of Object.keys(userCodes)) {
+                await db.ref(`servis/${listName}/eslesenler/${barcode}`).remove();
+            }
+            
+            console.log(`🔴 Eşleşme sıfırlandı: ${barcode} (teknisyen transferi)`);
+        }
+        // ========================================
+        
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
         renderGriListe();
         updateGriListeCount();
+        
+        // UI'ı güncelle (renk değişikliği için)
+        debouncedRenderList();
+        
         console.log(`⏳ Gri Listeye eklendi: ${barcode} (${fromList} → ${toList})`);
         return true;
     } catch (error) {
@@ -3417,6 +3442,19 @@ async function approveFromGriListe(barcode) {
             allCodes.add(barcode);
         }
         
+        // ========================================
+        // BARKOD OKUT İLE ONAYLANDI - EŞLEŞME YEŞİLE ÇEVİR
+        // Scanner ile onaylandığında eşleşme kaydedilir (yeşil)
+        // ========================================
+        scannedCodes.add(barcode);
+        await db.ref(`servis/eslesenler/${barcode}`).set(timestamp);
+        
+        // Hedef listedeki eslesenler'e de ekle
+        await db.ref(`servis/${dbPath}/eslesenler/${barcode}`).set(timestamp);
+        
+        console.log(`🟢 Eşleşme kaydedildi: ${barcode} (yeşil)`);
+        // ========================================
+        
         // 5. Geçmişe kaydet
         saveBarcodeHistory(barcode, 'griListe', toList, `${currentUserName} (Onaylandı - Orijinal: ${user})`);
         
@@ -3425,6 +3463,7 @@ async function approveFromGriListe(barcode) {
         renderMiniList(toList);
         renderGriListe();
         updateGriListeCount();
+        debouncedRenderList();
         
         // 7. Dashboard güncellemeleri
         if (toList === 'teslimEdilenler') {
@@ -4819,11 +4858,10 @@ function createTechnicianSection(techName, container) {
 
     setTimeout(() => {
         const sectionElem = document.querySelector(`[data-section="${techName}"]`);
-        const labelElem = document.getElementById(`${techName}Label`);
+        const list = document.getElementById(`${techName}List`);
 
-        // Sadece sectionElem ve labelElem yeterli - list boş olabilir
-        if (sectionElem && labelElem && !sectionElem.dataset.toggleSetup) {
-            sectionElem.dataset.toggleSetup = 'true';
+        if (sectionElem && list && !list.dataset.toggleSetup) {
+            list.dataset.toggleSetup = 'true';
             setupSectionToggle(sectionElem, `${techName}List`, `${techName}Label`);
         }
     }, 100);
@@ -6038,18 +6076,8 @@ function saveCodes(name, value) {
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
     if (specialLists.includes(name)) {
-        // userCodes[name] yoksa oluştur
-        if (!userCodes[name]) {
-            userCodes[name] = new Set();
-            codeTimestamps[name] = {};
-            codeUsers[name] = {};
-        }
-        
         codes.forEach(code => {
-            const alreadyInList = userCodes[name] && userCodes[name].has && userCodes[name].has(code);
-            const alreadyInGriListe = griListeData && griListeData[code];
-            
-            if (!alreadyInList && !alreadyInGriListe) {
+            if (!userCodes[name].has(code) && !griListeData[code]) {
                 // Barkodun şu anki listesini bul
                 let previousList = null;
                 for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -6146,19 +6174,9 @@ function saveCodes(name, value) {
     // ========================================
     const griListeExcludedForOthers = ['teslimEdilenler'];
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
-    
-    // userCodes[name] yoksa oluştur
-    if (!userCodes[name]) {
-        userCodes[name] = new Set();
-        codeTimestamps[name] = {};
-        codeUsers[name] = {};
-    }
 
     codes.forEach(code => {
-        const alreadyInList = userCodes[name] && userCodes[name].has && userCodes[name].has(code);
-        const alreadyInGriListe = griListeData && griListeData[code];
-        
-        if (!alreadyInList && !alreadyInGriListe) {
+        if (!userCodes[name].has(code) && !griListeData[code]) {
             
             // Gri Liste kontrolü - Tüm kullanıcılar için
             if (shouldUseGriListeForAll) {
@@ -6777,19 +6795,34 @@ function updateAdminStats() {
 
     const totalBarcodes = totalCodesWithOnarim.size;
 
-    // Teknisyen cihazlarını hesapla - SADECE TEKNİSYEN LİSTELERİ
+    // Teknisyen cihazlarını hesapla - SADECE BİLİNEN TEKNİSYEN LİSTELERİ
     const teknisyenListeleri = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
     let toplamTeknisyenCihazlari = 0;
 
-    // Sadece bilinen teknisyen listelerini topla
     teknisyenListeleri.forEach(teknisyen => {
         if (userCodes[teknisyen]) {
             toplamTeknisyenCihazlari += userCodes[teknisyen].size;
         }
     });
+
+    // Dinamik teknisyenleri de ekle (Firebase'den gelen, yukarıdaki listede olmayan teknisyenler)
+    // SADECE gerçek teknisyen pattern'ine uyan listeler eklenir
+    // Hariç tutulanlar: tüm sistem ve özel listeler
+    const excludeFromTechCount = [
+        // Sistem listeleri
+        'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onarimTamamlandi',
+        'onCamDisServis', 'anakartDisServis', 
+        'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler', 'SonKullanıcı',
+        // Parça türleri
+        'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 
+        'demontaj', 'montaj', 'yetkilendirme',
+        // Özel sistem listeleri
+        'eslesenler', 'history', 'adet', 'griListe', 'serviceReturns', 'partOrders', 'dashboard'
+    ];
     
-    // NOT: Dinamik teknisyen ekleme kaldırıldı - sadece bilinen teknisyenler sayılır
-    // Bu sayede parça türleri, SonKullanıcı vb. listeler yanlışlıkla eklenmez
+    // Dinamik teknisyenler için: exclude listesinde OLMAYAN ve bilinen teknisyen listesinde de OLMAYAN
+    // KALDIRILDI - Sadece bilinen teknisyen listelerini say, dinamik ekleme yapma
+    // Bu sayede sadece gerçek teknisyenler sayılır
 
     document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
     document.getElementById('adminTeknisyenler').textContent = toplamTeknisyenCihazlari;
@@ -7013,46 +7046,58 @@ window.addEventListener('load', function () {
 function setupSectionToggle(sectionElement, listId, labelId) {
     const list = document.getElementById(listId);
     const label = document.getElementById(labelId);
-    // Textarea'yı section içinden bul (daha güvenilir)
-    const textarea = sectionElement ? sectionElement.querySelector('textarea') : null;
+    const textarea = list ? list.previousElementSibling : null;
 
-    // Sadece sectionElement ve label yeterli - list ve textarea boş olabilir (sıfır adetli listeler için)
+    // ✅ Sadece section ve label varsa devam et (list ve textarea boş olabilir)
     if (sectionElement && label) {
-        if (list) list.style.display = 'none';
-        if (textarea) textarea.style.display = 'none';
+        // List ve textarea yoksa bul
+        const actualTextarea = textarea || sectionElement.querySelector('textarea');
+        const actualList = list || sectionElement.querySelector('.mini-list');
+        
+        if (actualList) actualList.style.display = 'none';
+        if (actualTextarea) actualTextarea.style.display = 'none';
         sectionElement.style.cursor = 'pointer';
 
         if (!label.textContent.includes('(Gizli)') && !label.textContent.includes('(Açık)')) {
             label.textContent = label.textContent.replace(' - ', ' - ') + ' (Gizli)';
         }
 
-        // Önceki event listener'ı temizle (duplicate önleme)
-        if (!sectionElement.dataset.toggleSetup) {
-            sectionElement.dataset.toggleSetup = 'true';
-            
-            sectionElement.addEventListener('click', (event) => {
-                if (event.target.tagName === 'TEXTAREA' ||
-                    event.target.tagName === 'INPUT' ||
-                    event.target.closest('textarea') ||
-                    event.target.closest('input')) {
-                    return;
-                }
+        // Önceki event listener'ı kaldır (varsa)
+        const newSection = sectionElement.cloneNode(true);
+        if (sectionElement.parentNode) {
+            sectionElement.parentNode.replaceChild(newSection, sectionElement);
+        }
+        
+        // Yeni referansları al
+        const newTextarea = newSection.querySelector('textarea');
+        const newList = newSection.querySelector('.mini-list');
+        const newLabel = newSection.querySelector('label span') || newSection.querySelector('label');
 
-                const isHidden = !list || list.style.display === 'none';
-                
-                if (list) list.style.display = isHidden ? 'flex' : 'none';
-                if (textarea) textarea.style.display = isHidden ? 'block' : 'none';
-                label.textContent = label.textContent.replace(
+        newSection.addEventListener('click', (event) => {
+            if (event.target.tagName === 'TEXTAREA' ||
+                event.target.tagName === 'INPUT' ||
+                event.target.closest('textarea') ||
+                event.target.closest('input')) {
+                return;
+            }
+
+            const isHidden = !newList || newList.style.display === 'none';
+            
+            if (newList) newList.style.display = isHidden ? 'flex' : 'none';
+            if (newTextarea) newTextarea.style.display = isHidden ? 'block' : 'none';
+            
+            if (newLabel) {
+                newLabel.textContent = newLabel.textContent.replace(
                     isHidden ? ' (Gizli)' : ' (Açık)',
                     isHidden ? ' (Açık)' : ' (Gizli)'
                 );
-            });
-
-            if (textarea) {
-                textarea.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                });
             }
+        });
+
+        if (newTextarea) {
+            newTextarea.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
         }
     }
 }
@@ -7066,11 +7111,10 @@ function setupAllSectionToggles() {
         const sectionName = section.getAttribute('data-section');
         const listId = `${sectionName}List`;
         const labelId = `${sectionName}Label`;
-        const label = document.getElementById(labelId);
 
-        // Sadece section ve label yeterli - list boş olabilir (sıfır adetli listeler için)
-        if (label && !section.dataset.toggleSetup) {
-            section.dataset.toggleSetup = 'true';
+        const list = document.getElementById(listId);
+        if (list && !list.dataset.toggleSetup) {
+            list.dataset.toggleSetup = 'true';
             setupSectionToggle(section, listId, labelId);
         }
     });
@@ -7100,7 +7144,7 @@ function setupRightSectionToggles() {
         const textarea = section.querySelector('textarea');
         const miniList = section.querySelector('.mini-list');
 
-        // Sadece label yeterli - textarea ve miniList boş olabilir (sıfır adetli listeler için)
+        // ✅ Sadece label varsa devam et (textarea ve miniList boş olabilir - sıfır adetli listeler için)
         if (label && !section.dataset.toggleSetup) {
             section.dataset.toggleSetup = 'true'; // Tekrar kurulmasını önle
 
@@ -7126,8 +7170,10 @@ function setupRightSectionToggles() {
                 }
 
                 const isHidden = !textarea || textarea.style.display === 'none';
+                
                 if (textarea) textarea.style.display = isHidden ? 'block' : 'none';
                 if (miniList) miniList.style.display = isHidden ? 'flex' : 'none';
+                
                 label.textContent = label.textContent.replace(
                     isHidden ? ' (Gizli)' : ' (Açık)',
                     isHidden ? ' (Açık)' : ' (Gizli)'
