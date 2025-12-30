@@ -6795,8 +6795,8 @@ function updateAdminStats() {
 
     const totalBarcodes = totalCodesWithOnarim.size;
 
-    // Teknisyen cihazlarını hesapla
-    const teknisyenListeleri = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet'];
+    // Teknisyen cihazlarını hesapla - SADECE BİLİNEN TEKNİSYEN LİSTELERİ
+    const teknisyenListeleri = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
     let toplamTeknisyenCihazlari = 0;
 
     teknisyenListeleri.forEach(teknisyen => {
@@ -6805,13 +6805,24 @@ function updateAdminStats() {
         }
     });
 
-    // Dinamik teknisyenleri de ekle
-    Object.keys(userCodes).forEach(key => {
-        if (!teknisyenListeleri.includes(key) &&
-            !['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'].includes(key)) {
-            toplamTeknisyenCihazlari += userCodes[key].size;
-        }
-    });
+    // Dinamik teknisyenleri de ekle (Firebase'den gelen, yukarıdaki listede olmayan teknisyenler)
+    // SADECE gerçek teknisyen pattern'ine uyan listeler eklenir
+    // Hariç tutulanlar: tüm sistem ve özel listeler
+    const excludeFromTechCount = [
+        // Sistem listeleri
+        'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onarimTamamlandi',
+        'onCamDisServis', 'anakartDisServis', 
+        'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler', 'SonKullanıcı',
+        // Parça türleri
+        'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 
+        'demontaj', 'montaj', 'yetkilendirme',
+        // Özel sistem listeleri
+        'eslesenler', 'history', 'adet', 'griListe', 'serviceReturns', 'partOrders', 'dashboard'
+    ];
+    
+    // Dinamik teknisyenler için: exclude listesinde OLMAYAN ve bilinen teknisyen listesinde de OLMAYAN
+    // KALDIRILDI - Sadece bilinen teknisyen listelerini say, dinamik ekleme yapma
+    // Bu sayede sadece gerçek teknisyenler sayılır
 
     document.getElementById('adminTotalBarcodes').textContent = totalBarcodes;
     document.getElementById('adminTeknisyenler').textContent = toplamTeknisyenCihazlari;
@@ -7037,38 +7048,57 @@ function setupSectionToggle(sectionElement, listId, labelId) {
     const label = document.getElementById(labelId);
     const textarea = list ? list.previousElementSibling : null;
 
-    if (sectionElement && list && textarea && label) {
-        list.style.display = 'none';
-        textarea.style.display = 'none';
+    // ✅ Sadece section ve label varsa devam et (list ve textarea boş olabilir)
+    if (sectionElement && label) {
+        // List ve textarea yoksa bul
+        const actualTextarea = textarea || sectionElement.querySelector('textarea');
+        const actualList = list || sectionElement.querySelector('.mini-list');
+        
+        if (actualList) actualList.style.display = 'none';
+        if (actualTextarea) actualTextarea.style.display = 'none';
         sectionElement.style.cursor = 'pointer';
 
         if (!label.textContent.includes('(Gizli)') && !label.textContent.includes('(Açık)')) {
             label.textContent = label.textContent.replace(' - ', ' - ') + ' (Gizli)';
         }
 
-        sectionElement.addEventListener('click', (event) => {
-            if (event.target === textarea ||
-                event.target.tagName === 'TEXTAREA' ||
+        // Önceki event listener'ı kaldır (varsa)
+        const newSection = sectionElement.cloneNode(true);
+        if (sectionElement.parentNode) {
+            sectionElement.parentNode.replaceChild(newSection, sectionElement);
+        }
+        
+        // Yeni referansları al
+        const newTextarea = newSection.querySelector('textarea');
+        const newList = newSection.querySelector('.mini-list');
+        const newLabel = newSection.querySelector('label span') || newSection.querySelector('label');
+
+        newSection.addEventListener('click', (event) => {
+            if (event.target.tagName === 'TEXTAREA' ||
                 event.target.tagName === 'INPUT' ||
                 event.target.closest('textarea') ||
                 event.target.closest('input')) {
                 return;
             }
 
-            if (list.style.display === 'none') {
-                list.style.display = 'flex';
-                textarea.style.display = 'block';
-                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
-            } else {
-                list.style.display = 'none';
-                textarea.style.display = 'none';
-                label.textContent = label.textContent.replace(' (Açık)', ' (Gizli)');
+            const isHidden = !newList || newList.style.display === 'none';
+            
+            if (newList) newList.style.display = isHidden ? 'flex' : 'none';
+            if (newTextarea) newTextarea.style.display = isHidden ? 'block' : 'none';
+            
+            if (newLabel) {
+                newLabel.textContent = newLabel.textContent.replace(
+                    isHidden ? ' (Gizli)' : ' (Açık)',
+                    isHidden ? ' (Açık)' : ' (Gizli)'
+                );
             }
         });
 
-        textarea.addEventListener('click', (event) => {
-            event.stopPropagation();
-        });
+        if (newTextarea) {
+            newTextarea.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
+        }
     }
 }
 
@@ -7114,12 +7144,13 @@ function setupRightSectionToggles() {
         const textarea = section.querySelector('textarea');
         const miniList = section.querySelector('.mini-list');
 
-        if (label && textarea && miniList && !section.dataset.toggleSetup) {
+        // ✅ Sadece label varsa devam et (textarea ve miniList boş olabilir - sıfır adetli listeler için)
+        if (label && !section.dataset.toggleSetup) {
             section.dataset.toggleSetup = 'true'; // Tekrar kurulmasını önle
 
             // Başlangıçta gizli
-            textarea.style.display = 'none';
-            miniList.style.display = 'none';
+            if (textarea) textarea.style.display = 'none';
+            if (miniList) miniList.style.display = 'none';
 
             // Tüm section'a tıklanabilir yap
             section.style.cursor = 'pointer';
@@ -7131,13 +7162,18 @@ function setupRightSectionToggles() {
 
             // Section'a tıklama event'i
             section.addEventListener('click', (event) => {
-                if (event.target === textarea || event.target.closest('textarea')) {
-                    return; // Textarea'ya tıklandıysa işlem yapma
+                if (event.target.tagName === 'TEXTAREA' || 
+                    event.target.tagName === 'INPUT' ||
+                    event.target.closest('textarea') ||
+                    event.target.closest('input')) {
+                    return; // Textarea/Input'a tıklandıysa işlem yapma
                 }
 
-                const isHidden = textarea.style.display === 'none';
-                textarea.style.display = isHidden ? 'block' : 'none';
-                miniList.style.display = isHidden ? 'flex' : 'none';
+                const isHidden = !textarea || textarea.style.display === 'none';
+                
+                if (textarea) textarea.style.display = isHidden ? 'block' : 'none';
+                if (miniList) miniList.style.display = isHidden ? 'flex' : 'none';
+                
                 label.textContent = label.textContent.replace(
                     isHidden ? ' (Gizli)' : ' (Açık)',
                     isHidden ? ' (Açık)' : ' (Gizli)'
@@ -7145,9 +7181,11 @@ function setupRightSectionToggles() {
             });
 
             // Textarea tıklamasını section'a yayma
-            textarea.addEventListener('click', (event) => {
-                event.stopPropagation();
-            });
+            if (textarea) {
+                textarea.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
+            }
         }
     });
 }
