@@ -6765,21 +6765,13 @@ function updateAdminStats() {
 
     const totalBarcodes = totalCodesWithOnarim.size;
 
-    // Teknisyen cihazlarını hesapla
-    const teknisyenListeleri = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet'];
+    // Teknisyen cihazlarını hesapla - SADECE BELİRTİLEN 8 TEKNİSYEN
+    const teknisyenListeleri = ['gokhan', 'yusuf', 'enes', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
     let toplamTeknisyenCihazlari = 0;
 
     teknisyenListeleri.forEach(teknisyen => {
         if (userCodes[teknisyen]) {
             toplamTeknisyenCihazlari += userCodes[teknisyen].size;
-        }
-    });
-
-    // Dinamik teknisyenleri de ekle
-    Object.keys(userCodes).forEach(key => {
-        if (!teknisyenListeleri.includes(key) &&
-            !['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'].includes(key)) {
-            toplamTeknisyenCihazlari += userCodes[key].size;
         }
     });
 
