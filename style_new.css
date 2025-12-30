@@ -5192,9 +5192,10 @@ button[id*="Btn"] {
     background: linear-gradient(135deg, rgba(30, 35, 60, 0.95) 0%, rgba(45, 53, 97, 0.95) 100%);
     backdrop-filter: blur(20px);
     border-radius: 16px;
-    padding: 25px;
+    padding: 35px;
     margin: 20px auto;
-    max-width: 1400px;
+    max-width: 95vw;
+    width: 100%;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -5205,25 +5206,25 @@ button[id*="Btn"] {
 }
 
 .parts-dashboard-header h2 {
-    font-size: 24px;
+    font-size: 32px;
     font-weight: 700;
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin: 0 0 5px 0;
+    margin: 0 0 10px 0;
 }
 
 .parts-dashboard-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
 }
 
 .parts-stat-card {
     background: rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 18px 12px;
+    border-radius: 14px;
+    padding: 25px 18px;
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.12);
     transition: all 0.3s ease;
@@ -5249,20 +5250,20 @@ button[id*="Btn"] {
 }
 
 .parts-stat-icon {
-    font-size: 24px;
-    margin-bottom: 8px;
+    font-size: 32px;
+    margin-bottom: 12px;
     display: block;
 }
 
 .parts-stat-value {
-    font-size: 28px;
+    font-size: 36px;
     font-weight: 700;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     line-height: 1;
 }
 
 .parts-stat-label {
-    font-size: 10px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.7);
     text-transform: uppercase;
     letter-spacing: 0.5px;
