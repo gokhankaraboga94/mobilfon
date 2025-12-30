@@ -5683,40 +5683,28 @@ body.light-mode .parts-stat-label {
     color: rgba(173, 181, 189, 0.6);
 }
 
-.gri-liste-actions {
+.gri-liste-scan-hint {
     display: flex;
-    gap: 8px;
+    align-items: center;
     margin-left: 15px;
-}
-
-.gri-liste-btn {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
+    padding: 8px 12px;
+    background: rgba(52, 152, 219, 0.2);
+    border: 1px dashed rgba(52, 152, 219, 0.5);
+    border-radius: 8px;
+    color: #5dade2;
+    font-size: 11px;
     font-weight: 600;
-    transition: all 0.2s ease;
+    animation: pulse-hint 2s infinite;
 }
 
-.gri-liste-btn.approve {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
+@keyframes pulse-hint {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
 }
 
-.gri-liste-btn.approve:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
-}
-
-.gri-liste-btn.reject {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-}
-
-.gri-liste-btn.reject:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+body.light-mode .gri-liste-scan-hint {
+    background: rgba(52, 152, 219, 0.1);
+    color: #2980b9;
 }
 
 /* Gri Liste Badge - Navbar için */
@@ -5839,9 +5827,9 @@ body.light-mode .gri-liste-user {
         gap: 10px;
     }
 
-    .gri-liste-actions {
+    .gri-liste-scan-hint {
         margin-left: 0;
         width: 100%;
-        justify-content: flex-end;
+        justify-content: center;
     }
 }
