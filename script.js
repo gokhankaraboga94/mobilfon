@@ -3357,8 +3357,6 @@ let griListeData = {}; // {barcode: {fromList, toList, user, timestamp}}
 
 // Gri Listeye ekleme
 async function addToGriListe(barcode, fromList, toList, user) {
-    console.log(`🟡 [addToGriListe] BAŞLADI - barcode: ${barcode}, from: ${fromList}, to: ${toList}, user: ${user}`);
-    
     const timestamp = getTimestamp();
     const griItem = {
         barcode: barcode,
@@ -3370,42 +3368,29 @@ async function addToGriListe(barcode, fromList, toList, user) {
     };
     
     try {
-        // ========================================
         // TEKNİSYEN ARASI TRANSFER - EŞLEŞME SIFIRLAMA
-        // Teknisyen listeleri arasında transfer olunca
-        // eşleşme (yeşil) durumu sıfırlanır (kırmızıya döner)
-        // ========================================
         const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
         
         if (technicianLists.includes(toList)) {
-            // Eşleşme verisini sil (kırmızıya dönsün)
             await db.ref(`servis/eslesenler/${barcode}`).remove();
             scannedCodes.delete(barcode);
             
-            // Tüm listelerdeki eslesenler'den de sil
             for (const listName of Object.keys(userCodes)) {
                 await db.ref(`servis/${listName}/eslesenler/${barcode}`).remove();
             }
-            
-            console.log(`🔴 Eşleşme sıfırlandı: ${barcode} (teknisyen transferi)`);
         }
-        // ========================================
         
-        console.log(`🟡 [addToGriListe] Firebase'e yazılıyor...`);
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
-        console.log(`🟢 [addToGriListe] Firebase'e yazıldı, griListeData güncellendi`);
         
         renderGriListe();
         updateGriListeCount();
-        
-        // UI'ı güncelle (renk değişikliği için)
         debouncedRenderList();
         
         console.log(`⏳ Gri Listeye eklendi: ${barcode} (${fromList} → ${toList})`);
         return true;
     } catch (error) {
-        console.error('❌ Gri Listeye ekleme hatası:', error);
+        console.error('Gri Listeye ekleme hatası:', error);
         return false;
     }
 }
@@ -5995,17 +5980,8 @@ function debouncedSaveCodes(name, value) {
 }
 
 function saveCodes(name, value) {
-    console.log(`🔧 [saveCodes] Çağrıldı - name: ${name}, value length: ${value?.length || 0}`);
-    
-    if (isUpdating || !dataLoaded) {
-        console.log(`⚠️ [saveCodes] DURDURULDU - isUpdating: ${isUpdating}, dataLoaded: ${dataLoaded}`);
-        return;
-    }
-
-    if (currentUserRole === 'semi-admin') {
-        console.log(`⚠️ [saveCodes] DURDURULDU - semi-admin rolü`);
-        return;
-    }
+    if (isUpdating || !dataLoaded) return;
+    if (currentUserRole === 'semi-admin') return;
 
     // Teknisyen kullanıcı listesi (rol 'viewer' olsa bile bu isimler teknisyen sayılır)
     const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
@@ -6013,52 +5989,31 @@ function saveCodes(name, value) {
     
     // ========================================
     // TEKNİSYEN LİSTELERİNE CİHAZ ATAMA YETKİSİ
-    // Teknisyenler KENDİ listelerine cihaz atayamaz
-    // Ancak DİĞER teknisyen listelerine atama yapabilir
-    // Örnek: samet -> gokhan OK, samet -> samet YASAK
     // ========================================
     const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
     const isTechnicianRole = currentUserRole === 'technician' || technicianUserNames.includes(currentUserName);
     
-    // Teknisyen kendi listesine yazamaz
     if (technicianLists.includes(name) && name === currentUserName && isTechnicianRole) {
         showToast('Kendi listenize cihaz atama yetkiniz yok! Sadece admin/düzenleyici atama yapabilir.', 'warning');
         return;
     }
-    // ========================================
     
     const isTechnicianUser = currentUserRole === 'technician' || currentUserRole === 'editor' || technicianUserNames.includes(currentUserName);
 
-    // Teknisyen kullanıcılar için parça türleri izni
     if (isTechnicianUser && partTypeSections.includes(name)) {
-        // Parça türleri için teknisyenlere izin var, devam et (semi-admin hariç yukarıda kontrol edildi)
     } else if (currentUserRole === 'technician') {
-        // Teknisyenler diğer teknisyen listelerine yazabilir (kendi listesi yukarıda engellendi)
         if (technicianLists.includes(name) && name !== currentUserName) {
-            // Diğer teknisyen listelerine yazma izni var, devam et
         } else if (currentUserPermissions && currentUserPermissions[name]) {
-            if (currentUserPermissions[name] === 'view') {
-                return;
-            }
+            if (currentUserPermissions[name] === 'view') return;
         } else if (!partTypeSections.includes(name) && !technicianLists.includes(name)) {
             return;
         }
     } else if (currentUserRole === 'viewer' && technicianUserNames.includes(currentUserName)) {
-        // Viewer rolündeki teknisyenler için - diğer teknisyen listelerine ve parça türlerine yazabilir
-        // Kendi listesi yukarıda engellendi
-        if (!partTypeSections.includes(name) && !technicianLists.includes(name)) {
-            return;
-        }
-    } else if (currentUserRole === 'editor') {
-        // Editor tüm teknisyen listelerine ve parça türlerine yazabilir (yukarıda kontrol edildi)
-        // Diğer listeler için normal akış
+        if (!partTypeSections.includes(name) && !technicianLists.includes(name)) return;
     }
 
-    if (name === 'onarim' && currentUserName !== 'yusuf' && currentUserName !== 'mert' && currentUserName !== 'admin') {
-        return;
-    }
+    if (name === 'onarim' && currentUserName !== 'yusuf' && currentUserName !== 'mert' && currentUserName !== 'admin') return;
 
-    // ✅ DEĞİŞTİRİLDİ: Admin, mehmet ve samet kullanıcıları teslim edilenler alanına veri girebilir
     if (name === 'teslimEdilenler' && currentUserRole !== 'admin' && currentUserName !== 'mehmet' && currentUserName !== 'samet') {
         showToast('Sadece admin, mehmet ve samet kullanıcıları teslim edilenler listesine veri girebilir!', 'warning');
         return;
@@ -6073,136 +6028,14 @@ function saveCodes(name, value) {
     }).filter(Boolean);
 
     const timestamp = getTimestamp();
-
-    const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler', 'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
     const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
-
+    
     // ========================================
-    // GRİ LİSTE KONTROLÜ - TÜM KULLANICILAR VE TÜM LİSTELER
-    // Admin dahil herkes için transferler gri listeye düşer
-    // HARIÇ: teslimEdilenler - direkt transfer olur
+    // GRİ LİSTE SİSTEMİ
+    // teslimEdilenler HARİÇ tüm transferler gri listeye düşer
     // ========================================
-    const griListeExcludedLists = ['teslimEdilenler']; // Bu listeler gri listeye düşmez
-    const shouldUseGriListe = !griListeExcludedLists.includes(name);
-
-    // saveCodes fonksiyonunda (satır ~1020 civarı)
-    if (specialLists.includes(name)) {
-        // userCodes[name] yoksa oluştur
-        if (!userCodes[name]) {
-            userCodes[name] = new Set();
-            codeTimestamps[name] = {};
-            codeUsers[name] = {};
-        }
-        
-        console.log(`📝 [GRİ LİSTE DEBUG] specialLists bloğu - name: ${name}, shouldUseGriListe: ${shouldUseGriListe}, codes: ${codes.length}`);
-        
-        codes.forEach(code => {
-            const alreadyInList = userCodes[name] && userCodes[name].has && userCodes[name].has(code);
-            const alreadyInGriListe = griListeData && griListeData[code];
-            
-            console.log(`📝 [GRİ LİSTE DEBUG] Barkod: ${code}, alreadyInList: ${alreadyInList}, alreadyInGriListe: ${alreadyInGriListe}`);
-            
-            if (!alreadyInList && !alreadyInGriListe) {
-                // Barkodun şu anki listesini bul
-                let previousList = null;
-                for (const [listName, codeSet] of Object.entries(userCodes)) {
-                    if (codeSet && codeSet.has && codeSet.has(code)) {
-                        previousList = listName;
-                        break;
-                    }
-                }
-                
-                // ========================================
-                // GRİ LİSTEYE YÖNLENDIR (Tüm kullanıcılar)
-                // ========================================
-                if (shouldUseGriListe) {
-                    console.log(`✅ [GRİ LİSTE] Gri listeye yönlendiriliyor: ${code}, from: ${previousList}, to: ${name}`);
-                    
-                    // Önce kaynak listeden sil
-                    if (previousList) {
-                        const dbPathFrom = previousList === 'onarim' ? 'onarimTamamlandi' : previousList;
-                        db.ref(`servis/${dbPathFrom}/${code}`).remove();
-                        userCodes[previousList].delete(code);
-                        delete codeTimestamps[previousList][code];
-                        delete codeUsers[previousList][code];
-                        updateLabelAndCount(previousList);
-                        renderMiniList(previousList);
-                    }
-                    
-                    // Gri listeye ekle
-                    addToGriListe(code, previousList || 'YENİ', name, currentUserName);
-                    showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
-                    return; // forEach'ten çık, bir sonraki koda geç
-                } else {
-                    console.log(`⚠️ [GRİ LİSTE] Gri liste ATLANDI (excluded list): ${code}, to: ${name}`);
-                }
-                // ========================================
-                
-                const removedFrom = removeFromOtherLists(code, name);
-
-                saveBarcodeHistory(code, removedFrom, name, currentUserName);
-
-                // burası değişti - Son Kullanıcı kontrolü eklendi ↓
-                if (dashboardSourceLists.includes(name)) {
-                    addReceivedIMEI(code, name);
-                }
-
-                // burası değişti - Teslim edilenler listesine ekleniyorsa sayaç artır VE received'dan çıkar
-                if (name === 'teslimEdilenler') {
-                    incrementDeliveredCount();
-                    // Eğer daha önce receivedIMEIs'te varsa çıkar
-
-                }
-
-                if (name === 'onarim') {
-                    if (userCodes.phonecheck.has(code) || codeUsers.phonecheck[code]) {
-                        db.ref(`servis/phonecheck/${code}`).remove();
-                        userCodes.phonecheck.delete(code);
-                        delete codeTimestamps.phonecheck[code];
-                        delete codeUsers.phonecheck[code];
-                        updateLabelAndCount('phonecheck');
-                        renderMiniList('phonecheck');
-                    }
-
-                    db.ref(`servis/onarimTamamlandi/${code}`).set({ ts: timestamp, user: currentUserName });
-                    codeTimestamps.onarim[code] = timestamp;
-                    codeUsers.onarim[code] = currentUserName;
-                    userCodes.onarim.add(code);
-                    // onarim barkodlarını da toplam barkodlara ekliyoruz
-                    allCodes.add(code); // BU SATIR EKLENDİ
-                } else if (name === 'teslimEdilenler') {
-                    db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-                    codeTimestamps[name][code] = timestamp;
-                    codeUsers[name][code] = currentUserName;
-                    userCodes[name].add(code);
-                    // teslimEdilenler'i toplam barkodlara EKLEMİYORUZ
-                } else {
-                    db.ref(`servis/${name}/${code}`).set({ ts: timestamp, user: currentUserName });
-                    codeTimestamps[name][code] = timestamp;
-                    codeUsers[name][code] = currentUserName;
-                    userCodes[name].add(code);
-                    allCodes.add(code);
-                }
-            }
-        });
-
-        updateLabelAndCount(name);
-        // Parça türleri dashboard'unu güncelle
-        if (PART_TYPE_LISTS.includes(name)) {
-            updatePartTypesDashboard();
-        }
-        debouncedRenderList();
-        isUpdating = false;
-        return;
-    }
-
-    // ========================================
-    // TÜM DİĞER LİSTELER İÇİN GRİ LİSTE KONTROLÜ
-    // Admin dahil tüm kullanıcılar için geçerli
-    // HARIÇ: teslimEdilenler - direkt transfer olur
-    // ========================================
-    const griListeExcludedForOthers = ['teslimEdilenler'];
-    const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
+    const griListeExcluded = ['teslimEdilenler'];
+    const shouldUseGriListe = !griListeExcluded.includes(name);
     
     // userCodes[name] yoksa oluştur
     if (!userCodes[name]) {
@@ -6210,66 +6043,77 @@ function saveCodes(name, value) {
         codeTimestamps[name] = {};
         codeUsers[name] = {};
     }
-    
-    console.log(`📝 [GRİ LİSTE DEBUG] Diğer listeler bloğu - name: ${name}, shouldUseGriListeForAll: ${shouldUseGriListeForAll}, codes: ${codes.length}`);
 
     codes.forEach(code => {
-        const alreadyInList = userCodes[name] && userCodes[name].has && userCodes[name].has(code);
+        // Zaten bu listede mi veya gri listede mi kontrol et
+        const alreadyInTargetList = userCodes[name].has(code);
         const alreadyInGriListe = griListeData && griListeData[code];
         
-        console.log(`📝 [GRİ LİSTE DEBUG] Barkod: ${code}, alreadyInList: ${alreadyInList}, alreadyInGriListe: ${alreadyInGriListe}`);
+        if (alreadyInTargetList || alreadyInGriListe) {
+            return; // Bu kodu atla
+        }
         
-        if (!alreadyInList && !alreadyInGriListe) {
-            
-            // Gri Liste kontrolü - Tüm kullanıcılar için
-            if (shouldUseGriListeForAll) {
-                console.log(`✅ [GRİ LİSTE] Gri listeye yönlendiriliyor (diğer): ${code}, to: ${name}`);
-                
-                // Barkodun şu anki listesini bul
-                let previousList = null;
-                for (const [listName, codeSet] of Object.entries(userCodes)) {
-                    if (codeSet && codeSet.has && codeSet.has(code)) {
-                        previousList = listName;
-                        break;
-                    }
-                }
-                
-                // Önce kaynak listeden sil
-                if (previousList) {
-                    const dbPathFrom = previousList === 'onarim' ? 'onarimTamamlandi' : previousList;
-                    db.ref(`servis/${dbPathFrom}/${code}`).remove();
-                    userCodes[previousList].delete(code);
-                    delete codeTimestamps[previousList][code];
-                    delete codeUsers[previousList][code];
-                    updateLabelAndCount(previousList);
-                    renderMiniList(previousList);
-                }
-                
-                // Gri listeye ekle
-                addToGriListe(code, previousList || 'YENİ', name, currentUserName);
-                showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
-                return; // forEach'ten çık
-            } else {
-                console.log(`⚠️ [GRİ LİSTE] Gri liste ATLANDI (excluded): ${code}, to: ${name}`);
+        // Barkodun şu anki listesini bul
+        let sourceList = null;
+        for (const [listName, codeSet] of Object.entries(userCodes)) {
+            if (codeSet && codeSet.has && codeSet.has(code) && listName !== name) {
+                sourceList = listName;
+                break;
+            }
+        }
+        
+        // ========================================
+        // GRİ LİSTEYE EKLE (teslimEdilenler hariç)
+        // ========================================
+        if (shouldUseGriListe) {
+            // Kaynak listeden sil
+            if (sourceList) {
+                const dbPathFrom = sourceList === 'onarim' ? 'onarimTamamlandi' : sourceList;
+                db.ref(`servis/${dbPathFrom}/${code}`).remove();
+                userCodes[sourceList].delete(code);
+                delete codeTimestamps[sourceList][code];
+                delete codeUsers[sourceList][code];
+                allCodes.delete(code);
+                updateLabelAndCount(sourceList);
+                renderMiniList(sourceList);
             }
             
-            const previousList = removeFromOtherLists(code, name);
+            // Gri listeye ekle
+            addToGriListe(code, sourceList || 'YENİ', name, currentUserName);
+            showToast(`⏳ ${code} onay bekliyor → ${CACHED_LIST_NAMES[name] || name}`, 'info');
+            return;
+        }
+        
+        // ========================================
+        // DİREKT TRANSFER (sadece teslimEdilenler için)
+        // ========================================
+        const removedFrom = removeFromOtherLists(code, name);
+        saveBarcodeHistory(code, removedFrom, name, currentUserName);
 
-            saveBarcodeHistory(code, previousList, name, currentUserName);
+        if (dashboardSourceLists.includes(name)) {
+            addReceivedIMEI(code, name);
+        }
 
-            db.ref(`servis/${name}/${code}`).set(timestamp);
-            codeTimestamps[name][code] = timestamp;
-            codeUsers[name][code] = null;
-            userCodes[name].add(code);
+        if (name === 'teslimEdilenler') {
+            incrementDeliveredCount();
+        }
+
+        const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
+        db.ref(`servis/${dbPath}/${code}`).set({ ts: timestamp, user: currentUserName });
+        codeTimestamps[name][code] = timestamp;
+        codeUsers[name][code] = currentUserName;
+        userCodes[name].add(code);
+        
+        if (name !== 'teslimEdilenler') {
             allCodes.add(code);
-        } else {
-            console.log(`⚠️ [GRİ LİSTE] Barkod zaten listede veya gri listede: ${code}`);
         }
     });
 
     updateLabelAndCount(name);
+    if (PART_TYPE_LISTS && PART_TYPE_LISTS.includes(name)) {
+        updatePartTypesDashboard();
+    }
     debouncedRenderList();
-
     isUpdating = false;
 }
 
