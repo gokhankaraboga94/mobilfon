@@ -3368,10 +3368,35 @@ async function addToGriListe(barcode, fromList, toList, user) {
     };
     
     try {
+        // ========================================
+        // TEKNİSYEN ARASI TRANSFER - EŞLEŞME SIFIRLAMA
+        // Teknisyen listeleri arasında transfer olunca
+        // eşleşme (yeşil) durumu sıfırlanır (kırmızıya döner)
+        // ========================================
+        const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+        
+        if (technicianLists.includes(toList)) {
+            // Eşleşme verisini sil (kırmızıya dönsün)
+            await db.ref(`servis/eslesenler/${barcode}`).remove();
+            scannedCodes.delete(barcode);
+            
+            // Tüm listelerdeki eslesenler'den de sil
+            for (const listName of Object.keys(userCodes)) {
+                await db.ref(`servis/${listName}/eslesenler/${barcode}`).remove();
+            }
+            
+            console.log(`🔴 Eşleşme sıfırlandı: ${barcode} (teknisyen transferi)`);
+        }
+        // ========================================
+        
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
         renderGriListe();
         updateGriListeCount();
+        
+        // UI'ı güncelle (renk değişikliği için)
+        debouncedRenderList();
+        
         console.log(`⏳ Gri Listeye eklendi: ${barcode} (${fromList} → ${toList})`);
         return true;
     } catch (error) {
@@ -3417,6 +3442,19 @@ async function approveFromGriListe(barcode) {
             allCodes.add(barcode);
         }
         
+        // ========================================
+        // BARKOD OKUT İLE ONAYLANDI - EŞLEŞME YEŞİLE ÇEVİR
+        // Scanner ile onaylandığında eşleşme kaydedilir (yeşil)
+        // ========================================
+        scannedCodes.add(barcode);
+        await db.ref(`servis/eslesenler/${barcode}`).set(timestamp);
+        
+        // Hedef listedeki eslesenler'e de ekle
+        await db.ref(`servis/${dbPath}/eslesenler/${barcode}`).set(timestamp);
+        
+        console.log(`🟢 Eşleşme kaydedildi: ${barcode} (yeşil)`);
+        // ========================================
+        
         // 5. Geçmişe kaydet
         saveBarcodeHistory(barcode, 'griListe', toList, `${currentUserName} (Onaylandı - Orijinal: ${user})`);
         
@@ -3425,6 +3463,7 @@ async function approveFromGriListe(barcode) {
         renderMiniList(toList);
         renderGriListe();
         updateGriListeCount();
+        debouncedRenderList();
         
         // 7. Dashboard güncellemeleri
         if (toList === 'teslimEdilenler') {
