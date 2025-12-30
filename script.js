@@ -7536,7 +7536,7 @@ function startConflictMonitoring() {
     // Her 60 saniyede bir kontrol et
     conflictCheckInterval = setInterval(() => {
         checkAndNotifyConflicts();
-    }, 60000);
+    }, 10 * 60 * 1000);
 }
 
 // Çakışma kontrolünü durdur
