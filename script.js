@@ -3542,10 +3542,49 @@ function renderGriListe() {
 
 // Gri Liste sayısını güncelle
 function updateGriListeCount() {
+    const count = Object.keys(griListeData).length;
+    
+    // Ana gri liste label
     const label = document.getElementById('griListeLabel');
     if (label) {
-        const count = Object.keys(griListeData).length;
         label.textContent = `⏳ Onay Bekleyen Transferler - ${count}`;
+    }
+    
+    // Admin panel sayacı
+    const adminCount = document.getElementById('adminGriListeCount');
+    if (adminCount) {
+        adminCount.textContent = count;
+    }
+    
+    // Admin panel box'a has-pending class ekle/kaldır
+    const adminBox = document.getElementById('adminGriListeBox');
+    if (adminBox) {
+        if (count > 0) {
+            adminBox.classList.add('has-pending');
+        } else {
+            adminBox.classList.remove('has-pending');
+        }
+    }
+}
+
+// Admin panelden Gri Listeye scroll
+function scrollToGriListe() {
+    const griListeSection = document.getElementById('griListeSection');
+    if (griListeSection) {
+        griListeSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+        
+        // Highlight efekti
+        griListeSection.style.transition = 'all 0.3s ease';
+        griListeSection.style.boxShadow = '0 0 30px rgba(255, 193, 7, 0.6)';
+        griListeSection.style.transform = 'scale(1.02)';
+        
+        setTimeout(() => {
+            griListeSection.style.boxShadow = '';
+            griListeSection.style.transform = '';
+        }, 1500);
     }
 }
 
