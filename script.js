@@ -6030,9 +6030,9 @@ function saveCodes(name, value) {
     // ========================================
     // GRİ LİSTE KONTROLÜ - TÜM KULLANICILAR VE TÜM LİSTELER
     // Admin dahil herkes için transferler gri listeye düşer
-    // Sadece "Barkod Okut" ile onaylanınca hedef listeye geçer
+    // HARIÇ: teslimEdilenler - direkt transfer olur
     // ========================================
-    const griListeExcludedLists = []; // Boş = tüm listeler gri listeye dahil
+    const griListeExcludedLists = ['teslimEdilenler']; // Bu listeler gri listeye düşmez
     const shouldUseGriListe = !griListeExcludedLists.includes(name);
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
@@ -6131,8 +6131,10 @@ function saveCodes(name, value) {
     // ========================================
     // TÜM DİĞER LİSTELER İÇİN GRİ LİSTE KONTROLÜ
     // Admin dahil tüm kullanıcılar için geçerli
+    // HARIÇ: teslimEdilenler - direkt transfer olur
     // ========================================
-    const shouldUseGriListeForAll = true; // Tüm listeler için gri liste aktif
+    const griListeExcludedForOthers = ['teslimEdilenler'];
+    const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
 
     codes.forEach(code => {
         if (!userCodes[name].has(code) && !griListeData[code]) {
