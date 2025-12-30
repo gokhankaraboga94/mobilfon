@@ -6076,8 +6076,15 @@ function saveCodes(name, value) {
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
     if (specialLists.includes(name)) {
+        console.log(`📝 specialLists bloğu: name=${name}, shouldUseGriListe=${shouldUseGriListe}`);
+        
         codes.forEach(code => {
-            if (!userCodes[name].has(code) && !griListeData[code]) {
+            const alreadyInList = userCodes[name] && userCodes[name].has(code);
+            const alreadyInGriListe = griListeData && griListeData[code];
+            
+            console.log(`🔍 [specialLists] Barkod: ${code}, alreadyInList=${alreadyInList}, alreadyInGriListe=${alreadyInGriListe}`);
+            
+            if (!alreadyInList && !alreadyInGriListe) {
                 // Barkodun şu anki listesini bul
                 let previousList = null;
                 for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -6174,9 +6181,23 @@ function saveCodes(name, value) {
     // ========================================
     const griListeExcludedForOthers = ['teslimEdilenler'];
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
+    
+    // userCodes[name] yoksa oluştur
+    if (!userCodes[name]) {
+        userCodes[name] = new Set();
+        codeTimestamps[name] = {};
+        codeUsers[name] = {};
+    }
+
+    console.log(`📝 saveCodes çağrıldı: name=${name}, codes=${codes.length}, shouldUseGriListe=${shouldUseGriListeForAll}`);
 
     codes.forEach(code => {
-        if (!userCodes[name].has(code) && !griListeData[code]) {
+        const alreadyInList = userCodes[name] && userCodes[name].has(code);
+        const alreadyInGriListe = griListeData && griListeData[code];
+        
+        console.log(`🔍 Barkod kontrolü: ${code}, alreadyInList=${alreadyInList}, alreadyInGriListe=${alreadyInGriListe}`);
+        
+        if (!alreadyInList && !alreadyInGriListe) {
             
             // Gri Liste kontrolü - Tüm kullanıcılar için
             if (shouldUseGriListeForAll) {
@@ -6188,6 +6209,8 @@ function saveCodes(name, value) {
                         break;
                     }
                 }
+                
+                console.log(`⏳ Gri Listeye ekleniyor: ${code}, from=${previousList}, to=${name}`);
                 
                 // Önce kaynak listeden sil
                 if (previousList) {
