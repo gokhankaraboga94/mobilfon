@@ -58,6 +58,11 @@ function applyTheme() {
 // Sayfa yüklendiğinde temayı uygula
 document.addEventListener('DOMContentLoaded', function () {
     applyTheme();
+
+    // Parts Dashboard kartlarını tıklanabilir yap
+    setTimeout(() => {
+        initPartsDashboardClickHandlers();
+    }, 1000); // DOM tam yüklendikten sonra çalıştır
 });
 
 // ========================================
@@ -9977,3 +9982,81 @@ document.addEventListener('click', function (event) {
         closeDepoStatsModal();
     }
 });
+
+// ========================================
+// PARTS DASHBOARD CLICK FUNCTIONALITY
+// ========================================
+
+// Parça kartlarını tıklanabilir yap ve ilgili section'a scroll et
+function initPartsDashboardClickHandlers() {
+    // Kart verisection eşleştirmesi
+    const cardToSection = {
+        'parcaBekliyor': 'parcaBekliyor',
+        'phonecheck': 'phonecheck',
+        'onarim': 'onarim',
+        'atanacak': 'atanacak',
+        'satisa': 'satisa',
+        'sahiniden': 'sahiniden',
+        'onCamDisServis': 'onCamDisServis',
+        'pil': 'pil',
+        'kasa': 'kasa',
+        'ekran': 'ekran',
+        'onCam': 'onCam',
+        'pilKasa': 'pilKasa',
+        'pilEkran': 'pilEkran',
+        'ekranKasa': 'ekranKasa',
+        'pilEkranKasa': 'pilEkranKasa',
+        'demontaj': 'demontaj',
+        'montaj': 'montaj'
+    };
+
+    // Tüm parts-stat-card'ları bul
+    Object.keys(cardToSection).forEach(cardClass => {
+        const card = document.querySelector(`.parts-stat-card.${cardClass}`);
+        if (card) {
+            card.style.cursor = 'pointer';
+            card.onclick = () => scrollToAndOpenSection(cardToSection[cardClass]);
+        }
+    });
+
+    console.log('✅ Parts Dashboard click handler\'ları başlatıldı');
+}
+
+// Section'a scroll et ve input alanını aç
+function scrollToAndOpenSection(sectionName) {
+    // İlgili section'ı bul
+    const section = document.querySelector(`[data-section="${sectionName}"]`);
+
+    if (section) {
+        // Smooth scroll ile section'a git
+        section.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+        });
+
+        // Input alanını bul ve focus et
+        const inputId = `${sectionName}Input`;
+        const input = document.getElementById(inputId);
+
+        if (input) {
+            // Kısa bir gecikme ile focus et (scroll animasyonu için)
+            setTimeout(() => {
+                input.focus();
+                input.style.minHeight = '120px'; // Input alanını geçici olarak genişlet
+
+                // Görsel feedback: section'ı highlight et
+                section.style.transition = 'all 0.3s ease';
+                section.style.boxShadow = '0 0 20px rgba(79, 172, 254, 0.5)';
+                section.style.transform = 'scale(1.02)';
+
+                // Highlight efektini kaldır
+                setTimeout(() => {
+                    section.style.boxShadow = '';
+                    section.style.transform = '';
+                }, 1000);
+            }, 500);
+        }
+    } else {
+        console.warn(`Section bulunamadı: ${sectionName}`);
+    }
+}
