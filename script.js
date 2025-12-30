@@ -3352,6 +3352,250 @@ let editingList = null;
 let editingUserId = null;
 
 // ========================================
+// GRİ LİSTE SİSTEMİ - ONAY BEKLEYEN TRANSFERLER
+// ========================================
+let griListeData = {}; // {barcode: {fromList, toList, user, timestamp}}
+
+// Gri Listeye ekleme
+async function addToGriListe(barcode, fromList, toList, user) {
+    const timestamp = getTimestamp();
+    const griItem = {
+        barcode: barcode,
+        fromList: fromList,
+        toList: toList,
+        user: user,
+        timestamp: timestamp,
+        createdAt: Date.now()
+    };
+    
+    try {
+        await db.ref(`servis/griListe/${barcode}`).set(griItem);
+        griListeData[barcode] = griItem;
+        renderGriListe();
+        updateGriListeCount();
+        console.log(`⏳ Gri Listeye eklendi: ${barcode} (${fromList} → ${toList})`);
+        return true;
+    } catch (error) {
+        console.error('Gri Listeye ekleme hatası:', error);
+        return false;
+    }
+}
+
+// Gri Listeden çıkarma ve hedef listeye transfer
+async function approveFromGriListe(barcode) {
+    const griItem = griListeData[barcode];
+    if (!griItem) {
+        console.warn(`Gri Listede bulunamadı: ${barcode}`);
+        return false;
+    }
+    
+    const { fromList, toList, user } = griItem;
+    const timestamp = getTimestamp();
+    
+    try {
+        // 1. Gri Listeden sil
+        await db.ref(`servis/griListe/${barcode}`).remove();
+        delete griListeData[barcode];
+        
+        // 2. Hedef listeye ekle
+        const dbPath = toList === 'onarim' ? 'onarimTamamlandi' : toList;
+        await db.ref(`servis/${dbPath}/${barcode}`).set({
+            ts: timestamp,
+            user: currentUserName,
+            approvedFrom: 'griListe',
+            originalUser: user
+        });
+        
+        // 3. Local state güncelle
+        if (userCodes[toList]) {
+            userCodes[toList].add(barcode);
+            codeTimestamps[toList][barcode] = timestamp;
+            codeUsers[toList][barcode] = currentUserName;
+        }
+        
+        // 4. allCodes'a ekle (teslimEdilenler hariç)
+        if (toList !== 'teslimEdilenler') {
+            allCodes.add(barcode);
+        }
+        
+        // 5. Geçmişe kaydet
+        saveBarcodeHistory(barcode, 'griListe', toList, `${currentUserName} (Onaylandı - Orijinal: ${user})`);
+        
+        // 6. UI güncelle
+        updateLabelAndCount(toList);
+        renderMiniList(toList);
+        renderGriListe();
+        updateGriListeCount();
+        
+        // 7. Dashboard güncellemeleri
+        if (toList === 'teslimEdilenler') {
+            incrementDeliveredCount();
+        }
+        
+        showToast(`✅ ${barcode} → ${CACHED_LIST_NAMES[toList] || toList} listesine transfer edildi`, 'success');
+        console.log(`✅ Gri Listeden onaylandı: ${barcode} → ${toList}`);
+        return true;
+        
+    } catch (error) {
+        console.error('Gri Liste onaylama hatası:', error);
+        showToast('Transfer sırasında hata oluştu!', 'error');
+        return false;
+    }
+}
+
+// Gri Listeden reddetme (iptal)
+async function rejectFromGriListe(barcode) {
+    const griItem = griListeData[barcode];
+    if (!griItem) return false;
+    
+    try {
+        // Gri Listeden sil
+        await db.ref(`servis/griListe/${barcode}`).remove();
+        delete griListeData[barcode];
+        
+        // Kaynak listeye geri ekle (eğer hala sistemde değilse)
+        const fromList = griItem.fromList;
+        if (fromList && fromList !== 'YENİ' && !isInAnyList(barcode)) {
+            const dbPath = fromList === 'onarim' ? 'onarimTamamlandi' : fromList;
+            await db.ref(`servis/${dbPath}/${barcode}`).set({
+                ts: getTimestamp(),
+                user: currentUserName,
+                restoredFrom: 'griListe'
+            });
+            
+            if (userCodes[fromList]) {
+                userCodes[fromList].add(barcode);
+                updateLabelAndCount(fromList);
+                renderMiniList(fromList);
+            }
+        }
+        
+        // Geçmişe kaydet
+        saveBarcodeHistory(barcode, 'griListe', 'İPTAL', `${currentUserName} (Transfer iptal edildi)`);
+        
+        renderGriListe();
+        updateGriListeCount();
+        
+        showToast(`❌ ${barcode} transferi iptal edildi`, 'warning');
+        return true;
+        
+    } catch (error) {
+        console.error('Gri Liste reddetme hatası:', error);
+        return false;
+    }
+}
+
+// Barkod herhangi bir listede mi kontrol et
+function isInAnyList(barcode) {
+    for (const [listName, codeSet] of Object.entries(userCodes)) {
+        if (codeSet && codeSet.has && codeSet.has(barcode)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Gri Liste UI render
+function renderGriListe() {
+    const container = document.getElementById('griListeContent');
+    if (!container) return;
+    
+    const items = Object.values(griListeData).sort((a, b) => b.createdAt - a.createdAt);
+    
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="gri-liste-empty">
+                <span>📭 Onay bekleyen transfer bulunmuyor</span>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    items.forEach(item => {
+        const fromName = CACHED_LIST_NAMES[item.fromList] || item.fromList || 'Yeni';
+        const toName = CACHED_LIST_NAMES[item.toList] || item.toList;
+        const timeStr = item.timestamp || '';
+        
+        html += `
+            <div class="gri-liste-item" data-barcode="${item.barcode}">
+                <div class="gri-liste-item-info">
+                    <div class="gri-liste-barcode">${item.barcode}</div>
+                    <div class="gri-liste-transfer-info">
+                        <span class="gri-liste-from">${fromName}</span>
+                        <span class="gri-liste-arrow">→</span>
+                        <span class="gri-liste-to">${toName}</span>
+                    </div>
+                </div>
+                <div class="gri-liste-meta">
+                    <span class="gri-liste-user">👤 ${item.user}</span>
+                    <span class="gri-liste-time">🕐 ${timeStr}</span>
+                </div>
+                <div class="gri-liste-actions">
+                    <button class="gri-liste-btn approve" onclick="approveFromGriListe('${item.barcode}')" title="Onayla ve Transfer Et">
+                        ✓
+                    </button>
+                    <button class="gri-liste-btn reject" onclick="rejectFromGriListe('${item.barcode}')" title="İptal Et">
+                        ✕
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Gri Liste sayısını güncelle
+function updateGriListeCount() {
+    const label = document.getElementById('griListeLabel');
+    if (label) {
+        const count = Object.keys(griListeData).length;
+        label.textContent = `⏳ Onay Bekleyen Transferler - ${count}`;
+    }
+}
+
+// Gri Liste verilerini Firebase'den yükle
+async function loadGriListeData() {
+    try {
+        const snapshot = await db.ref('servis/griListe').once('value');
+        griListeData = snapshot.val() || {};
+        renderGriListe();
+        updateGriListeCount();
+        console.log(`📥 Gri Liste yüklendi: ${Object.keys(griListeData).length} kayıt`);
+    } catch (error) {
+        console.error('Gri Liste yükleme hatası:', error);
+    }
+}
+
+// Gri Liste Firebase listener
+function setupGriListeListener() {
+    db.ref('servis/griListe').on('value', (snapshot) => {
+        griListeData = snapshot.val() || {};
+        renderGriListe();
+        updateGriListeCount();
+    });
+}
+
+// Scanner ile Gri Listedeki barkodu onaylama
+function checkAndApproveFromGriListe(barcode) {
+    if (griListeData[barcode]) {
+        approveFromGriListe(barcode);
+        return true;
+    }
+    return false;
+}
+
+// Gri Listeye gitmesi gereken transfer mi kontrol et
+function shouldGoToGriListe(fromList, toList) {
+    // ========================================
+    // TÜM TRANSFERLER GRİ LİSTEYE DÜŞER
+    // Admin dahil herkes için geçerli
+    // ========================================
+    return true;
+}
+
+// ========================================
 // BATCH SAVE SYSTEM - Performance Optimization
 // ========================================
 const pendingBatches = {};  // Buffer for pending input values per list
@@ -5750,13 +5994,52 @@ function saveCodes(name, value) {
     const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler', 'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
     const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
 
+    // ========================================
+    // GRİ LİSTE KONTROLÜ - TÜM KULLANICILAR VE TÜM LİSTELER
+    // Admin dahil herkes için transferler gri listeye düşer
+    // Sadece "Barkod Okut" ile onaylanınca hedef listeye geçer
+    // ========================================
+    const griListeExcludedLists = []; // Boş = tüm listeler gri listeye dahil
+    const shouldUseGriListe = !griListeExcludedLists.includes(name);
+
     // saveCodes fonksiyonunda (satır ~1020 civarı)
     if (specialLists.includes(name)) {
         codes.forEach(code => {
-            if (!userCodes[name].has(code)) {
-                const previousList = removeFromOtherLists(code, name);
+            if (!userCodes[name].has(code) && !griListeData[code]) {
+                // Barkodun şu anki listesini bul
+                let previousList = null;
+                for (const [listName, codeSet] of Object.entries(userCodes)) {
+                    if (codeSet && codeSet.has && codeSet.has(code)) {
+                        previousList = listName;
+                        break;
+                    }
+                }
+                
+                // ========================================
+                // GRİ LİSTEYE YÖNLENDIR (Tüm kullanıcılar)
+                // ========================================
+                if (shouldUseGriListe) {
+                    // Önce kaynak listeden sil
+                    if (previousList) {
+                        const dbPathFrom = previousList === 'onarim' ? 'onarimTamamlandi' : previousList;
+                        db.ref(`servis/${dbPathFrom}/${code}`).remove();
+                        userCodes[previousList].delete(code);
+                        delete codeTimestamps[previousList][code];
+                        delete codeUsers[previousList][code];
+                        updateLabelAndCount(previousList);
+                        renderMiniList(previousList);
+                    }
+                    
+                    // Gri listeye ekle
+                    addToGriListe(code, previousList || 'YENİ', name, currentUserName);
+                    showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
+                    return; // forEach'ten çık, bir sonraki koda geç
+                }
+                // ========================================
+                
+                const removedFrom = removeFromOtherLists(code, name);
 
-                saveBarcodeHistory(code, previousList, name, currentUserName);
+                saveBarcodeHistory(code, removedFrom, name, currentUserName);
 
                 // burası değişti - Son Kullanıcı kontrolü eklendi ↓
                 if (dashboardSourceLists.includes(name)) {
@@ -5812,8 +6095,43 @@ function saveCodes(name, value) {
         return;
     }
 
+    // ========================================
+    // TÜM DİĞER LİSTELER İÇİN GRİ LİSTE KONTROLÜ
+    // Admin dahil tüm kullanıcılar için geçerli
+    // ========================================
+    const shouldUseGriListeForAll = true; // Tüm listeler için gri liste aktif
+
     codes.forEach(code => {
-        if (!userCodes[name].has(code)) {
+        if (!userCodes[name].has(code) && !griListeData[code]) {
+            
+            // Gri Liste kontrolü - Tüm kullanıcılar için
+            if (shouldUseGriListeForAll) {
+                // Barkodun şu anki listesini bul
+                let previousList = null;
+                for (const [listName, codeSet] of Object.entries(userCodes)) {
+                    if (codeSet && codeSet.has && codeSet.has(code)) {
+                        previousList = listName;
+                        break;
+                    }
+                }
+                
+                // Önce kaynak listeden sil
+                if (previousList) {
+                    const dbPathFrom = previousList === 'onarim' ? 'onarimTamamlandi' : previousList;
+                    db.ref(`servis/${dbPathFrom}/${code}`).remove();
+                    userCodes[previousList].delete(code);
+                    delete codeTimestamps[previousList][code];
+                    delete codeUsers[previousList][code];
+                    updateLabelAndCount(previousList);
+                    renderMiniList(previousList);
+                }
+                
+                // Gri listeye ekle
+                addToGriListe(code, previousList || 'YENİ', name, currentUserName);
+                showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
+                return; // forEach'ten çık
+            }
+            
             const previousList = removeFromOtherLists(code, name);
 
             saveBarcodeHistory(code, previousList, name, currentUserName);
@@ -6049,21 +6367,35 @@ inputs.scanner.addEventListener("input", e => {
         const raw = e.target.value.trim();
         const m = raw.match(/(\d{15})/);
         const code = m ? m[1] : null;
-        if (code && !scannedCodes.has(code)) {
-            scannedCodes.add(code);
-            const timestamp = getTimestamp();
-            db.ref(`servis/eslesenler/${code}`).set(timestamp);
+        
+        if (code) {
+            // ========================================
+            // GRİ LİSTE KONTROLÜ - Önce gri listede mi bak
+            // ========================================
+            if (griListeData[code]) {
+                // Gri listedeki barkodu onayla ve hedef listeye transfer et
+                approveFromGriListe(code);
+                e.target.value = "";
+                return;
+            }
+            // ========================================
+            
+            if (!scannedCodes.has(code)) {
+                scannedCodes.add(code);
+                const timestamp = getTimestamp();
+                db.ref(`servis/eslesenler/${code}`).set(timestamp);
 
-            Object.keys(userCodes).forEach(name => {
-                db.ref(`servis/${name}/${code}`).once("value", snap => {
-                    if (snap.exists()) {
-                        db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
-                    }
+                Object.keys(userCodes).forEach(name => {
+                    db.ref(`servis/${name}/${code}`).once("value", snap => {
+                        if (snap.exists()) {
+                            db.ref(`servis/${name}/eslesenler/${code}`).set(timestamp);
+                        }
+                    });
                 });
-            });
 
-            debouncedRenderList();
-            showToast(`Barkod eşleşti: ${code}`, 'success');
+                debouncedRenderList();
+                showToast(`Barkod eşleşti: ${code}`, 'success');
+            }
         }
         e.target.value = "";
     }, 150);
@@ -6603,6 +6935,14 @@ function loadData() {
     if (currentUserRole === 'admin') {
         loadDashboardStats();
     }
+    
+    // ========================================
+    // GRİ LİSTE VERİLERİNİ YÜKLE
+    // ========================================
+    loadGriListeData();
+    setupGriListeListener();
+    console.log('✅ Gri Liste sistemi başlatıldı');
+    
 } // ← loadData fonksiyonu kapanış parantezi
 
 // 30 dakikada bir otomatik sayfa yenileme (performans için artırıldı)
