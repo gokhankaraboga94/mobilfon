@@ -5019,8 +5019,23 @@ function applyPermissions() {
             }
         });
 
+        // ========================================
+        // TEKNİSYEN LİSTELERİNE CİHAZ ATAMA ENGELİ
+        // Teknisyenler kendi listelerine bile cihaz atayamaz
+        // ========================================
+        const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+
         allSectionIds.forEach(name => {
             if (inputs[name]) {
+                // Teknisyen listelerine yazma her zaman yasak
+                if (technicianLists.includes(name)) {
+                    inputs[name].disabled = true;
+                    inputs[name].style.opacity = '0.6';
+                    inputs[name].style.cursor = 'not-allowed';
+                    inputs[name].placeholder = '🔒 Teknisyen listelerine cihaz atama yetkisi sadece admin/düzenleyicide';
+                    return; // forEach içinde continue yerine return kullanılır
+                }
+                
                 const permission = currentUserPermissions[name];
 
                 if (!permission) {
@@ -5042,10 +5057,12 @@ function applyPermissions() {
             }
         });
 
+        // Teknisyen kendi listesine de yazamaz artık
         if (inputs[currentUserName]) {
-            inputs[currentUserName].disabled = false;
-            inputs[currentUserName].style.opacity = '1';
-            inputs[currentUserName].style.cursor = 'text';
+            inputs[currentUserName].disabled = true;
+            inputs[currentUserName].style.opacity = '0.6';
+            inputs[currentUserName].style.cursor = 'not-allowed';
+            inputs[currentUserName].placeholder = '🔒 Kendi listenize cihaz atama yetkisi kaldırıldı';
         }
 
         if (inputs.atanacak) {
@@ -5222,6 +5239,17 @@ function applyPermissions() {
                 }
             });
             console.log('✅ Parça/İşlem Türleri: Viewer rolündeki teknisyen için görünürlük ve read/write yetkisi verildi');
+            
+            // ========================================
+            // TEKNİSYEN LİSTELERİNE CİHAZ ATAMA ENGELİ
+            // Viewer rolündeki teknisyenler kendi listelerine bile yazamaz
+            // ========================================
+            if (inputs[currentUserName]) {
+                inputs[currentUserName].disabled = true;
+                inputs[currentUserName].style.opacity = '0.6';
+                inputs[currentUserName].style.cursor = 'not-allowed';
+                inputs[currentUserName].placeholder = '🔒 Kendi listenize cihaz atama yetkisi kaldırıldı';
+            }
         }
 
         normalUsers.forEach(name => {
@@ -5229,7 +5257,7 @@ function applyPermissions() {
                 inputs[name].disabled = true;
                 inputs[name].style.opacity = '0.6';
                 inputs[name].style.cursor = 'not-allowed';
-                inputs[name].placeholder = '🔒 Sadece görüntüleme - Düzenleme yetkiniz yok';
+                inputs[name].placeholder = '🔒 Teknisyen listelerine cihaz atama yetkisi sadece admin/düzenleyicide';
             }
         });
 
@@ -5630,15 +5658,32 @@ function saveCodes(name, value) {
     // Teknisyen kullanıcı listesi (rol 'viewer' olsa bile bu isimler teknisyen sayılır)
     const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
     const partTypeSections = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
+    
+    // ========================================
+    // TEKNİSYEN LİSTELERİNE CİHAZ ATAMA YETKİSİ
+    // Sadece admin ve editor rolü teknisyen listelerine cihaz atayabilir
+    // Teknisyenler kendi listelerine bile cihaz atayamaz
+    // ========================================
+    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+    
+    if (technicianLists.includes(name)) {
+        // Teknisyen listelerine sadece admin ve editor yazabilir
+        if (currentUserRole !== 'admin' && currentUserRole !== 'editor') {
+            showToast('Teknisyen listelerine cihaz atama yetkisi sadece admin ve düzenleyici rollerinde!', 'warning');
+            return;
+        }
+    }
+    // ========================================
+    
     const isTechnicianUser = currentUserRole === 'technician' || currentUserRole === 'editor' || technicianUserNames.includes(currentUserName);
 
     // Teknisyen kullanıcılar için parça türleri izni
     if (isTechnicianUser && partTypeSections.includes(name)) {
         // Parça türleri için teknisyenlere izin var, devam et (semi-admin hariç yukarıda kontrol edildi)
     } else if (currentUserRole === 'technician') {
-        if (name === currentUserName) {
-            // Kendi listesi için izin var, devam et
-        } else if (currentUserPermissions && currentUserPermissions[name]) {
+        // Teknisyenler artık kendi listelerine de cihaz atayamaz (yukarıda engellendi)
+        // Sadece parça türleri ve izin verilen diğer listeler için devam
+        if (currentUserPermissions && currentUserPermissions[name]) {
             if (currentUserPermissions[name] === 'view') {
                 return;
             }
@@ -5646,15 +5691,13 @@ function saveCodes(name, value) {
             return;
         }
     } else if (currentUserRole === 'viewer' && technicianUserNames.includes(currentUserName)) {
-        // Viewer rolündeki teknisyenler için - sadece kendi listesi ve parça türleri
-        if (name !== currentUserName && !partTypeSections.includes(name)) {
+        // Viewer rolündeki teknisyenler için - sadece parça türleri (kendi listesi artık yasak)
+        if (!partTypeSections.includes(name)) {
             return;
         }
     } else if (currentUserRole === 'editor') {
-        if (!partTypeSections.includes(name) && name !== currentUserName) {
-            // Editor sadece parça türleri ve kendi listesini düzenleyebilir
-            return;
-        }
+        // Editor tüm teknisyen listelerine ve parça türlerine yazabilir (yukarıda kontrol edildi)
+        // Diğer listeler için normal akış
     }
 
     if (name === 'onarim' && currentUserName !== 'yusuf' && currentUserName !== 'mert' && currentUserName !== 'admin') {
