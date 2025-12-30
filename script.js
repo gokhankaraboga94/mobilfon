@@ -7020,7 +7020,7 @@ function loadData() {
 // 30 dakikada bir otomatik sayfa yenileme (performans için artırıldı)
 setInterval(function () {
     location.reload();
-}, 30 * 60 * 1000);
+}, 60 * 60 * 1000);
 
 // ✅ SAYFA YÜKLENDİĞİNDE EN ÜSTE SCROLL
 window.addEventListener('load', function () {
