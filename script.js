@@ -13,7 +13,7 @@ const error = console.error.bind(console); // Always log errors
 let dataSyncCheckInterval = null;
 let lastDataSyncCheck = null;
 let dataSyncMismatches = [];
-const DATA_SYNC_CHECK_INTERVAL = 5 * 60 * 1000; // 5 dakika
+const DATA_SYNC_CHECK_INTERVAL = 30 * 60 * 1000; // 30 dakika
 
 // ========================================
 // THEME TOGGLE (GECE/GÜNDÜZ MODU)
