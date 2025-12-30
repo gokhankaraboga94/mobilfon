@@ -3357,6 +3357,8 @@ let griListeData = {}; // {barcode: {fromList, toList, user, timestamp}}
 
 // Gri Listeye ekleme
 async function addToGriListe(barcode, fromList, toList, user) {
+    console.log(`🟡 [addToGriListe] BAŞLADI - barcode: ${barcode}, from: ${fromList}, to: ${toList}, user: ${user}`);
+    
     const timestamp = getTimestamp();
     const griItem = {
         barcode: barcode,
@@ -3389,8 +3391,11 @@ async function addToGriListe(barcode, fromList, toList, user) {
         }
         // ========================================
         
+        console.log(`🟡 [addToGriListe] Firebase'e yazılıyor...`);
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
+        console.log(`🟢 [addToGriListe] Firebase'e yazıldı, griListeData güncellendi`);
+        
         renderGriListe();
         updateGriListeCount();
         
@@ -3400,7 +3405,7 @@ async function addToGriListe(barcode, fromList, toList, user) {
         console.log(`⏳ Gri Listeye eklendi: ${barcode} (${fromList} → ${toList})`);
         return true;
     } catch (error) {
-        console.error('Gri Listeye ekleme hatası:', error);
+        console.error('❌ Gri Listeye ekleme hatası:', error);
         return false;
     }
 }
@@ -5990,9 +5995,15 @@ function debouncedSaveCodes(name, value) {
 }
 
 function saveCodes(name, value) {
-    if (isUpdating || !dataLoaded) return;
+    console.log(`🔧 [saveCodes] Çağrıldı - name: ${name}, value length: ${value?.length || 0}`);
+    
+    if (isUpdating || !dataLoaded) {
+        console.log(`⚠️ [saveCodes] DURDURULDU - isUpdating: ${isUpdating}, dataLoaded: ${dataLoaded}`);
+        return;
+    }
 
     if (currentUserRole === 'semi-admin') {
+        console.log(`⚠️ [saveCodes] DURDURULDU - semi-admin rolü`);
         return;
     }
 
@@ -6076,8 +6087,22 @@ function saveCodes(name, value) {
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
     if (specialLists.includes(name)) {
+        // userCodes[name] yoksa oluştur
+        if (!userCodes[name]) {
+            userCodes[name] = new Set();
+            codeTimestamps[name] = {};
+            codeUsers[name] = {};
+        }
+        
+        console.log(`📝 [GRİ LİSTE DEBUG] specialLists bloğu - name: ${name}, shouldUseGriListe: ${shouldUseGriListe}, codes: ${codes.length}`);
+        
         codes.forEach(code => {
-            if (!userCodes[name].has(code) && !griListeData[code]) {
+            const alreadyInList = userCodes[name] && userCodes[name].has && userCodes[name].has(code);
+            const alreadyInGriListe = griListeData && griListeData[code];
+            
+            console.log(`📝 [GRİ LİSTE DEBUG] Barkod: ${code}, alreadyInList: ${alreadyInList}, alreadyInGriListe: ${alreadyInGriListe}`);
+            
+            if (!alreadyInList && !alreadyInGriListe) {
                 // Barkodun şu anki listesini bul
                 let previousList = null;
                 for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -6091,6 +6116,8 @@ function saveCodes(name, value) {
                 // GRİ LİSTEYE YÖNLENDIR (Tüm kullanıcılar)
                 // ========================================
                 if (shouldUseGriListe) {
+                    console.log(`✅ [GRİ LİSTE] Gri listeye yönlendiriliyor: ${code}, from: ${previousList}, to: ${name}`);
+                    
                     // Önce kaynak listeden sil
                     if (previousList) {
                         const dbPathFrom = previousList === 'onarim' ? 'onarimTamamlandi' : previousList;
@@ -6106,6 +6133,8 @@ function saveCodes(name, value) {
                     addToGriListe(code, previousList || 'YENİ', name, currentUserName);
                     showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
                     return; // forEach'ten çık, bir sonraki koda geç
+                } else {
+                    console.log(`⚠️ [GRİ LİSTE] Gri liste ATLANDI (excluded list): ${code}, to: ${name}`);
                 }
                 // ========================================
                 
@@ -6174,12 +6203,28 @@ function saveCodes(name, value) {
     // ========================================
     const griListeExcludedForOthers = ['teslimEdilenler'];
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
+    
+    // userCodes[name] yoksa oluştur
+    if (!userCodes[name]) {
+        userCodes[name] = new Set();
+        codeTimestamps[name] = {};
+        codeUsers[name] = {};
+    }
+    
+    console.log(`📝 [GRİ LİSTE DEBUG] Diğer listeler bloğu - name: ${name}, shouldUseGriListeForAll: ${shouldUseGriListeForAll}, codes: ${codes.length}`);
 
     codes.forEach(code => {
-        if (!userCodes[name].has(code) && !griListeData[code]) {
+        const alreadyInList = userCodes[name] && userCodes[name].has && userCodes[name].has(code);
+        const alreadyInGriListe = griListeData && griListeData[code];
+        
+        console.log(`📝 [GRİ LİSTE DEBUG] Barkod: ${code}, alreadyInList: ${alreadyInList}, alreadyInGriListe: ${alreadyInGriListe}`);
+        
+        if (!alreadyInList && !alreadyInGriListe) {
             
             // Gri Liste kontrolü - Tüm kullanıcılar için
             if (shouldUseGriListeForAll) {
+                console.log(`✅ [GRİ LİSTE] Gri listeye yönlendiriliyor (diğer): ${code}, to: ${name}`);
+                
                 // Barkodun şu anki listesini bul
                 let previousList = null;
                 for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -6204,6 +6249,8 @@ function saveCodes(name, value) {
                 addToGriListe(code, previousList || 'YENİ', name, currentUserName);
                 showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
                 return; // forEach'ten çık
+            } else {
+                console.log(`⚠️ [GRİ LİSTE] Gri liste ATLANDI (excluded): ${code}, to: ${name}`);
             }
             
             const previousList = removeFromOtherLists(code, name);
@@ -6215,6 +6262,8 @@ function saveCodes(name, value) {
             codeUsers[name][code] = null;
             userCodes[name].add(code);
             allCodes.add(code);
+        } else {
+            console.log(`⚠️ [GRİ LİSTE] Barkod zaten listede veya gri listede: ${code}`);
         }
     });
 
