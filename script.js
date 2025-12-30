@@ -2224,7 +2224,7 @@ function checkMidnightReset() {
 }
 
 
-setInterval(checkMidnightReset, 120000); // 120 saniye (2 dakika) - Performance Optimized
+setInterval(checkMidnightReset, 5 * 60 * 1000); // 5 dakika
 
 
 
