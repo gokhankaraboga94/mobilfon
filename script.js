@@ -11394,10 +11394,10 @@ async function addToGriListeFromQR(imei, targetList) {
     
     const userName = currentUserName || (currentUserEmail ? currentUserEmail.split('@')[0] : 'QR Kullanıcı');
     
-    // Mevcut addToGriListe fonksiyonunu kullan
-    // fromList: 'YENİ' (QR'dan geldiği için kaynak liste yok)
-    // toList: targetList (hedef liste)
-    const success = await addToGriListe(imei, 'YENİ', targetList, userName);
+    // ⭐ DÜZELTME: 'YENİ' yerine null gönder
+    // addToGriListe otomatik olarak kaynak listeyi bulacak ve silecek
+    // Eğer hiçbir listede yoksa zaten 'YENİ' olarak işaretleyecek
+    const success = await addToGriListe(imei, null, targetList, userName);
     
     if (success) {
         console.log('✅ QR ile gri listeye eklendi:', imei, '→', targetList);
