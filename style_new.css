@@ -6590,6 +6590,48 @@ body.light-mode .qr-transfer-modal-content {
     transform: translateY(-8px);
 }
 
+/* Teknisyen Fotoğraf Container */
+.technician-photo-container {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 15px auto;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.parts-stat-card:hover .technician-photo-container {
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    transform: scale(1.1);
+}
+
+/* Teknisyen Fotoğrafı */
+.technician-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: all 0.3s ease;
+}
+
+.parts-stat-card:hover .technician-photo {
+    transform: scale(1.05);
+}
+
+/* Placeholder (fotoğraf yoksa) */
+.technician-photo-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
 /* Light mode için teknisyen kartları */
 body.light-mode .parts-stat-card.gokhan,
 body.light-mode .parts-stat-card.yusuf,
@@ -6612,4 +6654,12 @@ body.light-mode .parts-stat-card.ismail .parts-stat-label,
 body.light-mode .parts-stat-card.mehmet .parts-stat-label,
 body.light-mode .parts-stat-card.mert .parts-stat-label {
     color: white;
+}
+
+body.light-mode .technician-photo-container {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+body.light-mode .parts-stat-card:hover .technician-photo-container {
+    border-color: rgba(255, 255, 255, 0.8);
 }
