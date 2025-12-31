@@ -5519,11 +5519,22 @@ auth.onAuthStateChanged(async user => {
 
             if (user.email === 'admin@servis.com') {
                 currentUserRole = 'admin';
+                console.log('🔧 ADMIN GİRİŞİ YAPILDI - Bakım Modu Butonu Gösteriliyor');
                 document.getElementById('userManagementBtn').style.display = 'block';
                 document.getElementById('systemLogsBtn').style.display = 'block'; // Sistem Logları butonu
                 document.getElementById('depoStatsBtn').style.display = 'block'; // Depo Stats butonu
                 document.getElementById('resetDashboardBtn').style.display = 'block';
                 document.getElementById('restoreDashboardBtn').style.display = 'inline-block';
+                
+                // Bakım Modu Butonu - Debug
+                const maintenanceBtn = document.getElementById('maintenanceBtn');
+                if (maintenanceBtn) {
+                    maintenanceBtn.style.display = 'block';
+                    console.log('✅ Bakım Modu Butonu Gösterildi:', maintenanceBtn);
+                } else {
+                    console.error('❌ Bakım Modu Butonu Bulunamadı!');
+                }
+                
                 currentUserPermissions = null;
                 document.getElementById('adminNav').style.display = 'flex';
                 document.getElementById('navUserInfo').style.display = 'flex';
@@ -5535,6 +5546,12 @@ auth.onAuthStateChanged(async user => {
                 setTimeout(() => {
                     startDataSyncAutoCheck();
                     console.log('✅ Data Sync Otomatik Kontrol Sistemi Başlatıldı');
+                }, 3000);
+
+                // ✅ BAKIM MODU SİSTEMİNİ BAŞLAT (SADECE ADMIN)
+                setTimeout(() => {
+                    initMaintenanceMode();
+                    console.log('✅ Bakım Modu Sistemi Başlatıldı');
                 }, 3000);
 
                 // ✅ ADMIN DOĞRUDAN ANA SAYFAYI GÖRSÜN
@@ -5734,6 +5751,15 @@ auth.onAuthStateChanged(async user => {
             stopConflictMonitoring();
         }
 
+        // ✅ BAKIM MODU KONTROLÜ (TÜM KULLANICILAR İÇİN)
+        // Admin olmayan kullanıcılar için bakım modunu kontrol et
+        if (currentUserRole !== 'admin') {
+            setTimeout(() => {
+                initMaintenanceMode();
+                console.log('✅ Bakım Modu Kontrol Sistemi Başlatıldı (Non-Admin User)');
+            }, 2000);
+        }
+
     } else {
         loginScreen.style.display = "flex";
         appContainer.style.display = "none";
@@ -5743,6 +5769,9 @@ auth.onAuthStateChanged(async user => {
         currentUserName = null;
         currentUserPermissions = null;
         dataLoaded = false;
+        
+        // ✅ BAKIM MODU DİNLEYİCİSİNİ DURDUR
+        stopMaintenanceModeListener();
     }
 });
 
@@ -11314,3 +11343,174 @@ async function addToGriListeFromQR(imei, targetList) {
 }
 
 console.log('✅ QR Scanner fonksiyonları yüklendi');
+
+// ========================================
+// BAKIM MODU SİSTEMİ - MAINTENANCE MODE
+// ========================================
+
+let isMaintenanceMode = false;
+let maintenanceModeListener = null;
+
+/**
+ * Bakım modunu aktif/pasif eder (Toggle)
+ * Sadece admin kullanıcılar bu fonksiyonu çağırabilir
+ */
+async function toggleMaintenanceMode() {
+    if (currentUserRole !== 'admin') {
+        showToast('❌ Bu işlem için yetkiniz yok!', 'error');
+        return;
+    }
+
+    try {
+        const maintenanceRef = db.ref('systemSettings/maintenanceMode');
+        const currentStatus = await maintenanceRef.once('value');
+        const newStatus = !currentStatus.val();
+
+        // Firebase'de bakım modu durumunu güncelle
+        await maintenanceRef.set(newStatus);
+
+        const statusText = newStatus ? 'AKTİF' : 'PASİF';
+        const icon = newStatus ? '🔴' : '🟢';
+        
+        showToast(`${icon} Bakım Modu ${statusText} Edildi!`, newStatus ? 'warning' : 'success');
+        
+        console.log(`🔧 Bakım Modu ${statusText}:`, newStatus);
+
+        // Buton durumunu güncelle
+        updateMaintenanceButton(newStatus);
+
+    } catch (error) {
+        console.error('❌ Bakım modu değiştirilemedi:', error);
+        showToast('❌ Bakım modu değiştirilemedi!', 'error');
+    }
+}
+
+/**
+ * Bakım modu butonunu günceller
+ */
+function updateMaintenanceButton(isActive) {
+    const btn = document.getElementById('maintenanceBtn');
+    const icon = document.getElementById('maintenanceBtnIcon');
+    const text = document.getElementById('maintenanceBtnText');
+    
+    if (!btn || !icon || !text) return;
+
+    if (isActive) {
+        btn.classList.add('active');
+        icon.textContent = '🔴';
+        text.textContent = 'Bakım Modu AÇIK';
+    } else {
+        btn.classList.remove('active');
+        icon.textContent = '🔧';
+        text.textContent = 'Bakım & Onarım';
+    }
+}
+
+/**
+ * Bakım modu durumunu kontrol eder ve gerekirse ekranı gösterir
+ */
+async function checkMaintenanceMode() {
+    try {
+        const maintenanceRef = db.ref('systemSettings/maintenanceMode');
+        const snapshot = await maintenanceRef.once('value');
+        const isActive = snapshot.val() || false;
+
+        isMaintenanceMode = isActive;
+
+        // Admin değilse ve bakım modu aktifse, bakım ekranını göster
+        if (isActive && currentUserRole !== 'admin') {
+            showMaintenanceScreen();
+            return true;
+        } else {
+            hideMaintenanceScreen();
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Bakım modu kontrolü yapılamadı:', error);
+        return false;
+    }
+}
+
+/**
+ * Bakım modu ekranını gösterir (admin hariç tüm kullanıcılara)
+ */
+function showMaintenanceScreen() {
+    const screen = document.getElementById('maintenanceScreen');
+    if (screen) {
+        screen.style.display = 'flex';
+        console.log('🔧 Bakım modu ekranı gösteriliyor');
+    }
+}
+
+/**
+ * Bakım modu ekranını gizler
+ */
+function hideMaintenanceScreen() {
+    const screen = document.getElementById('maintenanceScreen');
+    if (screen) {
+        screen.style.display = 'none';
+    }
+}
+
+/**
+ * Firebase'de bakım modu değişikliklerini gerçek zamanlı dinler
+ */
+function startMaintenanceModeListener() {
+    // Eğer zaten dinleyici aktifse, iptal et
+    if (maintenanceModeListener) {
+        return;
+    }
+
+    const maintenanceRef = db.ref('systemSettings/maintenanceMode');
+    
+    maintenanceModeListener = maintenanceRef.on('value', (snapshot) => {
+        const isActive = snapshot.val() || false;
+        isMaintenanceMode = isActive;
+
+        console.log('🔧 Bakım modu durumu güncellendi:', isActive);
+
+        // Admin kullanıcıları için buton durumunu güncelle
+        if (currentUserRole === 'admin') {
+            updateMaintenanceButton(isActive);
+        }
+
+        // Admin değilse ve bakım modu aktifse, bakım ekranını göster
+        if (isActive && currentUserRole !== 'admin') {
+            showMaintenanceScreen();
+        } else {
+            hideMaintenanceScreen();
+        }
+    });
+
+    console.log('✅ Bakım modu dinleyicisi başlatıldı');
+}
+
+/**
+ * Bakım modu dinleyicisini durdurur
+ */
+function stopMaintenanceModeListener() {
+    if (maintenanceModeListener) {
+        const maintenanceRef = db.ref('systemSettings/maintenanceMode');
+        maintenanceRef.off('value', maintenanceModeListener);
+        maintenanceModeListener = null;
+        console.log('🛑 Bakım modu dinleyicisi durduruldu');
+    }
+}
+
+/**
+ * Bakım modu sistemini başlatır
+ * Auth state değiştiğinde ve sayfa yüklendiğinde çağrılmalı
+ */
+async function initMaintenanceMode() {
+    console.log('🔧 Bakım modu sistemi başlatılıyor...');
+    
+    // İlk kontrol
+    await checkMaintenanceMode();
+    
+    // Gerçek zamanlı dinleyiciyi başlat
+    startMaintenanceModeListener();
+    
+    console.log('✅ Bakım modu sistemi başlatıldı');
+}
+
+console.log('✅ Bakım Modu fonksiyonları yüklendi');
