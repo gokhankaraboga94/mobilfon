@@ -79,6 +79,10 @@
                 <button onclick="openAccounting()" id="accountingBtn">📒 Muhasebe Sistemi</button>
                 <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı
                     Yönetimi</button>
+                <button onclick="toggleMaintenanceMode()" id="maintenanceBtn" style="display: block;" class="maintenance-btn">
+                    <span id="maintenanceBtnIcon">🔧</span>
+                    <span id="maintenanceBtnText">Bakım & Onarım</span>
+                </button>
 
             </div>
 
@@ -1574,6 +1578,27 @@
                 </div>
             </div>
 
+
+    <!-- BAKIM MODU EKRANI -->
+    <div id="maintenanceScreen" style="display: none;">
+        <div class="maintenance-screen-content">
+            <div class="maintenance-icon">🔧</div>
+            <h1 class="maintenance-title">Sistem Bakımda</h1>
+            <p class="maintenance-message">
+                Sistem şu anda bakım çalışması yapılmaktadır.<br>
+                Lütfen daha sonra tekrar deneyiniz.
+            </p>
+            <div class="maintenance-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <p class="maintenance-info">
+                ⏰ Bakım çalışması devam ediyor...<br>
+                <small>En kısa sürede hizmetinizde olacağız.</small>
+            </p>
+        </div>
+    </div>
 
 
 </body>
