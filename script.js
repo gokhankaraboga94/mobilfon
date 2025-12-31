@@ -7,13 +7,105 @@ const warn = PRODUCTION_MODE ? () => { } : console.warn.bind(console);
 const error = console.error.bind(console); // Always log errors
 
 // ========================================
+// RENDER CACHE SYSTEM - CPU Optimizasyonu
+// ========================================
+const RenderCache = {
+    // Her liste için son render edilen veri hash'i
+    listHashes: {},
+    
+    // Her liste için son render edilen HTML
+    renderedHTML: {},
+    
+    // Değişiklik var mı kontrol et
+    hasChanged: function(listName, codes, timestamps, users) {
+        const newHash = this.generateHash(listName, codes, timestamps, users);
+        const oldHash = this.listHashes[listName];
+        
+        if (oldHash === newHash) {
+            return false; // Değişiklik yok, render gereksiz
+        }
+        
+        this.listHashes[listName] = newHash;
+        return true; // Değişiklik var, render gerekli
+    },
+    
+    // Veri hash'i oluştur (basit ve hızlı)
+    generateHash: function(listName, codes, timestamps, users) {
+        const codeArray = Array.isArray(codes) ? codes : Array.from(codes || []);
+        // Sadece kod sayısı + ilk/son kod + toplam timestamp sayısı
+        const key = `${codeArray.length}-${codeArray[0] || ''}-${codeArray[codeArray.length-1] || ''}-${Object.keys(timestamps || {}).length}`;
+        return key;
+    },
+    
+    // Liste için cache'i temizle (veri değiştiğinde)
+    invalidate: function(listName) {
+        delete this.listHashes[listName];
+        delete this.renderedHTML[listName];
+    },
+    
+    // Tüm cache'i temizle
+    invalidateAll: function() {
+        this.listHashes = {};
+        this.renderedHTML = {};
+    },
+    
+    // Render istatistikleri
+    stats: {
+        skipped: 0,
+        rendered: 0,
+        reset: function() { this.skipped = 0; this.rendered = 0; }
+    },
+    
+    // İstatistikleri göster (debug için)
+    showStats: function() {
+        const total = this.stats.skipped + this.stats.rendered;
+        const savedPercent = total > 0 ? ((this.stats.skipped / total) * 100).toFixed(1) : 0;
+        console.log(`📊 Render Cache Stats: ${this.stats.skipped} skipped, ${this.stats.rendered} rendered (${savedPercent}% CPU saved)`);
+    }
+};
+
+// ========================================
+// DIRTY FLAGS - Hangi listeler değişti?
+// ========================================
+const DirtyLists = {
+    _dirty: new Set(),
+    
+    // Listeyi kirli olarak işaretle
+    mark: function(listName) {
+        this._dirty.add(listName);
+    },
+    
+    // Liste kirli mi?
+    isDirty: function(listName) {
+        return this._dirty.has(listName);
+    },
+    
+    // Listeyi temizle
+    clean: function(listName) {
+        this._dirty.delete(listName);
+    },
+    
+    // Tüm kirli listeleri al ve temizle
+    getAndClearAll: function() {
+        const dirty = Array.from(this._dirty);
+        this._dirty.clear();
+        return dirty;
+    },
+    
+    // Herhangi bir kirli liste var mı?
+    hasAny: function() {
+        return this._dirty.size > 0;
+    }
+};
+
+// ========================================
 // ========================================
 // DATA SYNC VERIFICATION SYSTEM
 // ========================================
 let dataSyncCheckInterval = null;
 let lastDataSyncCheck = null;
 let dataSyncMismatches = [];
-const DATA_SYNC_CHECK_INTERVAL = 30 * 60 * 1000; 
+const DATA_SYNC_CHECK_INTERVAL = 30 * 60 * 1000; // 30 dakika
 
 // ========================================
 // THEME TOGGLE (GECE/GÜNDÜZ MODU)
@@ -3417,6 +3509,9 @@ async function approveFromGriListe(barcode) {
             userCodes[toList].add(barcode);
             codeTimestamps[toList][barcode] = timestamp;
             codeUsers[toList][barcode] = currentUserName;
+            
+            // ✅ CACHE INVALIDATION
+            RenderCache.invalidate(toList);
         }
 
         // 4. allCodes'a ekle (teslimEdilenler hariç)
@@ -4917,6 +5012,9 @@ async function deleteBarcode(code, listName) {
         userCodes[listName].delete(code);
         delete codeTimestamps[listName][code];
         delete codeUsers[listName][code];
+        
+        // ✅ CACHE INVALIDATION
+        RenderCache.invalidate(listName);
 
         showToast(`Barkod silindi: ${code}`, 'success');
         updateLabelAndCount(listName);
@@ -5739,6 +5837,10 @@ function removeFromOtherLists(code, exceptList) {
             userCodes[name].delete(code);
             delete codeTimestamps[name][code];
             delete codeUsers[name][code];
+            
+            // ✅ CACHE INVALIDATION
+            RenderCache.invalidate(name);
+            
             const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
             db.ref(`servis/${dbPath}`).child(code).remove();
             updateLabelAndCount(name);
@@ -5819,7 +5921,7 @@ async function handleServiceReturn(code, targetList) {
 }
 
 
-function renderList() {
+function renderList(forceAll = false) {
     const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "mert", "onarim", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
 
     Object.keys(userCodes).forEach(key => {
@@ -5828,7 +5930,14 @@ function renderList() {
         }
     });
 
-    allLists.forEach(name => renderMiniList(name));
+    // ✅ OPTIMIZASYON: Sadece değişen listeleri render et
+    if (forceAll) {
+        // Tüm listeleri zorla render et
+        allLists.forEach(name => renderMiniList(name, true));
+    } else {
+        // Sadece cache'de değişiklik olanları render et
+        allLists.forEach(name => renderMiniList(name, false));
+    }
 
     if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
         updateAdminStats();
@@ -5969,6 +6078,9 @@ function debouncedSaveCodes(name, value) {
 
 function saveCodes(name, value) {
     if (isUpdating || !dataLoaded) return;
+
+    // ✅ CACHE INVALIDATION: Bu liste için cache'i temizle
+    RenderCache.invalidate(name);
 
     if (currentUserRole === 'semi-admin') {
         return;
@@ -6480,7 +6592,7 @@ inputs.scanner.addEventListener("input", e => {
     }, 150);
 });
 
-function renderMiniList(name) {
+function renderMiniList(name, forceRender = false) {
     // ✅ ÖNCE KONTROL: userCodes[name] var mı?
     if (!miniLists[name] || !userCodes[name]) {
         return;
@@ -6492,6 +6604,13 @@ function renderMiniList(name) {
     if (!list) {
         return;
     }
+
+    // ✅ CACHE KONTROLÜ: Değişiklik yoksa render etme
+    if (!forceRender && !RenderCache.hasChanged(name, userCodes[name], codeTimestamps[name], codeUsers[name])) {
+        RenderCache.stats.skipped++;
+        return; // Değişiklik yok, CPU tasarrufu
+    }
+    RenderCache.stats.rendered++;
 
     // ✅ PERFORMANCE: Use DocumentFragment for batch DOM updates
     const fragment = document.createDocumentFragment();
@@ -7536,7 +7655,7 @@ function startConflictMonitoring() {
     // Her 60 saniyede bir kontrol et
     conflictCheckInterval = setInterval(() => {
         checkAndNotifyConflicts();
-    }, 20 * 60 * 1000);
+    }, 60 * 60 * 1000);
 }
 
 // Çakışma kontrolünü durdur
