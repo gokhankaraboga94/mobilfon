@@ -6823,7 +6823,7 @@ function updateAdminStats() {
     document.getElementById('adminAnakartDisServis').textContent = userCodes.anakartDisServis ? userCodes.anakartDisServis.size : 0;  // YENİ EKLENDİ
     document.getElementById('adminSatisa').textContent = userCodes.satisa ? userCodes.satisa.size : 0;
     document.getElementById('adminSahiniden').textContent = userCodes.sahiniden ? userCodes.sahiniden.size : 0;
-    document.getElementById('adminMediaMarkt').textContent = userCodes.mediaMarkt ? userCodes.mediaMarkt.size : 0;
+    document.getElementById('partsDashboardMediaMarkt').textContent = userCodes.mediaMarkt ? userCodes.mediaMarkt.size : 0;
 
     // Parça türleri dashboard'unu güncelle
     updatePartTypesDashboard();
@@ -10480,6 +10480,7 @@ function initPartsDashboardClickHandlers() {
         'satisa': 'satisa',
         'sahiniden': 'sahiniden',
         'onCamDisServis': 'onCamDisServis',
+        'mediaMarkt': 'mediaMarkt',
         'pil': 'pil',
         'kasa': 'kasa',
         'ekran': 'ekran',
@@ -10515,6 +10516,23 @@ function scrollToAndOpenSection(sectionName) {
             behavior: 'smooth',
             block: 'center'
         });
+
+        // Section içindeki textarea ve mini-list'i bul
+        const textarea = section.querySelector('textarea');
+        const miniList = section.querySelector('.mini-list');
+        const label = section.querySelector('label');
+
+        // Eğer section gizliyse, aç
+        if (textarea && textarea.style.display === 'none') {
+            textarea.style.display = 'block';
+            if (miniList) {
+                miniList.style.display = 'flex';
+            }
+            // Label'daki (Gizli) yazısını (Açık) olarak değiştir
+            if (label) {
+                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
+            }
+        }
 
         // Input alanını bul ve focus et
         const inputId = `${sectionName}Input`;
