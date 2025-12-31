@@ -6663,3 +6663,68 @@ body.light-mode .technician-photo-container {
 body.light-mode .parts-stat-card:hover .technician-photo-container {
     border-color: rgba(255, 255, 255, 0.8);
 }
+
+/* ========================================
+   OVERLAY FOOTER BUTTONS
+   ======================================== */
+
+.dashboard-section-overlay-footer {
+    display: flex;
+    gap: 10px;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0 0 15px 15px;
+}
+
+.overlay-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.overlay-btn-copy {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.overlay-btn-copy:hover {
+    background: linear-gradient(135deg, #2980b9, #21618c);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+}
+
+.overlay-btn-clear {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.overlay-btn-clear:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+}
+
+.overlay-btn:active {
+    transform: translateY(0);
+}
+
+/* Light mode için overlay butonlar */
+body.light-mode .overlay-btn-copy {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+body.light-mode .overlay-btn-clear {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .dashboard-section-overlay-footer {
+        flex-direction: column;
+    }
+}
