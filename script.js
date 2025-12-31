@@ -11242,6 +11242,7 @@ function openQRTransferModal(imei) {
         { name: 'gokhan', label: '🧑‍🔧 Gökhan\'ın Cihazları', icon: '🧑‍🔧' },
         { name: 'enes', label: '🧑‍🔧 Enes\'in Cihazları', icon: '🧑‍🔧' },
         { name: 'yusuf', label: '🧑‍🔧 Yusuf\'un Cihazları', icon: '🧑‍🔧' },
+        { name: 'mert', label: '🧑‍🔧 Mert\'in Cihazları', icon: '🧑‍🔧' },
         { name: 'samet', label: '🧑‍🔧 Samet\'in Cihazları', icon: '🧑‍🔧' },
         { name: 'engin', label: '🧑‍🔧 Engin\'in Cihazları', icon: '🧑‍🔧' },
         { name: 'ismail', label: '🧑‍🔧 İsmail\'in Cihazları', icon: '🧑‍🔧' },
