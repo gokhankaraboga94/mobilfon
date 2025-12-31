@@ -474,11 +474,17 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
     }
     
     try {
+        // ⭐ KAYNAK LİSTEYİ BUL ⭐
+        const currentList = findBarcodeCurrentList(barcode);
+        const fromList = currentList || 'YENİ'; // Bulunamazsa yeni cihaz demektir
+        
+        console.log(`📍 Kaynak liste tespit edildi: ${fromList} → ${targetList}`);
+        
         // Gri liste öğesi oluştur
         const griItem = {
             barcode: barcode,
-            fromList: 'dashboard_overlay', // Overlay'den geldiğini belirt
-            toList: targetList, // Hedef liste (örn: parcaBekliyor, phonecheck, vb.)
+            fromList: fromList, // ⭐ Gerçek kaynak liste
+            toList: targetList,
             user: currentUserName,
             timestamp: Date.now(),
             createdAt: Date.now()
@@ -492,19 +498,53 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
             griListeData[barcode] = griItem;
         }
         
-        // NOT: Input'u TEMİZLEME - kullanıcı kopyalama yapabilsin
-        // Sadece çoklu gönderimde (Ctrl+Enter) temizlenir
+        // ⭐ KAYNAK LİSTEDEN SİL (YENİ cihaz değilse) ⭐
+        if (currentList && currentList !== 'YENİ') {
+            const fromDbPath = currentList === 'onarim' ? 'onarimTamamlandi' : currentList;
+            
+            // Firebase'den sil
+            await db.ref(`servis/${fromDbPath}/${barcode}`).remove();
+            
+            // Local state'den sil
+            if (userCodes[currentList]) {
+                userCodes[currentList].delete(barcode);
+                if (codeTimestamps[currentList]) {
+                    delete codeTimestamps[currentList][barcode];
+                }
+                if (codeUsers[currentList]) {
+                    delete codeUsers[currentList][barcode];
+                }
+                
+                // Cache invalidation
+                if (typeof RenderCache !== 'undefined') {
+                    RenderCache.invalidate(currentList);
+                }
+                
+                // UI güncelle
+                updateLabelAndCount(currentList);
+                renderMiniList(currentList);
+            }
+            
+            console.log(`🗑️ Kaynak listeden silindi: ${barcode} (${currentList})`);
+        }
         
         // Başarı mesajı
         if (!isMultiple) {
-            showToast(`✅ ${barcode} gri listeye eklendi! (Hedef: ${getListDisplayName(targetList)})`, 'success');
+            const fromName = fromList === 'YENİ' ? 'Yeni' : (CACHED_LIST_NAMES[fromList] || fromList);
+            const toName = CACHED_LIST_NAMES[targetList] || targetList;
+            showToast(`✅ ${barcode} gri listeye eklendi! (${fromName} → ${toName})`, 'success');
         }
         
-        console.log('✅ Gri listeye eklendi:', barcode);
+        console.log(`✅ Gri listeye eklendi: ${barcode} (${fromList} → ${targetList})`);
         
-        // Gri liste görünümünü güncelle (eğer fonksiyon varsa)
+        // Gri liste görünümünü güncelle
         if (typeof renderGriListe === 'function') {
             renderGriListe();
+        }
+        
+        // Gri liste sayacını güncelle
+        if (typeof updateGriListeCount === 'function') {
+            updateGriListeCount();
         }
         
     } catch (error) {
@@ -2951,15 +2991,6 @@ async function analyzeSyncIssues() {
     }
 }
 
-// Liste önceliklerini belirle
-function getListPriority(lists) {
-    // Öncelik sırası: Teslim Edilenler > Onarım Tamamlandı > PhoneCheck > Diğerleri
-    if (lists.includes('teslimEdilenler')) return 'teslimEdilenler';
-    if (lists.includes('onarim')) return 'onarim';
-    if (lists.includes('phonecheck')) return 'phonecheck';
-    return lists[0]; // İlk listedeki tutulsun
-}
-
 // Tüm çakışmaları düzelt
 async function fixAllConflicts() {
     console.log('🔄 fixAllConflicts called');
@@ -3034,25 +3065,67 @@ async function fixAllConflicts() {
 
 // Tekil çakışmayı düzelt
 async function fixConflict(barcode, lists) {
-    // Kural 1: PhoneCheck ve Onarım Tamamlandı'da aynı anda bulunuyorsa → PhoneCheck'ten sil
-    if (lists.includes('phonecheck') && lists.includes('onarim')) {
-        await removeFromList(barcode, 'phonecheck');
-        return;
+    // ⭐ YENİ MANTIK: TRANSFER AKIŞINA GÖRE KAYNAK LİSTEYİ TEMİZLE ⭐
+    // Akış: PhoneCheck (kaynak) → Gri Liste → Mert (hedef)
+    // Çakışma varsa: Kaynak listeden (PhoneCheck) sil, hedef listede (Mert) tut
+    
+    // Kural 1: PhoneCheck ve herhangi bir teknisyen/hedef listede aynı anda bulunuyorsa → PhoneCheck'ten sil (transfer tamamlanmış demektir)
+    const technicianLists = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
+    if (lists.includes('phonecheck')) {
+        const hasTargetList = lists.some(list => technicianLists.includes(list) || list === 'onarim' || list === 'teslimEdilenler');
+        if (hasTargetList) {
+            // Transfer tamamlanmış, PhoneCheck'ten sil
+            await removeFromList(barcode, 'phonecheck');
+            console.log(`✅ Çakışma çözüldü: ${barcode} - PhoneCheck'ten silindi (hedef listede mevcut)`);
+            return;
+        }
     }
 
-    // Kural 2: Onarım Tamamlandı ve Teslim Edilenler'de aynı anda bulunuyorsa → Onarım Tamamlandı'dan sil
+    // Kural 2: Teknisyen listesi ve Onarım Tamamlandı'da aynı anda bulunuyorsa → Teknisyen listesinden sil (iş bitmiş demektir)
+    for (const tech of technicianLists) {
+        if (lists.includes(tech) && lists.includes('onarim')) {
+            await removeFromList(barcode, tech);
+            console.log(`✅ Çakışma çözüldü: ${barcode} - ${tech} listesinden silindi (onarım tamamlanmış)`);
+            return;
+        }
+    }
+
+    // Kural 3: Onarım Tamamlandı ve Teslim Edilenler'de aynı anda bulunuyorsa → Onarım Tamamlandı'dan sil (teslim edilmiş demektir)
     if (lists.includes('onarim') && lists.includes('teslimEdilenler')) {
         await removeFromList(barcode, 'onarim');
+        console.log(`✅ Çakışma çözüldü: ${barcode} - Onarım listesinden silindi (teslim edilmiş)`);
         return;
     }
 
-    // Kural 3: Diğer çakışmalar için ilk listedekini tut, diğerlerinden sil
+    // Kural 4: Diğer çakışmalar için öncelik sırasına göre hedefi belirle ve diğerlerini temizle
+    // Öncelik sırası (en son durum en yüksek önceliğe sahip):
+    // teslimEdilenler > onarim > teknisyen listeleri > phonecheck > diğerleri
     const listToKeep = getListPriority(lists);
+    console.log(`⚠️ Çakışma: ${barcode} - Tutulacak liste: ${listToKeep}, Silinecekler: ${lists.filter(l => l !== listToKeep).join(', ')}`);
+    
     for (const listName of lists) {
         if (listName !== listToKeep) {
             await removeFromList(barcode, listName);
         }
     }
+}
+
+// Liste önceliklerini belirle (en son durum en yüksek önceliğe sahip)
+function getListPriority(lists) {
+    // Öncelik sırası: Teslim Edilenler > Onarım Tamamlandı > Teknisyen Listeleri > PhoneCheck > Diğerleri
+    if (lists.includes('teslimEdilenler')) return 'teslimEdilenler';
+    if (lists.includes('onarim')) return 'onarim';
+    
+    // Teknisyen listeleri kontrolü
+    const technicianLists = ['mert', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet'];
+    for (const tech of technicianLists) {
+        if (lists.includes(tech)) return tech;
+    }
+    
+    if (lists.includes('phonecheck')) return 'phonecheck';
+    
+    // Hiçbiri yoksa ilk listedekini tut
+    return lists[0];
 }
 
 // Belirli bir listeden barkodu sil
@@ -3935,7 +4008,35 @@ async function approveFromGriListe(barcode) {
         await db.ref(`servis/griListe/${barcode}`).remove();
         delete griListeData[barcode];
 
-        // 2. Hedef listeye ekle
+        // 2. ⭐ KAYNAK LİSTEDEN SİL (ZORUNLU KURAL) ⭐
+        if (fromList && fromList !== 'YENİ') {
+            const fromDbPath = fromList === 'onarim' ? 'onarimTamamlandi' : fromList;
+            
+            // Firebase'den sil
+            await db.ref(`servis/${fromDbPath}/${barcode}`).remove();
+            
+            // Local state'den sil
+            if (userCodes[fromList]) {
+                userCodes[fromList].delete(barcode);
+                if (codeTimestamps[fromList]) {
+                    delete codeTimestamps[fromList][barcode];
+                }
+                if (codeUsers[fromList]) {
+                    delete codeUsers[fromList][barcode];
+                }
+                
+                // Cache invalidation
+                RenderCache.invalidate(fromList);
+                
+                // UI güncelle
+                updateLabelAndCount(fromList);
+                renderMiniList(fromList);
+            }
+            
+            console.log(`🗑️ Kaynak listeden silindi: ${barcode} (${fromList})`);
+        }
+
+        // 3. Hedef listeye ekle
         const dbPath = toList === 'onarim' ? 'onarimTamamlandi' : toList;
         await db.ref(`servis/${dbPath}/${barcode}`).set({
             ts: timestamp,
@@ -3944,7 +4045,7 @@ async function approveFromGriListe(barcode) {
             originalUser: user
         });
 
-        // 3. Local state güncelle
+        // 4. Local state güncelle
         if (userCodes[toList]) {
             userCodes[toList].add(barcode);
             codeTimestamps[toList][barcode] = timestamp;
@@ -3954,27 +4055,27 @@ async function approveFromGriListe(barcode) {
             RenderCache.invalidate(toList);
         }
 
-        // 4. allCodes'a ekle (teslimEdilenler hariç)
+        // 5. allCodes'a ekle (teslimEdilenler hariç)
         if (toList !== 'teslimEdilenler') {
             allCodes.add(barcode);
         }
 
-        // 5. Geçmişe kaydet
+        // 6. Geçmişe kaydet
         saveBarcodeHistory(barcode, 'griListe', toList, `${currentUserName} (Onaylandı - Orijinal: ${user})`);
 
-        // 6. UI güncelle
+        // 7. UI güncelle
         updateLabelAndCount(toList);
         renderMiniList(toList);
         renderGriListe();
         updateGriListeCount();
 
-        // 7. Dashboard güncellemeleri
+        // 8. Dashboard güncellemeleri
         if (toList === 'teslimEdilenler') {
             incrementDeliveredCount();
         }
 
         showToast(`✅ ${barcode} → ${CACHED_LIST_NAMES[toList] || toList} listesine transfer edildi`, 'success');
-        console.log(`✅ Gri Listeden onaylandı: ${barcode} → ${toList}`);
+        console.log(`✅ Gri Listeden onaylandı: ${barcode} (${fromList} → ${toList})`);
         return true;
 
     } catch (error) {
@@ -4034,6 +4135,16 @@ function isInAnyList(barcode) {
         }
     }
     return false;
+}
+
+// Barkodun hangi listede olduğunu bul
+function findBarcodeCurrentList(barcode) {
+    for (const [listName, codeSet] of Object.entries(userCodes)) {
+        if (codeSet && codeSet.has && codeSet.has(barcode)) {
+            return listName;
+        }
+    }
+    return null;
 }
 
 // Gri Liste UI render
