@@ -10913,3 +10913,287 @@ document.addEventListener('click', function (event) {
 // scrollToAndOpenSection - KALDIRILDI
 // Artık openSectionInDashboard() kullanılıyor
 // ========================================
+
+// ========================================
+// QR SCANNER FUNCTIONALITY
+// ========================================
+
+let html5QrCode = null;
+let currentScannedIMEI = null;
+let isQRScannerActive = false;
+
+// Mobil cihaz kontrolü
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+}
+
+// QR Scanner bölümünü göster/gizle
+function toggleQRScannerVisibility() {
+    const qrScannerSection = document.getElementById('qrScannerSection');
+    if (isMobileDevice()) {
+        qrScannerSection.style.display = 'block';
+        console.log('📱 Mobil cihaz tespit edildi, QR Scanner aktif');
+    } else {
+        qrScannerSection.style.display = 'none';
+        console.log('💻 Masaüstü cihaz, QR Scanner gizli');
+    }
+}
+
+// Sayfa yüklendiğinde ve pencere boyutu değiştiğinde kontrol et
+window.addEventListener('DOMContentLoaded', toggleQRScannerVisibility);
+window.addEventListener('resize', toggleQRScannerVisibility);
+
+// QR Scanner modal'ını aç
+function openQRScanner() {
+    const modal = document.getElementById('qrScannerModal');
+    const messageEl = document.getElementById('qrScannerMessage');
+    
+    if (!isMobileDevice()) {
+        showToast('QR okutma özelliği sadece mobil cihazlarda çalışır', 'warning');
+        return;
+    }
+    
+    modal.classList.add('active');
+    messageEl.textContent = 'Kamera açılıyor...';
+    messageEl.className = 'qr-scanner-message info';
+    
+    startQRScanner();
+}
+
+// QR Scanner'ı başlat
+function startQRScanner() {
+    const messageEl = document.getElementById('qrScannerMessage');
+    
+    if (isQRScannerActive) {
+        messageEl.textContent = 'QR tarayıcı zaten aktif';
+        return;
+    }
+    
+    html5QrCode = new Html5Qrcode("qrReader");
+    
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    };
+    
+    html5QrCode.start(
+        { facingMode: "environment" }, // Arka kamera
+        config,
+        onQRCodeScanned,
+        onQRScanError
+    ).then(() => {
+        isQRScannerActive = true;
+        messageEl.textContent = 'QR kodu kamera önüne tutun';
+        messageEl.className = 'qr-scanner-message info';
+        console.log('✅ QR Scanner başlatıldı');
+    }).catch(err => {
+        console.error('❌ QR Scanner başlatılamadı:', err);
+        messageEl.textContent = 'Kamera erişimi reddedildi veya hata oluştu';
+        messageEl.className = 'qr-scanner-message error';
+        showToast('Kamera açılamadı: ' + err, 'error');
+        
+        setTimeout(() => {
+            closeQRScanner();
+        }, 3000);
+    });
+}
+
+// QR kod okunduğunda
+function onQRCodeScanned(decodedText, decodedResult) {
+    console.log('🎯 QR Kod okundu:', decodedText);
+    
+    // 15 haneli IMEI kontrolü
+    const imeiMatch = decodedText.match(/\d{15}/);
+    
+    if (imeiMatch) {
+        const imei = imeiMatch[0];
+        currentScannedIMEI = imei;
+        
+        const messageEl = document.getElementById('qrScannerMessage');
+        messageEl.textContent = `✅ IMEI okundu: ${imei}`;
+        messageEl.className = 'qr-scanner-message success';
+        
+        // Kamerayı durdur
+        stopQRScanner();
+        
+        // Kısa bir bekleme sonrası transfer modal'ını aç
+        setTimeout(() => {
+            closeQRScanner();
+            openQRTransferModal(imei);
+        }, 1000);
+        
+    } else {
+        const messageEl = document.getElementById('qrScannerMessage');
+        messageEl.textContent = '❌ Geçersiz QR kod! 15 haneli IMEI bulunamadı';
+        messageEl.className = 'qr-scanner-message error';
+        console.warn('⚠️ Geçersiz QR içeriği:', decodedText);
+    }
+}
+
+// QR scan hatası
+function onQRScanError(errorMessage) {
+    // Sürekli hata mesajlarını gösterme (tarama devam ederken normal)
+    // console.log('QR Scan error:', errorMessage);
+}
+
+// QR Scanner'ı durdur
+function stopQRScanner() {
+    if (html5QrCode && isQRScannerActive) {
+        html5QrCode.stop().then(() => {
+            isQRScannerActive = false;
+            console.log('🛑 QR Scanner durduruldu');
+        }).catch(err => {
+            console.error('❌ QR Scanner durdurulamadı:', err);
+        });
+    }
+}
+
+// QR Scanner modal'ını kapat
+function closeQRScanner() {
+    stopQRScanner();
+    
+    const modal = document.getElementById('qrScannerModal');
+    modal.classList.remove('active');
+    
+    // Kısa gecikme ile HTML5QrCode nesnesini temizle
+    setTimeout(() => {
+        if (html5QrCode) {
+            html5QrCode.clear();
+            html5QrCode = null;
+        }
+    }, 300);
+}
+
+// ========================================
+// QR TRANSFER MODAL
+// ========================================
+
+// Transfer modal'ını aç
+function openQRTransferModal(imei) {
+    const modal = document.getElementById('qrTransferModal');
+    const imeiDisplay = document.getElementById('qrScannedIMEI');
+    const listContainer = document.getElementById('qrTransferListContainer');
+    
+    imeiDisplay.textContent = imei;
+    currentScannedIMEI = imei;
+    
+    // Tüm mevcut listeleri göster
+    const allLists = [
+        { name: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', icon: '⚙️' },
+        { name: 'onarim', label: '🔧 Onarım Tamamlandı', icon: '🔧' },
+        { name: 'gokhan', label: '🧑‍🔧 Gökhan\'ın Cihazları', icon: '🧑‍🔧' },
+        { name: 'enes', label: '🧑‍🔧 Enes\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'yusuf', label: '🧑‍🔧 Yusuf\'un Cihazları', icon: '🧑‍🔧' },
+        { name: 'samet', label: '🧑‍🔧 Samet\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'engin', label: '🧑‍🔧 Engin\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'ismail', label: '🧑‍🔧 İsmail\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'mehmet', label: '🧑‍🔧 Mehmet\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'atanacak', label: '📋 Atanacak', icon: '📋' },
+        { name: 'phonecheck', label: '📱 PhoneCheck', icon: '📱' },
+        { name: 'onCamDisServis', label: '🔨 Ön Cam Dış Servis', icon: '🔨' },
+        { name: 'anakartDisServis', label: '🔨 Anakart Dış Servis', icon: '🔨' },
+        { name: 'satisa', label: '💰 Satışa Gidecek', icon: '💰' },
+        { name: 'SonKullanıcı', label: '👤 Son Kullanıcı', icon: '👤' },
+        { name: 'sahiniden', label: '🏪 Sahibinden', icon: '🏪' },
+        { name: 'mediaMarkt', label: '🛒 Satış Sonrası', icon: '🛒' },
+        { name: 'teslimEdilenler', label: '✅ Teslim Edilenler', icon: '✅' }
+    ];
+    
+    listContainer.innerHTML = '';
+    
+    allLists.forEach(list => {
+        const listItem = document.createElement('div');
+        listItem.className = 'qr-transfer-list-item';
+        listItem.innerHTML = `${list.icon}<br>${list.label.replace(list.icon + ' ', '')}`;
+        listItem.onclick = () => selectQRTransferList(list.name, imei);
+        listContainer.appendChild(listItem);
+    });
+    
+    modal.classList.add('active');
+}
+
+// Transfer listesi seç
+function selectQRTransferList(listName, imei) {
+    console.log(`🔄 Transfer seçildi: ${imei} → ${listName} (Gri Liste üzerinden)`);
+    
+    // Gri listeye ekle
+    addToGriListe(imei, listName);
+    
+    // Modal'ı kapat
+    closeQRTransferModal();
+    
+    // Başarı mesajı
+    showToast(`✅ ${imei} numaralı cihaz onay bekleyen transferlere eklendi`, 'success');
+    
+    // Status güncelle
+    const statusEl = document.getElementById('qrScannerStatus');
+    if (statusEl) {
+        statusEl.textContent = `Son işlem: ${imei} → Onay bekliyor`;
+        statusEl.className = 'qr-scanner-status success';
+        
+        setTimeout(() => {
+            statusEl.textContent = '';
+            statusEl.className = 'qr-scanner-status';
+        }, 5000);
+    }
+}
+
+// Transfer modal'ını kapat
+function closeQRTransferModal() {
+    const modal = document.getElementById('qrTransferModal');
+    modal.classList.remove('active');
+    currentScannedIMEI = null;
+}
+
+// ========================================
+// GRİ LİSTE FONKSİYONLARI (QR için)
+// ========================================
+
+// Gri listeye IMEI ekle
+function addToGriListe(imei, targetList) {
+    if (!imei || !targetList) {
+        console.error('❌ Geçersiz parametre: imei veya targetList eksik');
+        return;
+    }
+    
+    const timestamp = new Date().toLocaleString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    const userName = currentUserEmail ? currentUserEmail.split('@')[0] : 'Bilinmiyor';
+    
+    // Gri listeye kaydet
+    firebase.database().ref(`griListe/${imei}`).set({
+        targetList: targetList,
+        timestamp: timestamp,
+        user: userName,
+        source: 'qr_scanner'
+    }).then(() => {
+        console.log('✅ Gri listeye eklendi:', imei, '→', targetList);
+        
+        // Gri liste verisini güncelle
+        griListeData[imei] = {
+            targetList: targetList,
+            timestamp: timestamp,
+            user: userName,
+            source: 'qr_scanner'
+        };
+        
+        // UI'ı güncelle
+        renderGriListe();
+        
+        // Log kaydet
+        logAction(`QR ile gri listeye eklendi: ${imei} → ${targetList}`, 'qr_transfer');
+        
+    }).catch(error => {
+        console.error('❌ Gri listeye eklenemedi:', error);
+        showToast('Hata: Gri listeye eklenemedi', 'error');
+    });
+}
+
+console.log('✅ QR Scanner fonksiyonları yüklendi');
