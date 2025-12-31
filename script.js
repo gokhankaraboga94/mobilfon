@@ -149,11 +149,325 @@ function applyTheme() {
 // Sayfa yüklendiğinde temayı uygula
 document.addEventListener('DOMContentLoaded', function () {
     applyTheme();
+    // initPartsDashboardClickHandlers() artık gerekli değil, onclick HTML'de tanımlı
+});
 
-    // Parts Dashboard kartlarını tıklanabilir yap
+// ========================================
+// DASHBOARD SECTION MODAL FONKSİYONLARI
+// ========================================
+
+/**
+ * Dashboard üzerinde section'ın INPUT ve MINI-LIST'ini açar - KARTIN TAM ÜZERİNE
+ */
+function openSectionInDashboard(sectionName, event) {
+    console.log('🎯 Karta overlay ekleniyor:', sectionName);
+    
+    // Event'i durdur
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    // Tıklanan kartı bul
+    let clickedCard = null;
+    if (event && event.currentTarget) {
+        clickedCard = event.currentTarget;
+    } else {
+        clickedCard = document.querySelector(`.parts-stat-card.${sectionName}`);
+    }
+    
+    if (!clickedCard) {
+        console.error('❌ Kart bulunamadı!');
+        return;
+    }
+    
+    // Kartta zaten overlay varsa, kapat
+    const existingOverlay = clickedCard.querySelector('.dashboard-section-overlay');
+    if (existingOverlay) {
+        if (existingOverlay.classList.contains('active')) {
+            existingOverlay.classList.remove('active');
+            setTimeout(() => existingOverlay.remove(), 300);
+            return;
+        } else {
+            existingOverlay.remove();
+        }
+    }
+    
+    // Diğer tüm overlay'leri kapat
+    document.querySelectorAll('.dashboard-section-overlay.active').forEach(overlay => {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 300);
+    });
+    
+    // Section bilgilerini al
+    const sectionInfo = getSectionInfo(sectionName);
+    
+    // Input ID'sini oluştur
+    const inputId = sectionName + 'Input';
+    const listId = sectionName + 'List';
+    
+    // Orijinal elementleri bul
+    const originalInput = document.getElementById(inputId);
+    const originalList = document.getElementById(listId);
+    
+    if (!originalInput || !originalList) {
+        console.error('❌ Input veya liste bulunamadı:', inputId, listId);
+        return;
+    }
+    
+    // Overlay HTML'i oluştur
+    const overlay = document.createElement('div');
+    overlay.className = 'dashboard-section-overlay';
+    overlay.innerHTML = `
+        <div class="dashboard-section-overlay-header">
+            <h3>${sectionInfo.label}</h3>
+            <button class="dashboard-section-overlay-close" onclick="closeCardOverlay(this, event)">✕</button>
+        </div>
+        <div class="dashboard-section-overlay-body" id="overlay_body_${sectionName}">
+            <!-- İçerik buraya eklenecek -->
+        </div>
+    `;
+    
+    // Overlay'i karta ekle
+    clickedCard.appendChild(overlay);
+    
+    // Body elementini bul
+    const overlayBody = overlay.querySelector('.dashboard-section-overlay-body');
+    
+    // Input'un klonunu oluştur (ÇALIŞIR HALDE - VERİ GİRİŞİ İÇİN)
+    const clonedInput = originalInput.cloneNode(true);
+    clonedInput.id = inputId + '_overlay';
+    clonedInput.readOnly = false;
+    clonedInput.disabled = false;
+    clonedInput.style.display = 'block'; // Kesinlikle görünür
+    clonedInput.style.visibility = 'visible'; // Görünürlük açık
+    clonedInput.style.opacity = '1'; // Tam opak
+    
+    // Liste'nin klonunu oluştur
+    const clonedList = originalList.cloneNode(true);
+    clonedList.id = listId + '_overlay';
+    clonedList.style.display = 'flex'; // Kesinlikle görünür
+    
+    // İçeriği ekle - ÖNCE INPUT SONRA HİNT SONRA LİSTE
+    overlayBody.innerHTML = ''; // Önce temizle
+    overlayBody.appendChild(clonedInput); // 1. Input ekle
+    
+    // 2. Kullanım talimatı ekle
+    const hint = document.createElement('div');
+    hint.className = 'overlay-input-hint';
+    hint.textContent = 'Enter: Tek kod | Ctrl+Enter: Çoklu kod';
+    overlayBody.appendChild(hint);
+    
+    overlayBody.appendChild(clonedList); // 3. Liste ekle
+    
+    console.log('📝 Input eklendi:', clonedInput);
+    console.log('📋 Liste eklendi:', clonedList);
+    
+    // Input'a Enter tuşu ile veri gönderme özelliği ekle
+    clonedInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const barcode = clonedInput.value.trim();
+            
+            if (barcode) {
+                // Veriyi gri listeye gönder
+                sendToGriListe(barcode, sectionName, clonedInput);
+            }
+        }
+    });
+    
+    // Input'a Ctrl+Enter ile çoklu veri gönderme
+    clonedInput.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            const codes = clonedInput.value.trim().split('\n').filter(c => c.trim());
+            
+            if (codes.length > 0) {
+                // Her satırı gri listeye gönder
+                codes.forEach(code => {
+                    const barcode = code.trim();
+                    if (barcode) {
+                        sendToGriListe(barcode, sectionName, null, true);
+                    }
+                });
+                
+                clonedInput.value = '';
+                showToast(`✅ ${codes.length} adet kod gri listeye gönderildi!`, 'success');
+            }
+        }
+    });
+    
+    // Overlay'i aktif et (animasyon için küçük gecikme)
     setTimeout(() => {
-        initPartsDashboardClickHandlers();
-    }, 1000); // DOM tam yüklendikten sonra çalıştır
+        overlay.classList.add('active');
+    }, 10);
+    
+    // Input'a otomatik focus
+    setTimeout(() => {
+        clonedInput.focus();
+    }, 350);
+    
+    console.log('✅ Overlay karta eklendi:', sectionName);
+}
+
+/**
+ * Kartın üzerindeki overlay'i kapatır
+ */
+function closeCardOverlay(button, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const overlay = button.closest('.dashboard-section-overlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 300);
+    }
+}
+
+/**
+ * Overlay input'undan gri listeye veri gönderir
+ */
+async function sendToGriListe(barcode, targetList, inputElement, isMultiple = false) {
+    console.log('📤 Gri listeye gönderiliyor:', barcode, '→', targetList);
+    
+    // Barkod kontrolü
+    if (!barcode || barcode.length < 5) {
+        if (!isMultiple) {
+            showToast('❌ Geçersiz barkod! En az 5 karakter olmalı.', 'error');
+        }
+        return;
+    }
+    
+    // Kullanıcı kontrolü
+    if (!currentUserName) {
+        showToast('❌ Kullanıcı girişi yapılmamış!', 'error');
+        return;
+    }
+    
+    try {
+        // Gri liste öğesi oluştur
+        const griItem = {
+            barcode: barcode,
+            fromList: 'dashboard_overlay', // Overlay'den geldiğini belirt
+            toList: targetList, // Hedef liste (örn: parcaBekliyor, phonecheck, vb.)
+            user: currentUserName,
+            timestamp: Date.now(),
+            createdAt: Date.now()
+        };
+        
+        // Firebase'e kaydet
+        await db.ref(`servis/griListe/${barcode}`).set(griItem);
+        
+        // Local data'yı güncelle
+        if (typeof griListeData !== 'undefined') {
+            griListeData[barcode] = griItem;
+        }
+        
+        // Input'u temizle
+        if (inputElement) {
+            inputElement.value = '';
+            inputElement.focus();
+        }
+        
+        // Başarı mesajı
+        if (!isMultiple) {
+            showToast(`✅ ${barcode} gri listeye eklendi! (Hedef: ${getListDisplayName(targetList)})`, 'success');
+        }
+        
+        console.log('✅ Gri listeye eklendi:', barcode);
+        
+        // Gri liste görünümünü güncelle (eğer fonksiyon varsa)
+        if (typeof renderGriListe === 'function') {
+            renderGriListe();
+        }
+        
+    } catch (error) {
+        console.error('❌ Gri listeye ekleme hatası:', error);
+        if (!isMultiple) {
+            showToast('❌ Hata: ' + error.message, 'error');
+        }
+    }
+}
+
+/**
+ * Liste adını kullanıcı dostu formata çevirir
+ */
+function getListDisplayName(listName) {
+    const displayNames = {
+        'parcaBekliyor': 'Parça Bekliyor',
+        'phonecheck': 'PhoneCheck',
+        'onarim': 'Onarım Tamamlandı',
+        'atanacak': 'Atanacaklar',
+        'satisa': 'Satışa Gidecek',
+        'sahiniden': 'Sahibinden',
+        'onCamDisServis': 'Ön Cam Dış Servis',
+        'pil': 'Pil',
+        'mediaMarkt': 'Satış Sonrası',
+        'kasa': 'Kasa',
+        'ekran': 'Ekran',
+        'onCam': 'Ön Cam',
+        'pilKasa': 'Pil + Kasa',
+        'pilEkran': 'Pil + Ekran',
+        'ekranKasa': 'Ekran + Kasa',
+        'pilEkranKasa': 'Pil + Ekran + Kasa',
+        'demontaj': 'Demontaj',
+        'montaj': 'Montaj'
+    };
+    
+    return displayNames[listName] || listName;
+}
+
+/**
+ * Dashboard section overlay'lerini kapatır (ESC tuşu için)
+ */
+function closeDashboardSection() {
+    document.querySelectorAll('.dashboard-section-overlay.active').forEach(overlay => {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 300);
+    });
+}
+
+/**
+ * Section bilgilerini döndürür
+ */
+function getSectionInfo(sectionName) {
+    const sectionMap = {
+        'parcaBekliyor': { label: '⚙️ Parça Bekliyor' },
+        'phonecheck': { label: '📱 PhoneCheck' },
+        'onarim': { label: '🔧 Onarım Tamamlandı' },
+        'atanacak': { label: '📋 Atanacaklar' },
+        'satisa': { label: '💰 Satışa Gidecek' },
+        'sahiniden': { label: '🏪 Sahibinden' },
+        'onCamDisServis': { label: '🔨 Ön Cam Dış Servis' },
+        'pil': { label: '🔋 Pil' },
+        'mediaMarkt': { label: '🛒 Satış Sonrası' },
+        'kasa': { label: '📱 Kasa' },
+        'ekran': { label: '🖥️ Ekran' },
+        'onCam': { label: '🪟 Ön Cam' },
+        'pilKasa': { label: '🔋📱 Pil + Kasa' },
+        'pilEkran': { label: '🔋🖥️ Pil + Ekran' },
+        'ekranKasa': { label: '🖥️📱 Ekran + Kasa' },
+        'pilEkranKasa': { label: '🔋🖥️📱 Pil + Ekran + Kasa' },
+        'demontaj': { label: '🔧 Demontaj' },
+        'montaj': { label: '⚙️ Montaj' }
+    };
+    
+    return sectionMap[sectionName] || { label: sectionName };
+}
+
+// ESC tuşu ile kapatma
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeDashboardSection();
+    }
+});
+
+// Modal dışına tıklandığında kapatma
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('dashboardSectionModal');
+    if (modal && e.target === modal) {
+        closeDashboardSection();
+    }
 });
 
 // ========================================
@@ -10589,93 +10903,13 @@ document.addEventListener('click', function (event) {
 // ========================================
 
 // Parça kartlarını tıklanabilir yap ve ilgili section'a scroll et
-function initPartsDashboardClickHandlers() {
-    // Kart verisection eşleştirmesi
-    const cardToSection = {
-        'parcaBekliyor': 'parcaBekliyor',
-        'phonecheck': 'phonecheck',
-        'onarim': 'onarim',
-        'atanacak': 'atanacak',
-        'satisa': 'satisa',
-        'sahiniden': 'sahiniden',
-        'onCamDisServis': 'onCamDisServis',
-        'mediaMarkt': 'mediaMarkt',
-        'pil': 'pil',
-        'kasa': 'kasa',
-        'ekran': 'ekran',
-        'onCam': 'onCam',
-        'pilKasa': 'pilKasa',
-        'pilEkran': 'pilEkran',
-        'ekranKasa': 'ekranKasa',
-        'pilEkranKasa': 'pilEkranKasa',
-        'demontaj': 'demontaj',
-        'montaj': 'montaj'
-    };
-
-    // Tüm parts-stat-card'ları bul
-    Object.keys(cardToSection).forEach(cardClass => {
-        const card = document.querySelector(`.parts-stat-card.${cardClass}`);
-        if (card) {
-            card.style.cursor = 'pointer';
-            card.onclick = () => scrollToAndOpenSection(cardToSection[cardClass]);
-        }
-    });
-
-    console.log('✅ Parts Dashboard click handler\'ları başlatıldı');
-}
+// ========================================
+// Parts Dashboard Click Handlers - KALDIRILDI
+// Artık onclick="openSectionInDashboard()" kullanılıyor
+// ========================================
 
 // Section'a scroll et ve input alanını aç
-function scrollToAndOpenSection(sectionName) {
-    // İlgili section'ı bul
-    const section = document.querySelector(`[data-section="${sectionName}"]`);
-
-    if (section) {
-        // Smooth scroll ile section'a git
-        section.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-        });
-
-        // Section içindeki textarea ve mini-list'i bul
-        const textarea = section.querySelector('textarea');
-        const miniList = section.querySelector('.mini-list');
-        const label = section.querySelector('label');
-
-        // Eğer section gizliyse, aç
-        if (textarea && textarea.style.display === 'none') {
-            textarea.style.display = 'block';
-            if (miniList) {
-                miniList.style.display = 'flex';
-            }
-            // Label'daki (Gizli) yazısını (Açık) olarak değiştir
-            if (label) {
-                label.textContent = label.textContent.replace(' (Gizli)', ' (Açık)');
-            }
-        }
-
-        // Input alanını bul ve focus et
-        const inputId = `${sectionName}Input`;
-        const input = document.getElementById(inputId);
-
-        if (input) {
-            // Kısa bir gecikme ile focus et (scroll animasyonu için)
-            setTimeout(() => {
-                input.focus();
-                input.style.minHeight = '120px'; // Input alanını geçici olarak genişlet
-
-                // Görsel feedback: section'ı highlight et
-                section.style.transition = 'all 0.3s ease';
-                section.style.boxShadow = '0 0 20px rgba(79, 172, 254, 0.5)';
-                section.style.transform = 'scale(1.02)';
-
-                // Highlight efektini kaldır
-                setTimeout(() => {
-                    section.style.boxShadow = '';
-                    section.style.transform = '';
-                }, 1000);
-            }, 500);
-        }
-    } else {
-        console.warn(`Section bulunamadı: ${sectionName}`);
-    }
-}
+// ========================================
+// scrollToAndOpenSection - KALDIRILDI
+// Artık openSectionInDashboard() kullanılıyor
+// ========================================
