@@ -6561,6 +6561,83 @@ body.light-mode .qr-transfer-modal-content {
 }
 
 /* ========================================
+   TEKNİSYEN ŞERİDİ - AYRI BÖLÜM
+   ======================================== */
+
+.technicians-strip {
+    background: linear-gradient(135deg, rgb(45 45 133 / 95%) 0%, rgba(30, 30, 50, 0.95) 100%);
+    
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    padding: 25px;
+    margin-top: 40px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.technicians-strip-header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.technicians-strip-header h3 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+}
+
+.technicians-strip-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+
+.technicians-strip-content .parts-stat-card {
+    flex: 0 0 auto;
+    width: 160px;
+}
+
+/* Light mode için teknisyen şeridi */
+body.light-mode .technicians-strip {
+    background: linear-gradient(135deg, rgba(240, 240, 250, 0.95) 0%, rgba(230, 230, 245, 0.95) 100%);
+    border: 2px solid rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .technicians-strip-header {
+    border-bottom-color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .technicians-strip-header h3 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Responsive ayarlar */
+@media screen and (max-width: 768px) {
+    .technicians-strip-content .parts-stat-card {
+        width: 140px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .technicians-strip-content {
+        gap: 15px;
+    }
+    
+    .technicians-strip-content .parts-stat-card {
+        width: 120px;
+    }
+}
+
+/* ========================================
    TEKNİSYEN KARTLARI - PARTS DASHBOARD
    ======================================== */
 
