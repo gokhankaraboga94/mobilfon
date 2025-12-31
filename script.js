@@ -4088,9 +4088,11 @@ function showToast(message, type = 'info') {
 // ========================================
 const PART_TYPE_LISTS = [
     // Mevcut listeler
-    'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa', 'sahiniden', 'onCamDisServis',
+    'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa', 'sahiniden', 'onCamDisServis', 'mediaMarkt',
     // Yeni parça türleri
-    'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'
+    'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme',
+    // Teknisyenler
+    'gokhan', 'yusuf', 'enes', 'samet', 'engin', 'ismail', 'mehmet', 'mert'
 ];
 
 function updatePartTypesDashboard() {
