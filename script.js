@@ -2224,7 +2224,7 @@ function checkMidnightReset() {
 }
 
 
-setInterval(checkMidnightReset, 5 * 60 * 1000); // 5 dakika
+setInterval(checkMidnightReset, 15 * 60 * 1000); // 5 dakika
 
 
 
