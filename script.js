@@ -11114,28 +11114,30 @@ function openQRTransferModal(imei) {
 }
 
 // Transfer listesi seç
-function selectQRTransferList(listName, imei) {
+async function selectQRTransferList(listName, imei) {
     console.log(`🔄 Transfer seçildi: ${imei} → ${listName} (Gri Liste üzerinden)`);
     
-    // Gri listeye ekle
-    addToGriListe(imei, listName);
+    // Gri listeye ekle (async işlem)
+    const success = await addToGriListeFromQR(imei, listName);
     
-    // Modal'ı kapat
-    closeQRTransferModal();
-    
-    // Başarı mesajı
-    showToast(`✅ ${imei} numaralı cihaz onay bekleyen transferlere eklendi`, 'success');
-    
-    // Status güncelle
-    const statusEl = document.getElementById('qrScannerStatus');
-    if (statusEl) {
-        statusEl.textContent = `Son işlem: ${imei} → Onay bekliyor`;
-        statusEl.className = 'qr-scanner-status success';
+    if (success) {
+        // Modal'ı kapat
+        closeQRTransferModal();
         
-        setTimeout(() => {
-            statusEl.textContent = '';
-            statusEl.className = 'qr-scanner-status';
-        }, 5000);
+        // Status güncelle
+        const statusEl = document.getElementById('qrScannerStatus');
+        if (statusEl) {
+            statusEl.textContent = `Son işlem: ${imei} → Onay bekliyor (${CACHED_LIST_NAMES[listName] || listName})`;
+            statusEl.className = 'qr-scanner-status success';
+            
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = 'qr-scanner-status';
+            }, 8000);
+        }
+    } else {
+        // Hata durumunda modal açık kalır, kullanıcı tekrar deneyebilir
+        showToast('❌ Transfer başarısız, lütfen tekrar deneyin', 'error');
     }
 }
 
@@ -11150,50 +11152,37 @@ function closeQRTransferModal() {
 // GRİ LİSTE FONKSİYONLARI (QR için)
 // ========================================
 
-// Gri listeye IMEI ekle
-function addToGriListe(imei, targetList) {
+// NOT: addToGriListe fonksiyonu zaten mevcuttur (satır 3772'de)
+// QR Scanner için wrapper fonksiyon
+async function addToGriListeFromQR(imei, targetList) {
     if (!imei || !targetList) {
         console.error('❌ Geçersiz parametre: imei veya targetList eksik');
-        return;
+        showToast('Geçersiz IMEI veya liste', 'error');
+        return false;
     }
     
-    const timestamp = new Date().toLocaleString('tr-TR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    const userName = currentUserName || (currentUserEmail ? currentUserEmail.split('@')[0] : 'QR Kullanıcı');
     
-    const userName = currentUserEmail ? currentUserEmail.split('@')[0] : 'Bilinmiyor';
+    // Mevcut addToGriListe fonksiyonunu kullan
+    // fromList: 'YENİ' (QR'dan geldiği için kaynak liste yok)
+    // toList: targetList (hedef liste)
+    const success = await addToGriListe(imei, 'YENİ', targetList, userName);
     
-    // Gri listeye kaydet
-    firebase.database().ref(`griListe/${imei}`).set({
-        targetList: targetList,
-        timestamp: timestamp,
-        user: userName,
-        source: 'qr_scanner'
-    }).then(() => {
-        console.log('✅ Gri listeye eklendi:', imei, '→', targetList);
-        
-        // Gri liste verisini güncelle
-        griListeData[imei] = {
-            targetList: targetList,
-            timestamp: timestamp,
-            user: userName,
-            source: 'qr_scanner'
-        };
-        
-        // UI'ı güncelle
-        renderGriListe();
+    if (success) {
+        console.log('✅ QR ile gri listeye eklendi:', imei, '→', targetList);
+        showToast(`✅ ${imei} onay bekleyen transferlere eklendi`, 'success');
         
         // Log kaydet
-        logAction(`QR ile gri listeye eklendi: ${imei} → ${targetList}`, 'qr_transfer');
+        if (typeof logAction === 'function') {
+            logAction(`QR ile gri listeye eklendi: ${imei} → ${targetList}`, 'qr_transfer');
+        }
         
-    }).catch(error => {
-        console.error('❌ Gri listeye eklenemedi:', error);
+        return true;
+    } else {
+        console.error('❌ Gri listeye eklenemedi');
         showToast('Hata: Gri listeye eklenemedi', 'error');
-    });
+        return false;
+    }
 }
 
 console.log('✅ QR Scanner fonksiyonları yüklendi');
