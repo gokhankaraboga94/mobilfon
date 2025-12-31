@@ -246,6 +246,17 @@ function openSectionInDashboard(sectionName, event) {
     const clonedList = originalList.cloneNode(true);
     clonedList.id = listId + '_overlay';
     clonedList.style.display = 'flex'; // Kesinlikle görünür
+    clonedList.style.flexDirection = 'column'; // Dikey düzen
+    clonedList.style.gap = '10px';
+    clonedList.style.maxHeight = '300px';
+    clonedList.style.overflowY = 'auto';
+    clonedList.style.padding = '10px';
+    clonedList.style.background = 'rgba(0, 0, 0, 0.2)';
+    clonedList.style.borderRadius = '8px';
+    clonedList.style.marginTop = '15px';
+    
+    // Liste içeriğini orijinal listeden kopyala
+    clonedList.innerHTML = originalList.innerHTML;
     
     // İçeriği ekle - ÖNCE INPUT SONRA HİNT SONRA LİSTE
     overlayBody.innerHTML = ''; // Önce temizle
@@ -254,7 +265,7 @@ function openSectionInDashboard(sectionName, event) {
     // 2. Kullanım talimatı ekle
     const hint = document.createElement('div');
     hint.className = 'overlay-input-hint';
-    hint.textContent = 'Enter: Tek kod | Ctrl+Enter: Çoklu kod';
+    hint.textContent = '🔄 Barkod okutun veya yapıştırın - Otomatik gönderilir';
     overlayBody.appendChild(hint);
     
     overlayBody.appendChild(clonedList); // 3. Liste ekle
@@ -266,13 +277,87 @@ function openSectionInDashboard(sectionName, event) {
     clonedInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            const barcode = clonedInput.value.trim();
+            const lines = clonedInput.value.split('\n');
+            const lastLine = lines[lines.length - 1].trim();
             
-            if (barcode) {
-                // Veriyi gri listeye gönder
-                sendToGriListe(barcode, sectionName, clonedInput);
+            if (lastLine && lastLine.length >= 15) {
+                // Son satırdaki barkodu gönder (sadece Enter'a basıldığında)
+                sendToGriListe(lastLine, sectionName, null);
             }
+            
+            // Her durumda yeni satır ekle
+            clonedInput.value += '\n';
+            
+            // Cursor'u en sona götür
+            setTimeout(() => {
+                clonedInput.scrollTop = clonedInput.scrollHeight;
+            }, 10);
         }
+    });
+    
+    // Barkod okuyucu otomatik algılama ve gönderme
+    let inputTimeout = null;
+    let processedIMEIs = new Set(); // İşlenmiş IMEI'leri takip et (çift toast engelle)
+    
+    clonedInput.addEventListener('input', function(e) {
+        // Timeout'u temizle
+        if (inputTimeout) {
+            clearTimeout(inputTimeout);
+        }
+        
+        // 100ms sonra işle (paste işlemini bekle)
+        inputTimeout = setTimeout(() => {
+            const currentValue = clonedInput.value;
+            
+            // Tüm satırları al
+            const lines = currentValue.split('\n');
+            
+            // Her satırdan 15 haneli IMEI'leri çıkar
+            const newIMEIs = [];
+            
+            lines.forEach(line => {
+                const imeiMatch = line.match(/\d{15}/);
+                if (imeiMatch) {
+                    const imei = imeiMatch[0];
+                    // Bu IMEI daha önce işlenmediyse ekle
+                    if (!processedIMEIs.has(imei)) {
+                        newIMEIs.push(imei);
+                        processedIMEIs.add(imei);
+                    }
+                }
+            });
+            
+            // Yeni IMEI'ler varsa işle
+            if (newIMEIs.length > 0) {
+                console.log('🔍 Yeni IMEI algılandı:', newIMEIs);
+                
+                // Tüm IMEI'leri sessizce gönder (toast gösterme)
+                newIMEIs.forEach((imei) => {
+                    sendToGriListe(imei, sectionName, null, true); // isMultiple=true (toast gösterme)
+                });
+                
+                // Tek bir toast mesajı göster
+                if (newIMEIs.length === 1) {
+                    setTimeout(() => {
+                        showToast(`✅ ${newIMEIs[0]} gri listeye eklendi!`, 'success');
+                    }, 50);
+                } else {
+                    setTimeout(() => {
+                        showToast(`✅ ${newIMEIs.length} adet barkod gri listeye eklendi!`, 'success');
+                    }, 50);
+                }
+                
+                // Son IMEI'den sonra yeni satır yoksa ekle
+                if (!currentValue.endsWith('\n')) {
+                    clonedInput.value = currentValue + '\n';
+                    
+                    // Cursor'u en sona götür
+                    clonedInput.selectionStart = clonedInput.value.length;
+                    clonedInput.selectionEnd = clonedInput.value.length;
+                    clonedInput.scrollTop = clonedInput.scrollHeight;
+                }
+            }
+        }, 100);
     });
     
     // Input'a Ctrl+Enter ile çoklu veri gönderme
@@ -321,6 +406,50 @@ function closeCardOverlay(button, event) {
     if (overlay) {
         overlay.classList.remove('active');
         setTimeout(() => overlay.remove(), 300);
+        
+        // NOT: processedIMEIs Set'i her overlay için local scope'ta olduğu için
+        // overlay kapatıldığında otomatik temizlenir
+        console.log('🚪 Overlay kapatıldı');
+    }
+}
+
+/**
+ * Overlay input içeriğini kopyalar
+ */
+function copyOverlayInput(sectionName, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const inputId = sectionName + 'Input_overlay';
+    const input = document.getElementById(inputId);
+    
+    if (input && input.value.trim()) {
+        input.select();
+        document.execCommand('copy');
+        showToast('📋 İçerik kopyalandı!', 'success');
+    } else {
+        showToast('⚠️ Kopyalanacak içerik yok', 'warning');
+    }
+}
+
+/**
+ * Overlay input içeriğini temizler
+ */
+function clearOverlayInput(sectionName, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const inputId = sectionName + 'Input_overlay';
+    const input = document.getElementById(inputId);
+    
+    if (input) {
+        if (confirm('İçeriği temizlemek istediğinize emin misiniz?')) {
+            input.value = '';
+            input.focus();
+            showToast('🗑️ İçerik temizlendi', 'info');
+        }
     }
 }
 
@@ -363,11 +492,8 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
             griListeData[barcode] = griItem;
         }
         
-        // Input'u temizle
-        if (inputElement) {
-            inputElement.value = '';
-            inputElement.focus();
-        }
+        // NOT: Input'u TEMİZLEME - kullanıcı kopyalama yapabilsin
+        // Sadece çoklu gönderimde (Ctrl+Enter) temizlenir
         
         // Başarı mesajı
         if (!isMultiple) {
