@@ -124,7 +124,7 @@ const CACHED_LIST_NAMES = {
     anakartDisServis: '🔨 Anakart Dış Servis',
     satisa: '💰 Satışa Gidecek',
     sahiniden: '🏪 Sahibinden',
-    mediaMarkt: '🛒 Media Markt',
+    mediaMarkt: '🛒 Satış Sonrası',
     SonKullanıcı: '👤 Son Kullanıcı',
     teslimEdilenler: '✅ Teslim Edilenler',
     // Parça/İşlem Türleri
@@ -643,7 +643,7 @@ async function generateReport() {
                                 anakartDisServis: '🔨 Anakart Dış Servis',
                                 satisa: '💰 Satışa Gidecek',
                                 sahiniden: '🏪 Sahibinden',
-                                mediaMarkt: '🛒 Media Markt',
+                                mediaMarkt: '🛒 Satış Sonrası',
                                 SonKullanıcı: '👤 Son Kullanıcı',
                                 teslimEdilenler: '✅ Teslim Edilenler'
                             };
@@ -676,7 +676,7 @@ async function generateReport() {
                     anakartDisServis: '🔨 Anakart Dış Servis',
                     satisa: '💰 Satışa Gidecek',
                     sahiniden: '🏪 Sahibinden',
-                    mediaMarkt: '🛒 Media Markt',
+                    mediaMarkt: '🛒 Satış Sonrası',
                     SonKullanıcı: '👤 Son Kullanıcı',
                     teslimEdilenler: '✅ Teslim Edilenler'
                 };
@@ -1203,7 +1203,7 @@ async function generateDeliveryReport(startDateInput, endDateInput) {
             atanacak: '📋 Atanacak',
             SonKullanıcı: '👤 Son Kullanıcı',
             sahiniden: '🏪 Sahibinden',
-            mediaMarkt: '🛒 Media Markt'
+            mediaMarkt: '🛒 Satış Sonrası'
         };
 
         Object.entries(sourceBreakdown).forEach(([source, count]) => {
@@ -1692,7 +1692,7 @@ function exportServiceReturnReportToExcel() {
                         anakartDisServis: '🔨 Anakart Dış Servis',
                         satisa: '💰 Satışa Gidecek',
                         sahiniden: '🏪 Sahibinden',
-                        mediaMarkt: '🛒 Media Markt',
+                        mediaMarkt: '🛒 Satış Sonrası',
                         SonKullanıcı: '👤 Son Kullanıcı'
                     };
 
@@ -1733,7 +1733,7 @@ function exportServiceReturnReportToExcel() {
                     anakartDisServis: '🔨 Anakart Dış Servis',
                     satisa: '💰 Satışa Gidecek',
                     sahiniden: '🏪 Sahibinden',
-                    mediaMarkt: '🛒 Media Markt',
+                    mediaMarkt: '🛒 Satış Sonrası',
                     SonKullanıcı: '👤 Son Kullanıcı',
                     teslimEdilenler: '✅ Teslim Edilenler'
                 };
@@ -1834,7 +1834,7 @@ function exportDailyReceivedReportToExcel() {
                 atanacak: '📋 Atanacak',
                 SonKullanıcı: '👤 Son Kullanıcı',
                 sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt',
+                mediaMarkt: '🛒 Satış Sonrası',
                 serviceReturn: '🔄 Servise Geri Dönenler'
             };
 
@@ -1866,7 +1866,7 @@ function exportDailyReceivedReportToExcel() {
                     atanacak: '📋 Atanacak',
                     SonKullanıcı: '👤 Son Kullanıcı',
                     sahiniden: '🏪 Sahibinden',
-                    mediaMarkt: '🛒 Media Markt',
+                    mediaMarkt: '🛒 Satış Sonrası',
                     serviceReturn: '🔄 Servise Geri Dönenler'
                 };
 
@@ -2055,7 +2055,7 @@ function exportDeliveryReportToExcel() {
                 atanacak: '📋 Atanacak',
                 SonKullanıcı: '👤 Son Kullanıcı',
                 sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt'
+                mediaMarkt: '🛒 Satış Sonrası'
             };
 
             Object.entries(currentReportData.sourceBreakdown).forEach(([source, count]) => {
@@ -2078,7 +2078,7 @@ function exportDeliveryReportToExcel() {
                     atanacak: '📋 Atanacak',
                     SonKullanıcı: '👤 Son Kullanıcı',
                     sahiniden: '🏪 Sahibinden',
-                    mediaMarkt: '🛒 Media Markt'
+                    mediaMarkt: '🛒 Satış Sonrası'
                 };
 
                 let phoneCheckText = 'Yok';
@@ -2913,7 +2913,7 @@ async function restoreDashboard() {
             `📋 Atanacak: ${sourceCounts.atanacak}\n` +
             `👤 SonKullanıcı: ${sourceCounts.SonKullanıcı}\n` +
             `🏪 Sahibinden: ${sourceCounts.sahiniden}\n` +
-            `🛒 Media Markt: ${sourceCounts.mediaMarkt}\n` +
+            `🛒 Satış Sonrası: ${sourceCounts.mediaMarkt}\n` +
             `🔄 Servise Geri Dönen: ${sourceCounts.serviceReturn}`,
             'success'
         );
@@ -4324,7 +4324,7 @@ let ALL_SECTIONS = [
     { id: 'anakartDisServis', name: '🔨 Anakart Dış Servis' },
     { id: 'satisa', name: '💰 Satışa Gidecek' },
     { id: 'sahiniden', name: '🏪 Sahibinden' },
-    { id: 'mediaMarkt', name: '🛒 Media Markt' },
+    { id: 'mediaMarkt', name: '🛒 Satış Sonrası' },
     { id: 'SonKullanıcı', name: '🛒 Son Kullanıcı' },
     { id: 'teslimEdilenler', name: '✅ Teslim Edilenler' },
     // ========== PARÇA/İŞLEM TÜRLERİ ==========
@@ -5675,7 +5675,7 @@ async function loadAndDisplayHistory(code) {
 
             satisa: '💰 Satışa Gidecek',
             sahiniden: '🏪 Sahibinden',
-            mediaMarkt: '🛒 Media Markt',
+            mediaMarkt: '🛒 Satış Sonrası',
             teslimEdilenler: '✅ Teslim Edildi',
             'SİLİNDİ': '🗑️ Silindi'
         };
@@ -5857,7 +5857,7 @@ function updateLabelAndCount(name) {
         SonKullanıcı: '👤 Son Kullanıcı',
         satisa: '💰 Satışa Gidecek',
         sahiniden: '🏪 Sahibinden',
-        mediaMarkt: '🛒 Media Markt',
+        mediaMarkt: '🛒 Satış Sonrası',
         teslimEdilenler: '✅ Teslim Edilenler'
     };
 
@@ -6065,7 +6065,7 @@ function saveCodes(name, value) {
     // Admin dahil herkes için transferler gri listeye düşer
     // HARIÇ: teslimEdilenler - direkt transfer olur
     // ========================================
-    const griListeExcludedLists = ['teslimEdilenler']; // Bu listeler gri listeye düşmez
+    const griListeExcludedLists = ['teslimEdilenler', 'atanacak']; // Bu listeler gri listeye düşmez
     const shouldUseGriListe = !griListeExcludedLists.includes(name);
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
@@ -6166,7 +6166,7 @@ function saveCodes(name, value) {
     // Admin dahil tüm kullanıcılar için geçerli
     // HARIÇ: teslimEdilenler - direkt transfer olur
     // ========================================
-    const griListeExcludedForOthers = ['teslimEdilenler'];
+    const griListeExcludedForOthers = ['teslimEdilenler', 'atanacak'];
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
 
     codes.forEach(code => {
@@ -6284,7 +6284,7 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
                         onarim: '🔧 Onarım Tamamlandı',
                         satisa: '💰 Satışa Gidecek',
                         sahiniden: '🏪 Sahibinden',
-                        mediaMarkt: '🛒 Media Markt',
+                        mediaMarkt: '🛒 Satış Sonrası',
                         teslimEdilenler: '✅ Teslim Edildi'
                     };
                     status = `${labelMap[name]}'te - ${codeUsers[name][query] || ''}`;
@@ -6377,7 +6377,7 @@ async function loadAndDisplayHistoryToElement(code, historyElementId) {
             onarim: '🔧 Onarım Tamamlandı',
             satisa: '💰 Satışa Gidecek',
             sahiniden: '🏪 Sahibinden',
-            mediaMarkt: '🛒 Media Markt',
+            mediaMarkt: '🛒 Satış Sonrası',
             teslimEdilenler: '✅ Teslim Edildi',
             'SİLİNDİ': '🗑️ Silindi'
         };
@@ -7235,7 +7235,7 @@ function performNavSearch(query) {
                 SonKullanıcı: '👤 Son Kullanıcı',
                 satisa: '💰 Satışa Gidecek',
                 sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt',
+                mediaMarkt: '🛒 Satış Sonrası',
                 teslimEdilenler: '✅ Teslim Edilenler'
             };
 
@@ -7649,7 +7649,7 @@ async function generateServiceReturnReport(startDateInput, endDateInput) {
                             anakartDisServis: '🔨 Anakart Dış Servis',
                             satisa: '💰 Satışa Gidecek',
                             sahiniden: '🏪 Sahibinden',
-                            mediaMarkt: '🛒 Media Markt',
+                            mediaMarkt: '🛒 Satış Sonrası',
                             SonKullanıcı: '👤 Son Kullanıcı',
                             teslimEdilenler: '✅ Teslim Edilenler'
                         };
@@ -7729,7 +7729,7 @@ async function generateServiceReturnReport(startDateInput, endDateInput) {
                         anakartDisServis: '🔨 Anakart Dış Servis',
                         satisa: '💰 Satışa Gidecek',
                         sahiniden: '🏪 Sahibinden',
-                        mediaMarkt: '🛒 Media Markt',
+                        mediaMarkt: '🛒 Satış Sonrası',
                         SonKullanıcı: '👤 Son Kullanıcı',
                         teslimEdilenler: '✅ Teslim Edilenler'
                     };
@@ -7824,7 +7824,7 @@ async function generateServiceReturnReport(startDateInput, endDateInput) {
                 anakartDisServis: '🔨 Anakart Dış Servis',
                 satisa: '💰 Satışa Gidecek',
                 sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt',
+                mediaMarkt: '🛒 Satış Sonrası',
                 SonKullanıcı: '👤 Son Kullanıcı'
             };
 
@@ -7880,7 +7880,7 @@ async function generateServiceReturnReport(startDateInput, endDateInput) {
                 anakartDisServis: '🔨 Anakart Dış Servis',
                 satisa: '💰 Satışa Gidecek',
                 sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Media Markt',
+                mediaMarkt: '🛒 Satış Sonrası',
                 SonKullanıcı: '👤 Son Kullanıcı',
                 teslimEdilenler: '✅ Teslim Edilenler'
             };
@@ -8115,7 +8115,7 @@ async function generateDailyReceivedReport(startDateInput, endDateInput) {
             atanacak: '📋 Atanacak',
             SonKullanıcı: '👤 Son Kullanıcı',
             sahiniden: '🏪 Sahibinden',
-            mediaMarkt: '🛒 Media Markt',
+            mediaMarkt: '🛒 Satış Sonrası',
             serviceReturn: '🔄 Servise Geri Dönenler'
         };
 
@@ -8610,7 +8610,7 @@ function displayDataSyncResults() {
         anakartDisServis: '🔨 Anakart Dış Servis',
         satisa: '💰 Satışa Gidecek',
         sahiniden: '🏪 Sahibinden',
-        mediaMarkt: '🛒 Media Markt',
+        mediaMarkt: '🛒 Satış Sonrası',
         SonKullanıcı: '👤 Son Kullanıcı',
         teslimEdilenler: '✅ Teslim Edilenler'
     };
@@ -9041,7 +9041,7 @@ function displayLogs(logs) {
         anakartDisServis: '🔨 Anakart Dış Servis',
         satisa: '💰 Satışa Gidecek',
         sahiniden: '🏪 Sahibinden',
-        mediaMarkt: '🛒 Media Markt',
+        mediaMarkt: '🛒 Satış Sonrası',
         SonKullanıcı: '👤 Son Kullanıcı',
         teslimEdilenler: '✅ Teslim Edilenler',
         'SİLİNDİ': '🗑️ Silindi',
@@ -9451,8 +9451,8 @@ async function checkTimeouts() {
         const ignoredSnapshot = await db.ref('timeoutIgnored').once('value');
         const ignoredList = ignoredSnapshot.val() || {};
 
-        // Kontrol edilecek listeleri belirle (Satış, Teslim ve Geçmiş hariç hepsi)
-        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'eslesenler', 'adet', 'history', 'serviceReturns'];
+        // Kontrol edilecek listeleri belirle (Satış, Teslim, Atanacak ve Geçmiş hariç hepsi)
+        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'atanacak', 'eslesenler', 'adet', 'history', 'serviceReturns'];
         const targetLists = Object.keys(userCodes).filter(listName => !excludeLists.includes(listName));
 
         // PhoneCheck ve Onarım listelerini manuel olarak da garantiye al
@@ -9855,7 +9855,7 @@ function renderTimeoutDeviceModal(devices, category) {
         anakartDisServis: '🔨 Anakart Dış Servis',
         satisa: '💰 Satışa Gidecek',
         sahiniden: '🏪 Sahibinden',
-        mediaMarkt: '🛒 Media Markt',
+        mediaMarkt: '🛒 Satış Sonrası',
         SonKullanıcı: '👤 Son Kullanıcı'
     };
 
@@ -10289,7 +10289,7 @@ function renderTimeoutList() {
         atanacak: '📋 Atanacak',
         phonecheck: '📱 PhoneCheck',
         onarim: '🔧 Onarım',
-        mediaMarkt: '🛒 Media Markt',
+        mediaMarkt: '🛒 Satış Sonrası',
         gokhan: '🧑‍🔧 Gökhan', enes: '🧑‍🔧 Enes', yusuf: '🧑‍🔧 Yusuf',
         samet: '🧑‍🔧 Samet', engin: '🧑‍🔧 Engin', ismail: '🧑‍🔧 İsmail', mehmet: '🧑‍🔧 Mehmet', mert: '🧑‍🔧 Mert',
         onCamDisServis: '🔨 Ön Cam', anakartDisServis: '🔨 Anakart'
