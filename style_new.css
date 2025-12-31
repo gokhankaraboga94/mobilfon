@@ -6559,3 +6559,57 @@ body.light-mode .qr-scanner-modal-content {
 body.light-mode .qr-transfer-modal-content {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
+
+/* ========================================
+   TEKNİSYEN KARTLARI - PARTS DASHBOARD
+   ======================================== */
+
+/* Teknisyen kartları için özel stiller */
+.parts-stat-card.gokhan,
+.parts-stat-card.yusuf,
+.parts-stat-card.enes,
+.parts-stat-card.samet,
+.parts-stat-card.engin,
+.parts-stat-card.ismail,
+.parts-stat-card.mehmet,
+.parts-stat-card.mert {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: 2px solid rgba(102, 126, 234, 0.5);
+}
+
+.parts-stat-card.gokhan:hover,
+.parts-stat-card.yusuf:hover,
+.parts-stat-card.enes:hover,
+.parts-stat-card.samet:hover,
+.parts-stat-card.engin:hover,
+.parts-stat-card.ismail:hover,
+.parts-stat-card.mehmet:hover,
+.parts-stat-card.mert:hover {
+    border-color: #667eea;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+    transform: translateY(-8px);
+}
+
+/* Light mode için teknisyen kartları */
+body.light-mode .parts-stat-card.gokhan,
+body.light-mode .parts-stat-card.yusuf,
+body.light-mode .parts-stat-card.enes,
+body.light-mode .parts-stat-card.samet,
+body.light-mode .parts-stat-card.engin,
+body.light-mode .parts-stat-card.ismail,
+body.light-mode .parts-stat-card.mehmet,
+body.light-mode .parts-stat-card.mert {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+body.light-mode .parts-stat-card.gokhan .parts-stat-label,
+body.light-mode .parts-stat-card.yusuf .parts-stat-label,
+body.light-mode .parts-stat-card.enes .parts-stat-label,
+body.light-mode .parts-stat-card.samet .parts-stat-label,
+body.light-mode .parts-stat-card.engin .parts-stat-label,
+body.light-mode .parts-stat-card.ismail .parts-stat-label,
+body.light-mode .parts-stat-card.mehmet .parts-stat-label,
+body.light-mode .parts-stat-card.mert .parts-stat-label {
+    color: white;
+}
