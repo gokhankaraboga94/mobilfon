@@ -13,7 +13,7 @@ const error = console.error.bind(console); // Always log errors
 let dataSyncCheckInterval = null;
 let lastDataSyncCheck = null;
 let dataSyncMismatches = [];
-const DATA_SYNC_CHECK_INTERVAL = 30 * 60 * 1000; // 30 dakika
+const DATA_SYNC_CHECK_INTERVAL = 30 * 60 * 1000; 
 
 // ========================================
 // THEME TOGGLE (GECE/GÜNDÜZ MODU)
@@ -275,7 +275,7 @@ function debouncedRenderList() {
 // ========================================
 let cachedHistoryData = null;
 let historyDataLastFetch = 0;
-const HISTORY_CACHE_DURATION = 10 * 60 * 1000; // 10 dakika
+const HISTORY_CACHE_DURATION = 15 * 60 * 1000; // 10 dakika
 
 // History verisini cache'den veya Firebase'den getir
 async function getHistoryData(forceRefresh = false) {
@@ -7536,7 +7536,7 @@ function startConflictMonitoring() {
     // Her 60 saniyede bir kontrol et
     conflictCheckInterval = setInterval(() => {
         checkAndNotifyConflicts();
-    }, 10 * 60 * 1000);
+    }, 20 * 60 * 1000);
 }
 
 // Çakışma kontrolünü durdur
