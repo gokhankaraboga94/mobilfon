@@ -6728,3 +6728,228 @@ body.light-mode .overlay-btn-clear {
         flex-direction: column;
     }
 }
+
+/* ========================================
+   BAKIM MODU - MAINTENANCE MODE STYLES
+   ======================================== */
+
+/* Bakım Modu Butonu */
+.maintenance-btn {
+    background: linear-gradient(135deg, #f39c12, #e67e22) !important;
+    color: white !important;
+    border: 2px solid rgba(243, 156, 18, 0.3) !important;
+    transition: all 0.3s ease !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.maintenance-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.maintenance-btn:hover::before {
+    left: 100%;
+}
+
+.maintenance-btn:hover {
+    background: linear-gradient(135deg, #e67e22, #d35400) !important;
+    border-color: rgba(230, 126, 34, 0.5) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(243, 156, 18, 0.4);
+}
+
+/* Bakım Modu Aktif - Buton Kırmızı */
+.maintenance-btn.active {
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    border-color: rgba(231, 76, 60, 0.5) !important;
+    animation: maintenancePulse 2s infinite;
+}
+
+.maintenance-btn.active:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226) !important;
+}
+
+@keyframes maintenancePulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+    }
+}
+
+/* Bakım Modu Ekranı */
+#maintenanceScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    z-index: 999999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.maintenance-screen-content {
+    text-align: center;
+    color: white;
+    max-width: 600px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.maintenance-icon {
+    font-size: 120px;
+    margin-bottom: 30px;
+    animation: rotateTool 3s ease-in-out infinite;
+}
+
+@keyframes rotateTool {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-15deg);
+    }
+    75% {
+        transform: rotate(15deg);
+    }
+}
+
+.maintenance-title {
+    font-size: 48px;
+    font-weight: 900;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
+}
+
+.maintenance-message {
+    font-size: 20px;
+    line-height: 1.8;
+    margin-bottom: 40px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.maintenance-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.spinner-ring {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(243, 156, 18, 0.3);
+    border-top-color: #f39c12;
+    border-radius: 50%;
+    animation: spinRing 1s linear infinite;
+}
+
+.spinner-ring:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.spinner-ring:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes spinRing {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.maintenance-info {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+}
+
+.maintenance-info small {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .maintenance-screen-content {
+        padding: 30px 20px;
+        margin: 20px;
+    }
+    
+    .maintenance-icon {
+        font-size: 80px;
+    }
+    
+    .maintenance-title {
+        font-size: 32px;
+    }
+    
+    .maintenance-message {
+        font-size: 16px;
+    }
+}
+
+/* Light Mode Support */
+body.light-mode #maintenanceScreen {
+    background: linear-gradient(135deg, #ecf0f1 0%, #bdc3c7 100%);
+}
+
+body.light-mode .maintenance-screen-content {
+    background: rgba(255, 255, 255, 0.9);
+    color: #2c3e50;
+}
+
+body.light-mode .maintenance-message {
+    color: #34495e;
+}
+
+body.light-mode .maintenance-info {
+    color: #7f8c8d;
+}
+
+body.light-mode .maintenance-info small {
+    color: #95a5a6;
+}
