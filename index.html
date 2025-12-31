@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="style_new.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- HTML5-QRCode Library for QR Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 </head>
 
@@ -838,6 +841,51 @@
             <div class="section" style="flex: 1 1 100%;">
                 <label for="scannerInput">📡 Cihaz Al/Barkod Okut:</label>
                 <textarea id="scannerInput" placeholder="Barkod okuyucu ile okut..." autofocus></textarea>
+            </div>
+        </div>
+
+        <!-- QR OKUT BÖLÜMÜ (SADECE MOBİL) -->
+        <div class="container qr-scanner-container" style="margin: 20px auto; max-width: 1200px; display: none;" id="qrScannerSection">
+            <div class="section qr-scanner-section" style="flex: 1 1 100%;">
+                <label>📱 QR Okut (Mobil):</label>
+                <button id="qrScanBtn" class="qr-scan-button" onclick="openQRScanner()">
+                    📷 QR Kod Okut
+                </button>
+                <div id="qrScannerStatus" class="qr-scanner-status"></div>
+            </div>
+        </div>
+
+        <!-- QR SCANNER MODAL -->
+        <div class="qr-scanner-modal" id="qrScannerModal">
+            <div class="qr-scanner-modal-content">
+                <div class="qr-scanner-modal-header">
+                    <h2>📷 QR Kod Okutma</h2>
+                    <button class="qr-scanner-close-btn" onclick="closeQRScanner()">✕</button>
+                </div>
+                <div class="qr-scanner-camera-container">
+                    <div id="qrReader" style="width: 100%;"></div>
+                </div>
+                <div class="qr-scanner-info">
+                    <p>📌 QR kodu kamera önüne tutun</p>
+                    <p id="qrScannerMessage" class="qr-scanner-message"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR TRANSFER SELECT MODAL -->
+        <div class="qr-transfer-modal" id="qrTransferModal">
+            <div class="qr-transfer-modal-content">
+                <div class="qr-transfer-modal-header">
+                    <h2>🔄 Transfer Listesi Seçin</h2>
+                    <button class="qr-transfer-close-btn" onclick="closeQRTransferModal()">✕</button>
+                </div>
+                <div class="qr-transfer-info">
+                    <p><strong>Okutulan IMEI:</strong> <span id="qrScannedIMEI">-</span></p>
+                    <p>Bu cihazı hangi listeye transfer etmek istiyorsunuz?</p>
+                </div>
+                <div class="qr-transfer-list-container" id="qrTransferListContainer">
+                    <!-- Liste seçenekleri buraya yüklenecek -->
+                </div>
             </div>
         </div>
 
