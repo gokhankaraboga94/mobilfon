@@ -11506,7 +11506,18 @@ function openQRTransferModalBulk(barcodes) {
         const listItem = document.createElement('div');
         listItem.className = 'qr-transfer-list-item';
         listItem.innerHTML = `${list.icon}<br>${list.label.replace(list.icon + ' ', '')}`;
-        listItem.onclick = () => selectQRTransferListBulk(list.name, barcodes);
+        
+        // ⭐ DÜZELTME: onclick handler'ı daha güvenli hale getir
+        listItem.addEventListener('click', function() {
+            console.log(`🎯 Liste tıklandı: ${list.name}, Barkodlar:`, barcodes);
+            if (!barcodes || barcodes.length === 0) {
+                console.error('❌ Barkodlar kayboldu!');
+                showToast('❌ Hata: Barkodlar bulunamadı!', 'error');
+                return;
+            }
+            selectQRTransferListBulk(list.name, barcodes);
+        });
+        
         listContainer.appendChild(listItem);
     });
     
@@ -11518,29 +11529,44 @@ async function selectQRTransferListBulk(listName, barcodes) {
     console.log(`🔄 Toplu transfer başlatılıyor: ${barcodes.length} barkod → ${listName}`);
     console.log(`📋 Barkodlar:`, barcodes);
     
-    // Loading göster
-    showToast(`⏳ ${barcodes.length} barkod transfer ediliyor...`, 'info');
+    // ⭐ DEBUG: Fonksiyon bağımlılıklarını kontrol et
+    console.log('🔍 Fonksiyon kontrolleri:');
+    console.log('- addToGriListeFromQR:', typeof addToGriListeFromQR);
+    console.log('- addToGriListe:', typeof addToGriListe);
+    console.log('- findBarcodeCurrentList:', typeof findBarcodeCurrentList);
+    console.log('- closeQRTransferModal:', typeof closeQRTransferModal);
+    console.log('- showToast:', typeof showToast);
     
-    let successCount = 0;
-    let failCount = 0;
-    const failedBarcodes = [];
-    
-    // Her barkod için gri listeye ekle
-    for (const barcode of barcodes) {
-        console.log(`🔄 Transfer ediliyor: ${barcode} → ${listName}`);
-        const success = await addToGriListeFromQR(barcode, listName, true); // skipToast = true
-        if (success) {
-            successCount++;
-            console.log(`✅ Başarılı: ${barcode}`);
-        } else {
-            failCount++;
-            failedBarcodes.push(barcode);
-            console.error(`❌ Başarısız: ${barcode}`);
+    try {
+        // Loading göster
+        showToast(`⏳ ${barcodes.length} barkod transfer ediliyor...`, 'info');
+        
+        let successCount = 0;
+        let failCount = 0;
+        const failedBarcodes = [];
+        
+        // Her barkod için gri listeye ekle
+        for (const barcode of barcodes) {
+            try {
+                console.log(`🔄 Transfer ediliyor: ${barcode} → ${listName}`);
+                const success = await addToGriListeFromQR(barcode, listName, true); // skipToast = true
+                if (success) {
+                    successCount++;
+                    console.log(`✅ Başarılı: ${barcode}`);
+                } else {
+                    failCount++;
+                    failedBarcodes.push(barcode);
+                    console.error(`❌ Başarısız: ${barcode}`);
+                }
+            } catch (innerError) {
+                console.error(`❌ Barkod transfer hatası (${barcode}):`, innerError);
+                failCount++;
+                failedBarcodes.push(barcode);
+            }
         }
-    }
-    
-    // Modal'ı kapat
-    closeQRTransferModal();
+        
+        // Modal'ı kapat
+        closeQRTransferModal();
     
     console.log(`📊 Transfer Sonuçları: ${successCount} başarılı, ${failCount} başarısız`);
     if (failedBarcodes.length > 0) {
@@ -11567,6 +11593,19 @@ async function selectQRTransferListBulk(listName, barcodes) {
     }
     
     console.log(`✅ Toplu transfer tamamlandı: ${successCount} başarılı, ${failCount} başarısız`);
+    
+    } catch (error) {
+        console.error('❌ selectQRTransferListBulk HATA:', error);
+        console.error('Hata detayı:', error.stack);
+        showToast(`❌ Transfer sırasında hata oluştu: ${error.message}`, 'error');
+        
+        // Hata durumunda da modal'ı kapat
+        try {
+            closeQRTransferModal();
+        } catch (closeError) {
+            console.error('Modal kapatma hatası:', closeError);
+        }
+    }
 }
 
 // Transfer modal'ını aç
@@ -11659,9 +11698,18 @@ async function selectQRTransferList(listName, imei) {
 
 // Transfer modal'ını kapat
 function closeQRTransferModal() {
-    const modal = document.getElementById('qrTransferModal');
-    modal.classList.remove('active');
-    currentScannedIMEI = null;
+    try {
+        const modal = document.getElementById('qrTransferModal');
+        if (modal) {
+            modal.classList.remove('active');
+            console.log('✅ QR Transfer Modal kapatıldı');
+        } else {
+            console.warn('⚠️ qrTransferModal elementi bulunamadı');
+        }
+        currentScannedIMEI = null;
+    } catch (error) {
+        console.error('❌ closeQRTransferModal hatası:', error);
+    }
 }
 
 // ========================================
@@ -11705,12 +11753,26 @@ async function addToGriListeFromQR(imei, targetList, skipToast = false) {
     
     // ⭐ DÜZELTME: Kaynak listeyi otomatik bul veya 'YENİ' kullan
     // Önce mevcut listeyi bulmayı dene
-    const currentList = findBarcodeCurrentList(imei);
-    const fromList = currentList || 'YENİ';
-    console.log(`📍 Kaynak liste: ${fromList} (barkod: ${imei})`);
+    let fromList = 'YENİ';
+    if (typeof findBarcodeCurrentList === 'function') {
+        const currentList = findBarcodeCurrentList(imei);
+        fromList = currentList || 'YENİ';
+        console.log(`📍 Kaynak liste: ${fromList} (barkod: ${imei})`);
+    } else {
+        console.warn('⚠️ findBarcodeCurrentList fonksiyonu bulunamadı, YENİ kullanılıyor');
+    }
     
     // addToGriListe fonksiyonunu doğru parametrelerle çağır
-    const success = await addToGriListe(imei, fromList, targetList, userName);
+    let success = false;
+    try {
+        console.log(`🔄 addToGriListe çağrılıyor: imei=${imei}, fromList=${fromList}, targetList=${targetList}, userName=${userName}`);
+        success = await addToGriListe(imei, fromList, targetList, userName);
+        console.log(`🔍 addToGriListe sonucu: ${success}`);
+    } catch (addError) {
+        console.error('❌ addToGriListe hatası:', addError);
+        console.error('Hata detayı:', addError.stack);
+        success = false;
+    }
     
     console.log(`🔍 addToGriListe sonucu: ${success}`);
     
