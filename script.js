@@ -473,6 +473,21 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         return;
     }
     
+    // ⭐ SELF-ASSIGNMENT KONTROLÜ - Kullanıcı kendi üzerine cihaz atayamaz
+    // ⚠️ İSTİSNA: Enes kullanıcısı düzenleyici olduğu için kendi üzerine atama yapabilir
+    const technicianLists = ['gokhan', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
+    const targetListLower = targetList.toLowerCase();
+    const currentUserLower = currentUserName.toLowerCase();
+    
+    // Enes hariç diğer kullanıcılar kendi üzerine atama yapamaz
+    if (currentUserLower !== 'enes' && technicianLists.includes(targetListLower) && targetListLower === currentUserLower) {
+        if (!isMultiple) {
+            showToast(`❌ HATA: Kullanıcı kendi üzerine cihaz atayamaz! (${currentUserName} → ${getListDisplayName(targetList)})`, 'error');
+        }
+        console.warn(`🚫 Self-assignment engellendi: ${currentUserName} kendi listesine transfer yapamaz`);
+        return;
+    }
+    
     try {
         // ⭐ addToGriListe fonksiyonunu kullan (otomatik kaynak liste bulma ve silme ile)
         const success = await addToGriListe(barcode, null, targetList, currentUserName);
