@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="style_new.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
+
     <!-- HTML5-QRCode Library for QR Scanner -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
@@ -79,7 +79,8 @@
                 <button onclick="openAccounting()" id="accountingBtn">📒 Muhasebe Sistemi</button>
                 <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı
                     Yönetimi</button>
-                <button onclick="toggleMaintenanceMode()" id="maintenanceBtn" style="display: block;" class="maintenance-btn">
+                <button onclick="toggleMaintenanceMode()" id="maintenanceBtn" style="display: block;"
+                    class="maintenance-btn">
                     <span id="maintenanceBtnIcon">🔧</span>
                     <span id="maintenanceBtnText">Bakım & Onarım</span>
                 </button>
@@ -646,7 +647,7 @@
                     <div class="label">Sahibinden</div>
                     <div id="adminSahiniden" class="value">0</div>
                 </div>
-       
+
 
                 <div class="admin-stat-box">
                     <div class="label">Toplam Teknisyen Cihazları</div>
@@ -921,7 +922,8 @@
         </div>
 
         <!-- QR OKUT BÖLÜMÜ (SADECE MOBİL) -->
-        <div class="container qr-scanner-container" style="margin: 20px auto; max-width: 1200px; display: none;" id="qrScannerSection">
+        <div class="container qr-scanner-container" style="margin: 20px auto; max-width: 1200px; display: none;"
+            id="qrScannerSection">
             <div class="section qr-scanner-section" style="flex: 1 1 100%;">
                 <label>📱 QR Okut (Mobil):</label>
                 <button id="qrScanBtn" class="qr-scan-button" onclick="openQRScanner()">
@@ -932,7 +934,8 @@
         </div>
 
         <!-- QR ONAY BÖLÜMÜ (SADECE MOBİL) - GRİ LİSTE ONAYLAMA -->
-        <div class="container qr-approve-container" style="margin: 20px auto; max-width: 1200px; display: none;" id="qrApproveSection">
+        <div class="container qr-approve-container" style="margin: 20px auto; max-width: 1200px; display: none;"
+            id="qrApproveSection">
             <div class="section qr-approve-section" style="flex: 1 1 100%;">
                 <label>✅ Gri Liste Onay (Mobil):</label>
                 <button id="qrApproveBtn" class="qr-approve-button" onclick="openQRApproveScanner()">
@@ -946,28 +949,28 @@
         <div class="qr-scanner-modal" id="qrScannerModal">
             <div class="qr-scanner-modal-content">
                 <div class="qr-scanner-modal-header">
-                    <h2>📷 QR Kod Okutma</h2>
+                    <h2>📷 QR Kod Okutma (Toplu)</h2>
                     <button class="qr-scanner-close-btn" onclick="closeQRScanner()">✕</button>
                 </div>
                 <div class="qr-scanner-camera-container">
                     <div id="qrReader" style="width: 100%;"></div>
                 </div>
                 <div class="qr-scanner-info">
-                    <p>📌 QR kodu kamera önüne tutun</p>
+                    <p>📌 QR kodları kamera önüne tutun - Arka arkaya okutabilirsiniz</p>
                     <p id="qrScannerMessage" class="qr-scanner-message"></p>
                 </div>
-                
-                <!-- ⭐ YENİ: OKUTULAN BARKODLAR LİSTESİ -->
-                <div class="scanned-barcodes-section">
-                    <h3 style="margin: 15px 0 10px 0; font-size: 16px; color: #3498db;">📋 Okutulan Barkodlar:</h3>
-                    <div id="scannedBarcodesContainer" class="scanned-barcodes-container">
-                        <div class="scanned-barcodes-empty">Henüz barkod okutulmadı</div>
+
+                <!-- OKUNAN KODLAR LİSTESİ -->
+                <div class="qr-scanner-scanned-list" id="qrScannedList">
+                    <p><strong>Okunan Kodlar (<span id="qrScannedCount">0</span>):</strong></p>
+                    <div id="qrScannedItems" class="qr-scanned-items">
+                        <p class="qr-scanned-empty">Henüz kod okutulmadı</p>
                     </div>
-                    
-                    <!-- ⭐ YENİ: TAMAM VE LİSTE SEÇ BUTONU -->
-                    <button id="qrScannerConfirmBtn" class="qr-scanner-confirm-btn" onclick="confirmScannedBarcodes()" style="display: none;">
-                        ✅ Tamam - Liste Seç
-                    </button>
+                </div>
+
+                <!-- TAMAM/BİTTİ BUTONU -->
+                <div class="qr-scanner-buttons">
+                    <button class="qr-finish-btn" onclick="finishBulkScanning()">✅ Tamam / Bitti</button>
                 </div>
             </div>
         </div>
@@ -1627,26 +1630,26 @@
             </div>
 
 
-    <!-- BAKIM MODU EKRANI -->
-    <div id="maintenanceScreen" style="display: none;">
-        <div class="maintenance-screen-content">
-            <div class="maintenance-icon">🔧</div>
-            <h1 class="maintenance-title">Sistem Bakımda</h1>
-            <p class="maintenance-message">
-                Sistem şu anda bakım çalışması yapılmaktadır.<br>
-                Lütfen daha sonra tekrar deneyiniz.
-            </p>
-            <div class="maintenance-spinner">
-                <div class="spinner-ring"></div>
-                <div class="spinner-ring"></div>
-                <div class="spinner-ring"></div>
+            <!-- BAKIM MODU EKRANI -->
+            <div id="maintenanceScreen" style="display: none;">
+                <div class="maintenance-screen-content">
+                    <div class="maintenance-icon">🔧</div>
+                    <h1 class="maintenance-title">Sistem Bakımda</h1>
+                    <p class="maintenance-message">
+                        Sistem şu anda bakım çalışması yapılmaktadır.<br>
+                        Lütfen daha sonra tekrar deneyiniz.
+                    </p>
+                    <div class="maintenance-spinner">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <p class="maintenance-info">
+                        ⏰ Bakım çalışması devam ediyor...<br>
+                        <small>En kısa sürede hizmetinizde olacağız.</small>
+                    </p>
+                </div>
             </div>
-            <p class="maintenance-info">
-                ⏰ Bakım çalışması devam ediyor...<br>
-                <small>En kısa sürede hizmetinizde olacağız.</small>
-            </p>
-        </div>
-    </div>
 
 
 </body>
