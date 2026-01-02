@@ -3918,15 +3918,24 @@ async function addToGriListe(barcode, fromList, toList, user) {
 
     try {
         // 1. Gri listeye ekle
+        console.log(`📝 Firebase'e yazılıyor: servis/griListe/${barcode}`);
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
+        console.log(`✅ Firebase'e yazıldı ve local cache güncellendi`);
         
         // 2. ⭐ KAYNAK LİSTEDEN SİL (YENİ değilse)
         if (actualFromList && actualFromList !== 'YENİ') {
             const fromDbPath = actualFromList === 'onarim' ? 'onarimTamamlandi' : actualFromList;
             
+            console.log(`🗑️ Kaynak listeden siliniyor: servis/${fromDbPath}/${barcode}`);
+            
             // Firebase'den sil
-            await db.ref(`servis/${fromDbPath}/${barcode}`).remove();
+            try {
+                await db.ref(`servis/${fromDbPath}/${barcode}`).remove();
+                console.log(`✅ Firebase'den silindi`);
+            } catch (removeError) {
+                console.warn(`⚠️ Kaynak listeden silinemedi (zaten silinmiş olabilir):`, removeError.message);
+            }
             
             // Local state'den sil
             if (userCodes[actualFromList]) {
@@ -3958,7 +3967,15 @@ async function addToGriListe(barcode, fromList, toList, user) {
         console.log(`⏳ Gri Listeye eklendi: ${barcode} (${actualFromList} → ${toList})`);
         return true;
     } catch (error) {
-        console.error('Gri Listeye ekleme hatası:', error);
+        console.error('❌ Gri Listeye ekleme hatası:', error);
+        console.error('Hata mesajı:', error.message);
+        console.error('Hata stack:', error.stack);
+        
+        // MOBİL DEBUG için alert
+        if (typeof alert !== 'undefined') {
+            alert(`GRİ LİSTE HATASI:\n${error.message}\n\nBarkod: ${barcode}\nKaynak: ${actualFromList}\nHedef: ${toList}`);
+        }
+        
         return false;
     }
 }
@@ -11529,6 +11546,9 @@ async function selectQRTransferListBulk(listName, barcodes) {
     console.log(`🔄 Toplu transfer başlatılıyor: ${barcodes.length} barkod → ${listName}`);
     console.log(`📋 Barkodlar:`, barcodes);
     
+    // MOBİL DEBUG
+    alert(`Transfer Başlıyor:\n${barcodes.length} barkod\nHedef: ${listName}\nBarkodlar: ${barcodes.join(', ')}`);
+    
     // ⭐ DEBUG: Fonksiyon bağımlılıklarını kontrol et
     console.log('🔍 Fonksiyon kontrolleri:');
     console.log('- addToGriListeFromQR:', typeof addToGriListeFromQR);
@@ -11572,6 +11592,9 @@ async function selectQRTransferListBulk(listName, barcodes) {
     if (failedBarcodes.length > 0) {
         console.log(`❌ Başarısız barkodlar:`, failedBarcodes);
     }
+    
+    // MOBİL DEBUG - Sonuç alert
+    alert(`Transfer Sonucu:\n✅ Başarılı: ${successCount}\n❌ Başarısız: ${failCount}${failedBarcodes.length > 0 ? '\n\nBaşarısız barkodlar:\n' + failedBarcodes.join('\n') : ''}`);
     
     // Sonuç mesajı
     if (failCount === 0) {
@@ -11721,10 +11744,16 @@ function closeQRTransferModal() {
 async function addToGriListeFromQR(imei, targetList, skipToast = false) {
     console.log(`🔍 addToGriListeFromQR çağrıldı: imei=${imei}, targetList=${targetList}, skipToast=${skipToast}`);
     
+    // MOBİL DEBUG
+    if (!skipToast) {
+        alert(`DEBUG: addToGriListeFromQR\nimei: ${imei}\ntargetList: ${targetList}`);
+    }
+    
     if (!imei || !targetList) {
         console.error('❌ Geçersiz parametre: imei veya targetList eksik');
         if (!skipToast) {
             showToast('Geçersiz IMEI veya liste', 'error');
+            alert('HATA: Geçersiz IMEI veya liste');
         }
         return false;
     }
@@ -11766,11 +11795,34 @@ async function addToGriListeFromQR(imei, targetList, skipToast = false) {
     let success = false;
     try {
         console.log(`🔄 addToGriListe çağrılıyor: imei=${imei}, fromList=${fromList}, targetList=${targetList}, userName=${userName}`);
+        
+        // MOBİL DEBUG - griListeData kontrolü
+        if (typeof griListeData === 'undefined') {
+            console.error('❌ griListeData tanımlı değil!');
+            alert('HATA: griListeData tanımlı değil!');
+            return false;
+        }
+        
+        // db (Firebase) kontrolü
+        if (typeof db === 'undefined') {
+            console.error('❌ Firebase db tanımlı değil!');
+            alert('HATA: Firebase db tanımlı değil!');
+            return false;
+        }
+        
         success = await addToGriListe(imei, fromList, targetList, userName);
         console.log(`🔍 addToGriListe sonucu: ${success}`);
+        
+        if (!skipToast && !success) {
+            alert(`HATA: addToGriListe başarısız oldu\nimei: ${imei}\nfromList: ${fromList}\ntargetList: ${targetList}`);
+        }
+        
     } catch (addError) {
         console.error('❌ addToGriListe hatası:', addError);
         console.error('Hata detayı:', addError.stack);
+        if (!skipToast) {
+            alert(`HATA: ${addError.message}`);
+        }
         success = false;
     }
     
