@@ -12007,7 +12007,7 @@ function showScannerMessage(message, type = 'info') {
 function finishBulkScanning() {
     // Hi� kod okutulmam��sa uyar
     if (scannedBarcodes.length === 0) {
-        showToast('Hen�z hi� kod okutulmad�!', 'warning');
+        alert('Hen�z hi� kod okutulmad�!');
         return;
     }
     
@@ -12108,7 +12108,7 @@ function closeQRTransferModal() {
  */
 async function selectTargetList(targetList) {
     if (!scannedBarcodes || scannedBarcodes.length === 0) {
-        showToast('Okutulmu� kod bulunamad�!', 'warning');
+        alert('Okutulmu� kod bulunamad�!');
         return;
     }
     
@@ -12127,7 +12127,7 @@ async function selectTargetList(targetList) {
         
     } catch (error) {
         console.error('Bulk transfer hatas�:', error);
-        showToast('Transfer s�ras�nda hata olu�tu: ' + error.message, 'error');
+        alert('Transfer s�ras�nda hata olu�tu: ' + error.message);
     }
 }
 
@@ -12175,4 +12175,5 @@ async function bulkTransferToGrayList(targetList) {
         updateAdminStats();
     }
 }
+
 
