@@ -11512,25 +11512,36 @@ function openQRTransferModalBulk(barcodes) {
 // ⭐ YENİ: Toplu transfer - Liste seçimi
 async function selectQRTransferListBulk(listName, barcodes) {
     console.log(`🔄 Toplu transfer başlatılıyor: ${barcodes.length} barkod → ${listName}`);
+    console.log(`📋 Barkodlar:`, barcodes);
     
     // Loading göster
     showToast(`⏳ ${barcodes.length} barkod transfer ediliyor...`, 'info');
     
     let successCount = 0;
     let failCount = 0;
+    const failedBarcodes = [];
     
     // Her barkod için gri listeye ekle
     for (const barcode of barcodes) {
-        const success = await addToGriListeFromQR(barcode, listName);
+        console.log(`🔄 Transfer ediliyor: ${barcode} → ${listName}`);
+        const success = await addToGriListeFromQR(barcode, listName, true); // skipToast = true
         if (success) {
             successCount++;
+            console.log(`✅ Başarılı: ${barcode}`);
         } else {
             failCount++;
+            failedBarcodes.push(barcode);
+            console.error(`❌ Başarısız: ${barcode}`);
         }
     }
     
     // Modal'ı kapat
     closeQRTransferModal();
+    
+    console.log(`📊 Transfer Sonuçları: ${successCount} başarılı, ${failCount} başarısız`);
+    if (failedBarcodes.length > 0) {
+        console.log(`❌ Başarısız barkodlar:`, failedBarcodes);
+    }
     
     // Sonuç mesajı
     if (failCount === 0) {
@@ -11655,23 +11666,51 @@ function closeQRTransferModal() {
 
 // NOT: addToGriListe fonksiyonu zaten mevcuttur (satır 3772'de)
 // QR Scanner için wrapper fonksiyon
-async function addToGriListeFromQR(imei, targetList) {
+async function addToGriListeFromQR(imei, targetList, skipToast = false) {
+    console.log(`🔍 addToGriListeFromQR çağrıldı: imei=${imei}, targetList=${targetList}, skipToast=${skipToast}`);
+    
     if (!imei || !targetList) {
         console.error('❌ Geçersiz parametre: imei veya targetList eksik');
-        showToast('Geçersiz IMEI veya liste', 'error');
+        if (!skipToast) {
+            showToast('Geçersiz IMEI veya liste', 'error');
+        }
         return false;
     }
     
     const userName = currentUserName || (currentUserEmail ? currentUserEmail.split('@')[0] : 'QR Kullanıcı');
+    console.log(`👤 Kullanıcı adı: ${userName} (currentUserName: ${currentUserName}, currentUserEmail: ${currentUserEmail})`);
+    
+    // ⭐ SELF-ASSIGNMENT KONTROLÜ - QR okutmada da kontrol
+    // ⚠️ İSTİSNA: Enes kullanıcısı düzenleyici olduğu için kendi üzerine atama yapabilir
+    const technicianLists = ['gokhan', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
+    const targetListLower = targetList.toLowerCase();
+    const currentUserLower = userName.toLowerCase();
+    
+    console.log(`🔍 Self-assignment kontrolü: targetListLower=${targetListLower}, currentUserLower=${currentUserLower}`);
+    
+    // Enes hariç diğer kullanıcılar kendi üzerine atama yapamaz
+    if (currentUserLower !== 'enes' && technicianLists.includes(targetListLower) && targetListLower === currentUserLower) {
+        console.warn(`🚫 Self-assignment engellendi: ${userName} kendi listesine (${targetList}) transfer yapamaz`);
+        if (!skipToast) {
+            showToast(`❌ HATA: ${userName} kendi üzerine cihaz atayamaz!`, 'error');
+        }
+        return false;
+    }
+    
+    console.log(`✅ Self-assignment kontrolü geçti, addToGriListe çağrılıyor...`);
     
     // ⭐ DÜZELTME: 'YENİ' yerine null gönder
     // addToGriListe otomatik olarak kaynak listeyi bulacak ve silecek
     // Eğer hiçbir listede yoksa zaten 'YENİ' olarak işaretleyecek
     const success = await addToGriListe(imei, null, targetList, userName);
     
+    console.log(`🔍 addToGriListe sonucu: ${success}`);
+    
     if (success) {
         console.log('✅ QR ile gri listeye eklendi:', imei, '→', targetList);
-        showToast(`✅ ${imei} onay bekleyen transferlere eklendi`, 'success');
+        if (!skipToast) {
+            showToast(`✅ ${imei} onay bekleyen transferlere eklendi`, 'success');
+        }
         
         // Log kaydet
         if (typeof logAction === 'function') {
@@ -11680,8 +11719,10 @@ async function addToGriListeFromQR(imei, targetList) {
         
         return true;
     } else {
-        console.error('❌ Gri listeye eklenemedi');
-        showToast('Hata: Gri listeye eklenemedi', 'error');
+        console.error('❌ Gri listeye eklenemedi:', imei);
+        if (!skipToast) {
+            showToast('Hata: Gri listeye eklenemedi', 'error');
+        }
         return false;
     }
 }
