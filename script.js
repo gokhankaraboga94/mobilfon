@@ -11167,6 +11167,11 @@ let html5QrCode = null;
 let currentScannedIMEI = null;
 let isQRScannerActive = false;
 
+// ⭐ TOPLU BARKOD OKUTMA İÇİN YENİ DEĞİŞKENLER
+let scannedBarcodes = []; // Okutulan barkodları tutar
+let lastScannedBarcode = null; // Son okutulan barkod (çift okuma önleme)
+let lastScanTime = 0; // Son okuma zamanı (çift okuma önleme)
+
 // Mobil cihaz kontrolü
 function isMobileDevice() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
@@ -11209,6 +11214,12 @@ function openQRScanner() {
         showToast('QR okutma özelliği sadece mobil cihazlarda çalışır', 'warning');
         return;
     }
+    
+    // ⭐ TOPLU OKUTMA - Liste sıfırla
+    scannedBarcodes = [];
+    lastScannedBarcode = null;
+    lastScanTime = 0;
+    updateScannedBarcodesDisplay();
     
     modal.classList.add('active');
     messageEl.textContent = 'Kamera açılıyor...';
@@ -11265,20 +11276,50 @@ function onQRCodeScanned(decodedText, decodedResult) {
     
     if (imeiMatch) {
         const imei = imeiMatch[0];
-        currentScannedIMEI = imei;
+        
+        // ⭐ ÇİFT OKUMA ÖNLEME - Aynı barkod 2 saniye içinde tekrar okunmasın
+        const now = Date.now();
+        if (lastScannedBarcode === imei && (now - lastScanTime) < 2000) {
+            console.log('⚠️ Çift okuma engellendi:', imei);
+            return;
+        }
+        
+        // ⭐ ZATEN LİSTEDE VAR MI KONTROL ET
+        if (scannedBarcodes.includes(imei)) {
+            const messageEl = document.getElementById('qrScannerMessage');
+            messageEl.textContent = `⚠️ ${imei} zaten listede!`;
+            messageEl.className = 'qr-scanner-message warning';
+            
+            // 1 saniye sonra tekrar taramaya hazır mesajı
+            setTimeout(() => {
+                messageEl.textContent = `✅ ${scannedBarcodes.length} barkod okundu - Devam edin`;
+                messageEl.className = 'qr-scanner-message success';
+            }, 1000);
+            
+            return;
+        }
+        
+        // ⭐ TOPLU OKUTMA - Listeye ekle
+        scannedBarcodes.push(imei);
+        lastScannedBarcode = imei;
+        lastScanTime = now;
         
         const messageEl = document.getElementById('qrScannerMessage');
-        messageEl.textContent = `✅ IMEI okundu: ${imei}`;
+        messageEl.textContent = `✅ ${imei} eklendi (${scannedBarcodes.length} barkod)`;
         messageEl.className = 'qr-scanner-message success';
         
-        // Kamerayı durdur
-        stopQRScanner();
+        // Listeyi güncelle
+        updateScannedBarcodesDisplay();
         
-        // Kısa bir bekleme sonrası transfer modal'ını aç
-        setTimeout(() => {
-            closeQRScanner();
-            openQRTransferModal(imei);
-        }, 1000);
+        // Ses/titreşim feedback (opsiyonel)
+        if (navigator.vibrate) {
+            navigator.vibrate(200);
+        }
+        
+        console.log(`📋 Toplam okutulan: ${scannedBarcodes.length} barkod`);
+        
+        // ⚠️ Kamerayı KAPATMA - Toplu okutmada açık kalmalı
+        // Kullanıcı "Tamam" dedikten sonra kapatılacak
         
     } else {
         const messageEl = document.getElementById('qrScannerMessage');
@@ -11313,6 +11354,11 @@ function closeQRScanner() {
     const modal = document.getElementById('qrScannerModal');
     modal.classList.remove('active');
     
+    // ⭐ TOPLU OKUTMA - Liste temizle
+    scannedBarcodes = [];
+    lastScannedBarcode = null;
+    lastScanTime = 0;
+    
     // Kısa gecikme ile HTML5QrCode nesnesini temizle
     setTimeout(() => {
         if (html5QrCode) {
@@ -11325,6 +11371,188 @@ function closeQRScanner() {
 // ========================================
 // QR TRANSFER MODAL
 // ========================================
+
+// ⭐ YENİ: Okutulan barkodları ekranda göster
+function updateScannedBarcodesDisplay() {
+    const container = document.getElementById('scannedBarcodesContainer');
+    if (!container) {
+        console.warn('scannedBarcodesContainer bulunamadı');
+        return;
+    }
+    
+    const confirmBtn = document.getElementById('qrScannerConfirmBtn');
+    
+    if (scannedBarcodes.length === 0) {
+        container.innerHTML = '<div class="scanned-barcodes-empty">Henüz barkod okutulmadı</div>';
+        
+        // "Tamam ve Liste Seç" butonunu gizle
+        if (confirmBtn) {
+            confirmBtn.style.display = 'none';
+        }
+        return;
+    }
+    
+    // "Tamam ve Liste Seç" butonunu göster ve metni güncelle
+    if (confirmBtn) {
+        confirmBtn.style.display = 'block';
+        confirmBtn.textContent = `✅ Tamam - Liste Seç (${scannedBarcodes.length} barkod)`;
+    }
+    
+    let html = '<div class="scanned-barcodes-list">';
+    scannedBarcodes.forEach((barcode, index) => {
+        html += `
+            <div class="scanned-barcode-item">
+                <span class="scanned-barcode-number">${index + 1}.</span>
+                <span class="scanned-barcode-code">${barcode}</span>
+                <button class="scanned-barcode-remove" onclick="removeScannedBarcode('${barcode}')" title="Kaldır">✕</button>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+// ⭐ YENİ: Okutulan barkodlardan birini kaldır
+function removeScannedBarcode(barcode) {
+    const index = scannedBarcodes.indexOf(barcode);
+    if (index > -1) {
+        scannedBarcodes.splice(index, 1);
+        updateScannedBarcodesDisplay();
+        
+        const messageEl = document.getElementById('qrScannerMessage');
+        if (messageEl) {
+            messageEl.textContent = `🗑️ ${barcode} listeden kaldırıldı (${scannedBarcodes.length} barkod)`;
+            messageEl.className = 'qr-scanner-message info';
+        }
+    }
+}
+
+// ⭐ YENİ: Toplu transfer için liste seçimi aç
+function confirmScannedBarcodes() {
+    if (scannedBarcodes.length === 0) {
+        showToast('❌ Hiç barkod okutulmadı!', 'error');
+        return;
+    }
+    
+    console.log(`📋 Toplu transfer başlatılıyor: ${scannedBarcodes.length} barkod`);
+    
+    // QR Scanner'ı kapat
+    stopQRScanner();
+    
+    // Kısa gecikme ile transfer modal'ını aç
+    setTimeout(() => {
+        closeQRScanner();
+        openQRTransferModalBulk(scannedBarcodes);
+    }, 500);
+}
+
+// ⭐ YENİ: Toplu transfer için modal aç
+function openQRTransferModalBulk(barcodes) {
+    const modal = document.getElementById('qrTransferModal');
+    const imeiDisplay = document.getElementById('qrScannedIMEI');
+    const listContainer = document.getElementById('qrTransferListContainer');
+    
+    // Barkod sayısını göster
+    imeiDisplay.textContent = `${barcodes.length} ADET BARKOD`;
+    imeiDisplay.style.fontSize = '20px';
+    imeiDisplay.style.fontWeight = 'bold';
+    
+    // Tüm mevcut listeleri göster
+    const allLists = [
+    { name: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', icon: '⚙️' },
+    { name: 'onarim', label: '🔧 Onarım Tamamlandı', icon: '🔧' },
+
+    { name: 'gokhan', label: '🧑‍🔧 Gökhan\'ın Cihazları', icon: '🧑‍🔧' },
+    { name: 'enes', label: '🧑‍🔧 Enes\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'yusuf', label: '🧑‍🔧 Yusuf\'un Cihazları', icon: '🧑‍🔧' },
+    { name: 'mert', label: '🧑‍🔧 Mert\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'samet', label: '🧑‍🔧 Samet\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'engin', label: '🧑‍🔧 Engin\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'ismail', label: '🧑‍🔧 İsmail\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'mehmet', label: '🧑‍🔧 Mehmet\'in Cihazları', icon: '🧑‍🔧' },
+
+    { name: 'atanacak', label: '📋 Atanacak', icon: '📋' },
+    { name: 'phonecheck', label: '📱 PhoneCheck', icon: '📱' },
+    { name: 'onCamDisServis', label: '🔨 Ön Cam Dış Servis', icon: '🔨' },
+    { name: 'anakartDisServis', label: '🔨 Anakart Dış Servis', icon: '🔨' },
+    { name: 'satisa', label: '💰 Satışa Gidecek', icon: '💰' },
+    { name: 'SonKullanıcı', label: '👤 Son Kullanıcı', icon: '👤' },
+    { name: 'sahiniden', label: '🏪 Sahibinden', icon: '🏪' },
+    { name: 'mediaMarkt', label: '🛒 Satış Sonrası', icon: '🛒' },
+    { name: 'teslimEdilenler', label: '✅ Teslim Edilenler', icon: '✅' },
+
+    // 🔽 Birinci listeden eklenenler
+    { name: 'pil', label: '🔋 Pil', icon: '🔋' },
+    { name: 'kasa', label: '📱 Kasa', icon: '📱' },
+    { name: 'ekran', label: '🖥️ Ekran', icon: '🖥️' },
+    { name: 'onCam', label: '🪟 Ön Cam', icon: '🪟' },
+    { name: 'pilKasa', label: '🔋📱 Pil + Kasa', icon: '🔋📱' },
+    { name: 'pilEkran', label: '🔋🖥️ Pil + Ekran', icon: '🔋🖥️' },
+    { name: 'ekranKasa', label: '🖥️📱 Ekran + Kasa', icon: '🖥️📱' },
+    { name: 'pilEkranKasa', label: '🔋🖥️📱 Pil + Ekran + Kasa', icon: '🔋🖥️📱' },
+    { name: 'demontaj', label: '🔧 Demontaj', icon: '🔧' },
+    { name: 'montaj', label: '⚙️ Montaj', icon: '⚙️' }
+];
+
+    
+    listContainer.innerHTML = '';
+    
+    allLists.forEach(list => {
+        const listItem = document.createElement('div');
+        listItem.className = 'qr-transfer-list-item';
+        listItem.innerHTML = `${list.icon}<br>${list.label.replace(list.icon + ' ', '')}`;
+        listItem.onclick = () => selectQRTransferListBulk(list.name, barcodes);
+        listContainer.appendChild(listItem);
+    });
+    
+    modal.classList.add('active');
+}
+
+// ⭐ YENİ: Toplu transfer - Liste seçimi
+async function selectQRTransferListBulk(listName, barcodes) {
+    console.log(`🔄 Toplu transfer başlatılıyor: ${barcodes.length} barkod → ${listName}`);
+    
+    // Loading göster
+    showToast(`⏳ ${barcodes.length} barkod transfer ediliyor...`, 'info');
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    // Her barkod için gri listeye ekle
+    for (const barcode of barcodes) {
+        const success = await addToGriListeFromQR(barcode, listName);
+        if (success) {
+            successCount++;
+        } else {
+            failCount++;
+        }
+    }
+    
+    // Modal'ı kapat
+    closeQRTransferModal();
+    
+    // Sonuç mesajı
+    if (failCount === 0) {
+        showToast(`✅ ${successCount} barkod başarıyla gri listeye eklendi!`, 'success');
+    } else {
+        showToast(`⚠️ ${successCount} başarılı, ${failCount} başarısız`, 'warning');
+    }
+    
+    // Status güncelle
+    const statusEl = document.getElementById('qrScannerStatus');
+    if (statusEl) {
+        statusEl.textContent = `Son işlem: ${successCount} barkod → Onay bekliyor (${CACHED_LIST_NAMES[listName] || listName})`;
+        statusEl.className = 'qr-scanner-status success';
+        
+        setTimeout(() => {
+            statusEl.textContent = '';
+            statusEl.className = 'qr-scanner-status';
+        }, 8000);
+    }
+    
+    console.log(`✅ Toplu transfer tamamlandı: ${successCount} başarılı, ${failCount} başarısız`);
+}
 
 // Transfer modal'ını aç
 function openQRTransferModal(imei) {
