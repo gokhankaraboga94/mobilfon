@@ -11829,3 +11829,350 @@ async function initMaintenanceMode() {
 }
 
 console.log('✅ Bakım Modu fonksiyonları yüklendi');
+
+// ========================================
+// BULK QR CODE SCANNER - TOPLU QR OKUMA
+// ========================================
+
+let qrScannerInstance = null;
+let scannedBarcodes = []; // Temporary pool for scanned codes
+let cameraPermissionGranted = false;
+let isBulkScanningActive = false;
+
+/**
+ * QR Scanner'� a� - Toplu tarama modu
+ */
+function openQRScanner() {
+    const modal = document.getElementById('qrScannerModal');
+    if (!modal) return;
+    
+    // Modal'� g�ster
+    modal.classList.add('active');
+    
+    // Scanned barcodes pool'unu temizle
+    scannedBarcodes = [];
+    updateScannedList();
+    
+    // Scanner'� ba�lat
+    initQRScanner();
+}
+
+/**
+ * QR Scanner'� kapat
+ */
+function closeQRScanner() {
+    const modal = document.getElementById('qrScannerModal');
+    if (!modal) return;
+    
+    // Scanner'� durdur
+    if (qrScannerInstance) {
+        qrScannerInstance.stop().then(() => {
+            console.log('QR Scanner durduruldu');
+        }).catch((err) => {
+            console.error('QR Scanner durdurulurken hata:', err);
+        });
+    }
+    
+    // Modal'� kapat
+    modal.classList.remove('active');
+    
+    // Mesaj� temizle
+    const messageEl = document.getElementById('qrScannerMessage');
+    if (messageEl) {
+        messageEl.textContent = '';
+        messageEl.className = 'qr-scanner-message';
+    }
+}
+
+/**
+ * QR Scanner'� ba�lat
+ */
+function initQRScanner() {
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+    };
+    
+    // Scanner instance'� olu�tur
+    if (!qrScannerInstance) {
+        qrScannerInstance = new Html5Qrcode("qrReader");
+    }
+    
+    // Kamera ba�lat
+    qrScannerInstance.start(
+        { facingMode: "environment" }, // Arka kamera
+        config,
+        onQRCodeScanned, // Success callback
+        (errorMessage) => {
+            // Hata loglamaya gerek yok, s�rekli tarama oldu�u i�in
+        }
+    ).then(() => {
+        isBulkScanningActive = true;
+        cameraPermissionGranted = true;
+        showScannerMessage('Kamera haz�r - QR kodlar� okutabilirsiniz', 'success');
+    }).catch((err) => {
+        console.error('Kamera ba�latma hatas�:', err);
+        showScannerMessage('Kamera eri�im hatas�: ' + err, 'error');
+        
+        // zin reddedilmi�se bilgilendir
+        if (err.toString().includes('Permission')) {
+            showScannerMessage('Kamera izni gerekli. L�tfen taray�c� ayarlar�ndan kamera iznini verin.', 'error');
+        }
+    });
+}
+
+/**
+ * QR Kod okutuldu�unda �al���r
+ */
+function onQRCodeScanned(decodedText, decodedResult) {
+    // Duplicate check
+    if (scannedBarcodes.includes(decodedText)) {
+        showScannerMessage(`?? Bu kod zaten okutuldu: ${decodedText}`, 'warning');
+        // Vibration feedback (if supported)
+        if (navigator.vibrate) {
+            navigator.vibrate(200);
+        }
+        return;
+    }
+    
+    // Kodu listeye ekle
+    scannedBarcodes.push(decodedText);
+    
+    // UI'� g�ncelle
+    updateScannedList();
+    
+    // Success mesaj�
+    showScannerMessage(`? Kod okutuldu: ${decodedText}`, 'success');
+    
+    // Vibration feedback (if supported)
+    if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+    }
+    
+    // Scanner devam eder (continuous mode)
+}
+
+/**
+ * Okunan kodlar listesini g�ncelle
+ */
+function updateScannedList() {
+    const countEl = document.getElementById('qrScannedCount');
+    const itemsEl = document.getElementById('qrScannedItems');
+    
+    if (!countEl || !itemsEl) return;
+    
+    // Say�y� g�ncelle
+    countEl.textContent = scannedBarcodes.length;
+    
+    // Liste elemanlar�n� olu�tur
+    if (scannedBarcodes.length === 0) {
+        itemsEl.innerHTML = '<p class="qr-scanned-empty">Hen�z kod okutulmad�</p>';
+    } else {
+        let html = '';
+        scannedBarcodes.forEach((barcode, index) => {
+            html += `
+                <div class="qr-scanned-item">
+                    <span class="qr-scanned-item-barcode">${index + 1}. ${barcode}</span>
+                    <span class="qr-scanned-item-check">?</span>
+                </div>
+            `;
+        });
+        itemsEl.innerHTML = html;
+    }
+}
+
+/**
+ * Scanner mesaj�n� g�ster
+ */
+function showScannerMessage(message, type = 'info') {
+    const messageEl = document.getElementById('qrScannerMessage');
+    if (!messageEl) return;
+    
+    messageEl.textContent = message;
+    messageEl.className = 'qr-scanner-message ' + type;
+    
+    // K�sa s�re sonra temizle (warning/error hari�)
+    if (type === 'success') {
+        setTimeout(() => {
+            messageEl.textContent = '';
+            messageEl.className = 'qr-scanner-message';
+        }, 2000);
+    }
+}
+
+/**
+ * Toplu taramay� bitir ve liste se�imine ge�
+ */
+function finishBulkScanning() {
+    // Hi� kod okutulmam��sa uyar
+    if (scannedBarcodes.length === 0) {
+        showToast('Hen�z hi� kod okutulmad�!', 'warning');
+        return;
+    }
+    
+    // Scanner'� durdur
+    if (qrScannerInstance) {
+        qrScannerInstance.stop().then(() => {
+            console.log('QR Scanner durduruldu');
+        }).catch((err) => {
+            console.error('QR Scanner durdurulurken hata:', err);
+        });
+    }
+    
+    // QR Scanner modal'�n� kapat
+    closeQRScanner();
+    
+    // Transfer listesi modal'�n� a�
+    openTransferListModal();
+}
+
+/**
+ * Transfer listesi se�im modal'�n� a�
+ */
+function openTransferListModal() {
+    const modal = document.getElementById('qrTransferModal');
+    const container = document.getElementById('qrTransferListContainer');
+    
+    if (!modal || !container) return;
+    
+    // Liste se�eneklerini olu�tur
+    const lists = [
+        { id: 'atanacak', name: 'Atanacak', icon: '??' },
+        { id: 'parcaBekliyor', name: 'Par�a Bekliyor', icon: '??' },
+        { id: 'phonecheck', name: 'PhoneCheck', icon: '??' },
+        { id: 'onarim', name: 'Onar�m Tamamland�', icon: '??' },
+        { id: 'onCamDisServis', name: '�n Cam D�� Servis', icon: '??' },
+        { id: 'anakartDisServis', name: 'Anakart D�� Servis', icon: '??' },
+        { id: 'satisa', name: 'Sat��a Gidecek', icon: '??' },
+        { id: 'sahiniden', name: 'Sahibinden', icon: '??' },
+        { id: 'mediaMarkt', name: 'Sat�� Sonras�', icon: '??' },
+        { id: 'SonKullan�c�', name: 'Son Kullan�c�', icon: '??' },
+        // Par�a t�rleri
+        { id: 'pil', name: 'PL', icon: '??' },
+        { id: 'kasa', name: 'KASA', icon: '??' },
+        { id: 'ekran', name: 'EKRAN', icon: '???' },
+        { id: 'onCam', name: '�N CAM', icon: '??' },
+        { id: 'pilKasa', name: 'PL + KASA', icon: '????' },
+        { id: 'pilEkran', name: 'PL + EKRAN', icon: '?????' },
+        { id: 'ekranKasa', name: 'EKRAN + KASA', icon: '?????' },
+        { id: 'pilEkranKasa', name: 'PL + EKRAN + KASA', icon: '???????' },
+        { id: 'demontaj', name: 'DEMONTAJ', icon: '??' },
+        { id: 'montaj', name: 'MONTAJ', icon: '??' },
+        { id: 'yetkilendirme', name: 'YETKLENDRME', icon: '?' },
+        // Teknisyenler
+        { id: 'gokhan', name: 'G�khan', icon: '?????' },
+        { id: 'yusuf', name: 'Yusuf', icon: '?????' },
+        { id: 'enes', name: 'Enes', icon: '?????' },
+        { id: 'samet', name: 'Samet', icon: '?????' },
+        { id: 'engin', name: 'Engin', icon: '?????' },
+        { id: 'ismail', name: 'smail', icon: '?????' },
+        { id: 'mehmet', name: 'Mehmet', icon: '?????' },
+        { id: 'mert', name: 'Mert', icon: '?????' }
+    ];
+    
+    // Grid container olu�tur
+    let html = '<div class="qr-transfer-list-grid">';
+    lists.forEach(list => {
+        html += `
+            <div class="qr-transfer-list-card" onclick="selectTargetList('${list.id}')">
+                <div class="qr-transfer-card-icon">${list.icon}</div>
+                <div class="qr-transfer-card-name">${list.name}</div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+    
+    // Modal'� g�ster
+    modal.classList.add('active');
+}
+
+/**
+ * Transfer listesi modal'�n� kapat
+ */
+function closeQRTransferModal() {
+    const modal = document.getElementById('qrTransferModal');
+    if (!modal) return;
+    
+    modal.classList.remove('active');
+    
+    // Scanned barcodes'u temizle
+    scannedBarcodes = [];
+    updateScannedList();
+}
+
+/**
+ * Hedef liste se�ildi�inde toplu transfer yap
+ */
+async function selectTargetList(targetList) {
+    if (!scannedBarcodes || scannedBarcodes.length === 0) {
+        showToast('Okutulmu� kod bulunamad�!', 'warning');
+        return;
+    }
+    
+    try {
+        // Firebase'e toplu transfer
+        await bulkTransferToGrayList(targetList);
+        
+        // Success mesaj�
+        showToast(`? ${scannedBarcodes.length} kod "${getListDisplayName(targetList)}" listesine g�nderildi!`, 'success');
+        
+        // Modal'� kapat
+        closeQRTransferModal();
+        
+        // Scanned barcodes'u temizle
+        scannedBarcodes = [];
+        
+    } catch (error) {
+        console.error('Bulk transfer hatas�:', error);
+        showToast('Transfer s�ras�nda hata olu�tu: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Toplu olarak gri listeye transfer et
+ */
+async function bulkTransferToGrayList(targetList) {
+    const currentTime = new Date().toISOString();
+    const currentUserName = currentUser || 'Bilinmeyen';
+    
+    // Firebase referans� (gri liste i�in)
+    const grayListRef = firebase.database().ref('grayListTransfers');
+    
+    // Batch i�lemi i�in updates objesi
+    const updates = {};
+    
+    for (const barcode of scannedBarcodes) {
+        // Her barkod i�in unique ID olu�tur
+        const transferId = grayListRef.push().key;
+        
+        // Transfer objesi
+        const transferData = {
+            barcode: barcode,
+            targetList: targetList,
+            sourceList: 'QR Toplu Okuma', // Kaynak liste bilinmiyor
+            user: currentUserName,
+            timestamp: currentTime,
+            status: 'pending'
+        };
+        
+        // Updates objesine ekle
+        updates[`grayListTransfers/${transferId}`] = transferData;
+    }
+    
+    // Toplu olarak Firebase'e yaz
+    await firebase.database().ref().update(updates);
+    
+    // Gri liste UI'�n� yenile
+    if (typeof renderGriListe === 'function') {
+        renderGriListe();
+    }
+    
+    // Admin stats'� g�ncelle
+    if (typeof updateAdminStats === 'function') {
+        updateAdminStats();
+    }
+}
+
