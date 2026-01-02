@@ -11157,15 +11157,27 @@ function isMobileDevice() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
 }
 
-// QR Scanner bölümünü göster/gizle
+// QR Scanner bölümlerini göster/gizle (Transfer ve Onay)
 function toggleQRScannerVisibility() {
     const qrScannerSection = document.getElementById('qrScannerSection');
+    const qrApproveSection = document.getElementById('qrApproveSection');
+    
     if (isMobileDevice()) {
-        qrScannerSection.style.display = 'block';
-        console.log('📱 Mobil cihaz tespit edildi, QR Scanner aktif');
+        if (qrScannerSection) {
+            qrScannerSection.style.display = 'block';
+        }
+        if (qrApproveSection) {
+            qrApproveSection.style.display = 'block';
+        }
+        console.log('📱 Mobil cihaz tespit edildi, QR Scanner ve QR Onay aktif');
     } else {
-        qrScannerSection.style.display = 'none';
-        console.log('💻 Masaüstü cihaz, QR Scanner gizli');
+        if (qrScannerSection) {
+            qrScannerSection.style.display = 'none';
+        }
+        if (qrApproveSection) {
+            qrApproveSection.style.display = 'none';
+        }
+        console.log('💻 Masaüstü cihaz, QR Scanner ve QR Onay gizli');
     }
 }
 
@@ -11417,6 +11429,203 @@ async function addToGriListeFromQR(imei, targetList) {
 }
 
 console.log('✅ QR Scanner fonksiyonları yüklendi');
+
+// ========================================
+// QR ONAY SCANNER (GRİ LİSTE ONAYLAMA) - MOBİL
+// ========================================
+
+let qrApproveScanner = null;
+let isQRApproveScanning = false;
+
+/**
+ * QR Onay Scanner'ı aç
+ */
+function openQRApproveScanner() {
+    console.log('📷 QR Onay Scanner açılıyor...');
+    
+    const modal = document.getElementById('qrApproveModal');
+    if (!modal) {
+        console.error('❌ QR Onay Modal bulunamadı!');
+        return;
+    }
+    
+    modal.style.display = 'flex';
+    
+    // Kısa bir gecikme ile modal animasyonu için
+    setTimeout(() => {
+        modal.classList.add('active');
+        startQRApproveScanner();
+    }, 100);
+}
+
+/**
+ * QR Onay Scanner'ı başlat
+ */
+function startQRApproveScanner() {
+    if (isQRApproveScanning) {
+        console.log('⚠️ QR Onay Scanner zaten çalışıyor');
+        return;
+    }
+    
+    const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        disableFlip: false
+    };
+    
+    try {
+        if (!qrApproveScanner) {
+            qrApproveScanner = new Html5Qrcode("qrApproveReader");
+        }
+        
+        qrApproveScanner.start(
+            { facingMode: "environment" },
+            config,
+            onQRApproveScanned,
+            onQRApproveError
+        ).then(() => {
+            isQRApproveScanning = true;
+            console.log('✅ QR Onay Scanner başlatıldı');
+            updateQRApproveMessage('Hazır - Barkod okutabilirsiniz', 'success');
+        }).catch((err) => {
+            console.error('❌ QR Onay Scanner başlatılamadı:', err);
+            updateQRApproveMessage('Kamera başlatılamadı!', 'error');
+            isQRApproveScanning = false;
+        });
+        
+    } catch (error) {
+        console.error('❌ QR Onay Scanner hatası:', error);
+        updateQRApproveMessage('Hata oluştu!', 'error');
+        isQRApproveScanning = false;
+    }
+}
+
+/**
+ * QR kod okunduğunda (Gri Liste Onaylama)
+ */
+async function onQRApproveScanned(decodedText, decodedResult) {
+    if (!isQRApproveScanning) return;
+    
+    console.log('📷 QR Onay - Kod okundu:', decodedText);
+    
+    // Scanner'ı geçici olarak durdur (çift okuma önleme)
+    isQRApproveScanning = false;
+    
+    // 15 haneli IMEI kontrolü
+    const imei = decodedText.trim();
+    if (imei.length < 15) {
+        updateQRApproveMessage(`❌ Geçersiz barkod: ${imei}`, 'error');
+        setTimeout(() => {
+            isQRApproveScanning = true;
+        }, 2000);
+        return;
+    }
+    
+    // Gri listede var mı kontrol et
+    if (!griListeData || !griListeData[imei]) {
+        updateQRApproveMessage(`⚠️ ${imei} gri listede bulunamadı!`, 'warning');
+        showToast(`⚠️ ${imei} gri listede değil!`, 'warning');
+        setTimeout(() => {
+            isQRApproveScanning = true;
+        }, 2000);
+        return;
+    }
+    
+    // Gri listeden onaylayıp hedef listeye transfer et
+    updateQRApproveMessage(`⏳ ${imei} transfer ediliyor...`, 'info');
+    
+    const success = await approveFromGriListe(imei);
+    
+    if (success) {
+        updateQRApproveMessage(`✅ ${imei} transfer edildi!`, 'success');
+        
+        // Status güncelle
+        const statusEl = document.getElementById('qrApproveStatus');
+        if (statusEl) {
+            const griItem = griListeData[imei] || {};
+            const toList = griItem.toList || 'hedef liste';
+            const toListName = CACHED_LIST_NAMES[toList] || toList;
+            statusEl.textContent = `Son işlem: ${imei} → ${toListName}`;
+            statusEl.className = 'qr-approve-status success';
+            
+            setTimeout(() => {
+                statusEl.textContent = '';
+                statusEl.className = 'qr-approve-status';
+            }, 8000);
+        }
+        
+        // 2 saniye sonra tekrar taramaya başla
+        setTimeout(() => {
+            isQRApproveScanning = true;
+        }, 2000);
+        
+    } else {
+        updateQRApproveMessage(`❌ ${imei} transfer edilemedi!`, 'error');
+        setTimeout(() => {
+            isQRApproveScanning = true;
+        }, 2000);
+    }
+}
+
+/**
+ * QR okuma hatası
+ */
+function onQRApproveError(errorMessage) {
+    // Sessiz hata - sürekli log spam'i önlemek için
+}
+
+/**
+ * QR Onay mesaj güncelle
+ */
+function updateQRApproveMessage(message, type = 'info') {
+    const messageEl = document.getElementById('qrApproveMessage');
+    if (messageEl) {
+        messageEl.textContent = message;
+        messageEl.className = `qr-scanner-message ${type}`;
+    }
+}
+
+/**
+ * QR Onay Scanner'ı durdur
+ */
+function stopQRApproveScanner() {
+    if (qrApproveScanner && isQRApproveScanning) {
+        try {
+            qrApproveScanner.stop().then(() => {
+                console.log('🛑 QR Onay Scanner durduruldu');
+                isQRApproveScanning = false;
+            }).catch((err) => {
+                console.error('QR Onay Scanner durdurma hatası:', err);
+                isQRApproveScanning = false;
+            });
+        } catch (error) {
+            console.error('QR Onay Scanner durdurma hatası:', error);
+            isQRApproveScanning = false;
+        }
+    }
+}
+
+/**
+ * QR Onay Scanner'ı kapat
+ */
+function closeQRApproveScanner() {
+    stopQRApproveScanner();
+    
+    const modal = document.getElementById('qrApproveModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+    
+    updateQRApproveMessage('', 'info');
+    console.log('📷 QR Onay Scanner kapatıldı');
+}
+
+console.log('✅ QR Onay Scanner fonksiyonları yüklendi');
+
 
 // ========================================
 // BAKIM MODU SİSTEMİ - MAINTENANCE MODE
