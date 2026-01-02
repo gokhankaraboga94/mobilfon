@@ -7147,136 +7147,205 @@ body.light-mode .qr-approve-status.info {
     color: #2874a6;
 }
 
-
 /* ========================================
-   TOPLU QR OKUTMA STİLLERİ
+   BULK QR SCANNER STYLES - TOPLU QR OKUMA
    ======================================== */
 
-/* Okutulan Barkodlar Bölümü */
-.scanned-barcodes-section {
-    margin-top: 20px;
-    padding: 15px;
-    background: rgba(52, 152, 219, 0.1);
-    border-radius: 10px;
-    border: 1px solid rgba(52, 152, 219, 0.3);
+/* Okunan Kodlar Listesi */
+.qr-scanner-scanned-list {
+    padding: 15px 20px;
+    margin: 10px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border-left: 4px solid #2ecc71;
 }
 
-.scanned-barcodes-container {
-    max-height: 250px;
+.qr-scanner-scanned-list p {
+    color: white;
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+.qr-scanned-items {
+    max-height: 200px;
     overflow-y: auto;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    padding: 10px;
-    margin-bottom: 15px;
+    margin-top: 10px;
 }
 
-.scanned-barcodes-empty {
+.qr-scanned-empty {
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
     text-align: center;
     padding: 20px;
-    color: rgba(255, 255, 255, 0.5);
-    font-style: italic;
 }
 
-.scanned-barcodes-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.scanned-barcode-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    background: rgba(46, 204, 113, 0.2);
-    border: 1px solid rgba(46, 204, 113, 0.4);
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-.scanned-barcode-item:hover {
-    background: rgba(46, 204, 113, 0.3);
-    transform: translateX(5px);
-}
-
-.scanned-barcode-number {
-    font-weight: bold;
-    color: #3498db;
-    min-width: 25px;
-}
-
-.scanned-barcode-code {
-    flex: 1;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    color: #2ecc71;
-    font-weight: bold;
-}
-
-.scanned-barcode-remove {
-    background: rgba(231, 76, 60, 0.8);
-    border: none;
+.qr-scanned-item {
+    background: rgba(46, 204, 113, 0.15);
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid #2ecc71;
     color: white;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    transition: all 0.2s ease;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    animation: slideInLeft 0.3s ease-out;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.qr-scanned-item-barcode {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.qr-scanned-item-check {
+    color: #2ecc71;
+    font-size: 18px;
+}
+
+/* Tamam/Bitti Butonu */
+.qr-scanner-buttons {
+    padding: 15px 20px;
+    display: flex;
     justify-content: center;
 }
 
-.scanned-barcode-remove:hover {
-    background: rgba(231, 76, 60, 1);
-    transform: scale(1.1);
-}
-
-.scanned-barcode-remove:active {
-    transform: scale(0.95);
-}
-
-/* Tamam Butonu */
-.qr-scanner-confirm-btn {
+.qr-finish-btn {
     width: 100%;
-    padding: 15px;
+    max-width: 400px;
+    padding: 15px 30px;
     background: linear-gradient(135deg, #2ecc71, #27ae60);
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 16px;
+    border-radius: 12px;
+    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+    box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
 }
 
-.qr-scanner-confirm-btn:hover {
+.qr-finish-btn:hover {
+    background: linear-gradient(135deg, #27ae60, #229954);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.6);
+}
+
+.qr-finish-btn:active {
+    transform: translateY(-1px);
+}
+
+.qr-finish-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Transfer List Grid */
+.qr-transfer-list-grid {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.qr-transfer-list-card {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.qr-transfer-list-card:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #3498db;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.5);
+}
+
+.qr-transfer-list-card:active {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.6);
 }
 
-.qr-scanner-confirm-btn:active {
-    transform: translateY(0);
+.qr-transfer-card-icon {
+    font-size: 32px;
 }
 
-/* Scrollbar Styling */
-.scanned-barcodes-container::-webkit-scrollbar {
-    width: 8px;
+.qr-transfer-card-name {
+    font-weight: bold;
+    font-size: 16px;
 }
 
-.scanned-barcodes-container::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .qr-scanner-scanned-list {
+        margin: 10px;
+        padding: 10px 15px;
+    }
+    
+    .qr-scanned-items {
+        max-height: 150px;
+    }
+    
+    .qr-transfer-list-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .qr-finish-btn {
+        font-size: 16px;
+        padding: 12px 25px;
+    }
 }
 
-.scanned-barcodes-container::-webkit-scrollbar-thumb {
-    background: rgba(52, 152, 219, 0.6);
-    border-radius: 10px;
+/* Light Mode */
+body.light-mode .qr-scanner-scanned-list {
+    background: rgba(0, 0, 0, 0.05);
+    border-left-color: #27ae60;
 }
 
-.scanned-barcodes-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(52, 152, 219, 0.8);
+body.light-mode .qr-scanned-item {
+    background: rgba(46, 204, 113, 0.1);
+    border-left-color: #27ae60;
+}
+
+body.light-mode .qr-scanned-empty {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+body.light-mode .qr-finish-btn {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+body.light-mode .qr-finish-btn:hover {
+    background: linear-gradient(135deg, #27ae60, #229954);
+}
+
+body.light-mode .qr-transfer-list-card {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .qr-transfer-list-card:hover {
+    background: rgba(0, 0, 0, 0.1);
 }
