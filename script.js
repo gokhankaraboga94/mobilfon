@@ -11458,18 +11458,36 @@ function confirmScannedBarcodes() {
     const barcodesToTransfer = [...scannedBarcodes];
     console.log(`📋 Kopyalanan barkodlar:`, barcodesToTransfer);
     
-    // QR Scanner'ı kapat
+    // QR Scanner'ı sadece durdur, modal'ı KAPATMA (barkodları silmesin)
     stopQRScanner();
     
-    // Kısa gecikme ile transfer modal'ını aç
+    // Transfer modal'ını aç
+    openQRTransferModalBulk(barcodesToTransfer);
+    
+    // Transfer modal'ı açıldıktan SONRA QR Scanner modal'ını kapat
     setTimeout(() => {
-        closeQRScanner();
-        openQRTransferModalBulk(barcodesToTransfer);
-    }, 500);
+        const modal = document.getElementById('qrScannerModal');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+        // Barkodları burada temizle
+        scannedBarcodes = [];
+        lastScannedBarcode = null;
+        lastScanTime = 0;
+    }, 100);
 }
 
 // ⭐ YENİ: Toplu transfer için modal aç
 function openQRTransferModalBulk(barcodes) {
+    // ⭐ GÜVENLİK KONTROLÜ
+    if (!barcodes || barcodes.length === 0) {
+        console.error('❌ openQRTransferModalBulk: Barkodlar boş veya tanımsız!');
+        alert('HATA: Barkodlar kayboldu! Lütfen tekrar deneyin.');
+        return;
+    }
+    
+    console.log(`📋 openQRTransferModalBulk çağrıldı, ${barcodes.length} barkod:`, barcodes);
+    
     const modal = document.getElementById('qrTransferModal');
     const imeiDisplay = document.getElementById('qrScannedIMEI');
     const listContainer = document.getElementById('qrTransferListContainer');
@@ -11525,14 +11543,17 @@ function openQRTransferModalBulk(barcodes) {
         listItem.innerHTML = `${list.icon}<br>${list.label.replace(list.icon + ' ', '')}`;
         
         // ⭐ DÜZELTME: onclick handler'ı daha güvenli hale getir
+        // Barkodların kopyasını al (closure problemi önleme)
+        const barcodeCopy = [...barcodes];
         listItem.addEventListener('click', function() {
-            console.log(`🎯 Liste tıklandı: ${list.name}, Barkodlar:`, barcodes);
-            if (!barcodes || barcodes.length === 0) {
+            console.log(`🎯 Liste tıklandı: ${list.name}, Barkodlar:`, barcodeCopy);
+            if (!barcodeCopy || barcodeCopy.length === 0) {
                 console.error('❌ Barkodlar kayboldu!');
                 showToast('❌ Hata: Barkodlar bulunamadı!', 'error');
+                alert('HATA: Barkodlar bulunamadı! Lütfen tekrar QR okutun.');
                 return;
             }
-            selectQRTransferListBulk(list.name, barcodes);
+            selectQRTransferListBulk(list.name, barcodeCopy);
         });
         
         listContainer.appendChild(listItem);
@@ -11546,8 +11567,13 @@ async function selectQRTransferListBulk(listName, barcodes) {
     console.log(`🔄 Toplu transfer başlatılıyor: ${barcodes.length} barkod → ${listName}`);
     console.log(`📋 Barkodlar:`, barcodes);
     
-    // MOBİL DEBUG
-    alert(`Transfer Başlıyor:\n${barcodes.length} barkod\nHedef: ${listName}\nBarkodlar: ${barcodes.join(', ')}`);
+    // MOBİL DEBUG - Daha detaylı
+    if (!barcodes || barcodes.length === 0) {
+        alert('HATA: Barkodlar boş geldi!');
+        return;
+    }
+    
+    alert(`Transfer Başlıyor:\n${barcodes.length} barkod\nHedef: ${listName}\nİlk barkod: ${barcodes[0]}`);
     
     // ⭐ DEBUG: Fonksiyon bağımlılıklarını kontrol et
     console.log('🔍 Fonksiyon kontrolleri:');
