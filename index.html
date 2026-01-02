@@ -956,6 +956,19 @@
                     <p>📌 QR kodu kamera önüne tutun</p>
                     <p id="qrScannerMessage" class="qr-scanner-message"></p>
                 </div>
+                
+                <!-- ⭐ YENİ: OKUTULAN BARKODLAR LİSTESİ -->
+                <div class="scanned-barcodes-section">
+                    <h3 style="margin: 15px 0 10px 0; font-size: 16px; color: #3498db;">📋 Okutulan Barkodlar:</h3>
+                    <div id="scannedBarcodesContainer" class="scanned-barcodes-container">
+                        <div class="scanned-barcodes-empty">Henüz barkod okutulmadı</div>
+                    </div>
+                    
+                    <!-- ⭐ YENİ: TAMAM VE LİSTE SEÇ BUTONU -->
+                    <button id="qrScannerConfirmBtn" class="qr-scanner-confirm-btn" onclick="confirmScannedBarcodes()" style="display: none;">
+                        ✅ Tamam - Liste Seç
+                    </button>
+                </div>
             </div>
         </div>
 
