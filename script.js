@@ -11437,13 +11437,17 @@ function confirmScannedBarcodes() {
     
     console.log(`📋 Toplu transfer başlatılıyor: ${scannedBarcodes.length} barkod`);
     
+    // ⭐ ÖNEMLİ: Diziyi KOPYALA - closeQRScanner temizlemeden önce!
+    const barcodesToTransfer = [...scannedBarcodes];
+    console.log(`📋 Kopyalanan barkodlar:`, barcodesToTransfer);
+    
     // QR Scanner'ı kapat
     stopQRScanner();
     
     // Kısa gecikme ile transfer modal'ını aç
     setTimeout(() => {
         closeQRScanner();
-        openQRTransferModalBulk(scannedBarcodes);
+        openQRTransferModalBulk(barcodesToTransfer);
     }, 500);
 }
 
