@@ -931,6 +931,17 @@
             </div>
         </div>
 
+        <!-- QR ONAY BÖLÜMÜ (SADECE MOBİL) - GRİ LİSTE ONAYLAMA -->
+        <div class="container qr-approve-container" style="margin: 20px auto; max-width: 1200px; display: none;" id="qrApproveSection">
+            <div class="section qr-approve-section" style="flex: 1 1 100%;">
+                <label>✅ Gri Liste Onay (Mobil):</label>
+                <button id="qrApproveBtn" class="qr-approve-button" onclick="openQRApproveScanner()">
+                    📷 Barkod Onay (QR)
+                </button>
+                <div id="qrApproveStatus" class="qr-approve-status"></div>
+            </div>
+        </div>
+
         <!-- QR SCANNER MODAL -->
         <div class="qr-scanner-modal" id="qrScannerModal">
             <div class="qr-scanner-modal-content">
@@ -961,6 +972,23 @@
                 </div>
                 <div class="qr-transfer-list-container" id="qrTransferListContainer">
                     <!-- Liste seçenekleri buraya yüklenecek -->
+                </div>
+            </div>
+        </div>
+
+        <!-- QR ONAY SCANNER MODAL (GRİ LİSTE ONAYLAMA) -->
+        <div class="qr-scanner-modal" id="qrApproveModal">
+            <div class="qr-scanner-modal-content">
+                <div class="qr-scanner-modal-header">
+                    <h2>✅ Gri Liste Onay</h2>
+                    <button class="qr-scanner-close-btn" onclick="closeQRApproveScanner()">✕</button>
+                </div>
+                <div class="qr-scanner-camera-container">
+                    <div id="qrApproveReader" style="width: 100%;"></div>
+                </div>
+                <div class="qr-scanner-info">
+                    <p>📌 Gri listeden onaylamak için barkod okutun</p>
+                    <p id="qrApproveMessage" class="qr-scanner-message"></p>
                 </div>
             </div>
         </div>
