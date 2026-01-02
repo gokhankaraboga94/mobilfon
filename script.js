@@ -3918,24 +3918,15 @@ async function addToGriListe(barcode, fromList, toList, user) {
 
     try {
         // 1. Gri listeye ekle
-        console.log(`📝 Firebase'e yazılıyor: servis/griListe/${barcode}`);
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
-        console.log(`✅ Firebase'e yazıldı ve local cache güncellendi`);
         
         // 2. ⭐ KAYNAK LİSTEDEN SİL (YENİ değilse)
         if (actualFromList && actualFromList !== 'YENİ') {
             const fromDbPath = actualFromList === 'onarim' ? 'onarimTamamlandi' : actualFromList;
             
-            console.log(`🗑️ Kaynak listeden siliniyor: servis/${fromDbPath}/${barcode}`);
-            
             // Firebase'den sil
-            try {
-                await db.ref(`servis/${fromDbPath}/${barcode}`).remove();
-                console.log(`✅ Firebase'den silindi`);
-            } catch (removeError) {
-                console.warn(`⚠️ Kaynak listeden silinemedi (zaten silinmiş olabilir):`, removeError.message);
-            }
+            await db.ref(`servis/${fromDbPath}/${barcode}`).remove();
             
             // Local state'den sil
             if (userCodes[actualFromList]) {
@@ -3967,15 +3958,7 @@ async function addToGriListe(barcode, fromList, toList, user) {
         console.log(`⏳ Gri Listeye eklendi: ${barcode} (${actualFromList} → ${toList})`);
         return true;
     } catch (error) {
-        console.error('❌ Gri Listeye ekleme hatası:', error);
-        console.error('Hata mesajı:', error.message);
-        console.error('Hata stack:', error.stack);
-        
-        // MOBİL DEBUG için alert
-        if (typeof alert !== 'undefined') {
-            alert(`GRİ LİSTE HATASI:\n${error.message}\n\nBarkod: ${barcode}\nKaynak: ${actualFromList}\nHedef: ${toList}`);
-        }
-        
+        console.error('Gri Listeye ekleme hatası:', error);
         return false;
     }
 }
@@ -11184,11 +11167,6 @@ let html5QrCode = null;
 let currentScannedIMEI = null;
 let isQRScannerActive = false;
 
-// ⭐ TOPLU BARKOD OKUTMA İÇİN YENİ DEĞİŞKENLER
-let scannedBarcodes = []; // Okutulan barkodları tutar
-let lastScannedBarcode = null; // Son okutulan barkod (çift okuma önleme)
-let lastScanTime = 0; // Son okuma zamanı (çift okuma önleme)
-
 // Mobil cihaz kontrolü
 function isMobileDevice() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
@@ -11231,12 +11209,6 @@ function openQRScanner() {
         showToast('QR okutma özelliği sadece mobil cihazlarda çalışır', 'warning');
         return;
     }
-    
-    // ⭐ TOPLU OKUTMA - Liste sıfırla
-    scannedBarcodes = [];
-    lastScannedBarcode = null;
-    lastScanTime = 0;
-    updateScannedBarcodesDisplay();
     
     modal.classList.add('active');
     messageEl.textContent = 'Kamera açılıyor...';
@@ -11293,50 +11265,20 @@ function onQRCodeScanned(decodedText, decodedResult) {
     
     if (imeiMatch) {
         const imei = imeiMatch[0];
-        
-        // ⭐ ÇİFT OKUMA ÖNLEME - Aynı barkod 2 saniye içinde tekrar okunmasın
-        const now = Date.now();
-        if (lastScannedBarcode === imei && (now - lastScanTime) < 2000) {
-            console.log('⚠️ Çift okuma engellendi:', imei);
-            return;
-        }
-        
-        // ⭐ ZATEN LİSTEDE VAR MI KONTROL ET
-        if (scannedBarcodes.includes(imei)) {
-            const messageEl = document.getElementById('qrScannerMessage');
-            messageEl.textContent = `⚠️ ${imei} zaten listede!`;
-            messageEl.className = 'qr-scanner-message warning';
-            
-            // 1 saniye sonra tekrar taramaya hazır mesajı
-            setTimeout(() => {
-                messageEl.textContent = `✅ ${scannedBarcodes.length} barkod okundu - Devam edin`;
-                messageEl.className = 'qr-scanner-message success';
-            }, 1000);
-            
-            return;
-        }
-        
-        // ⭐ TOPLU OKUTMA - Listeye ekle
-        scannedBarcodes.push(imei);
-        lastScannedBarcode = imei;
-        lastScanTime = now;
+        currentScannedIMEI = imei;
         
         const messageEl = document.getElementById('qrScannerMessage');
-        messageEl.textContent = `✅ ${imei} eklendi (${scannedBarcodes.length} barkod)`;
+        messageEl.textContent = `✅ IMEI okundu: ${imei}`;
         messageEl.className = 'qr-scanner-message success';
         
-        // Listeyi güncelle
-        updateScannedBarcodesDisplay();
+        // Kamerayı durdur
+        stopQRScanner();
         
-        // Ses/titreşim feedback (opsiyonel)
-        if (navigator.vibrate) {
-            navigator.vibrate(200);
-        }
-        
-        console.log(`📋 Toplam okutulan: ${scannedBarcodes.length} barkod`);
-        
-        // ⚠️ Kamerayı KAPATMA - Toplu okutmada açık kalmalı
-        // Kullanıcı "Tamam" dedikten sonra kapatılacak
+        // Kısa bir bekleme sonrası transfer modal'ını aç
+        setTimeout(() => {
+            closeQRScanner();
+            openQRTransferModal(imei);
+        }, 1000);
         
     } else {
         const messageEl = document.getElementById('qrScannerMessage');
@@ -11371,11 +11313,6 @@ function closeQRScanner() {
     const modal = document.getElementById('qrScannerModal');
     modal.classList.remove('active');
     
-    // ⭐ TOPLU OKUTMA - Liste temizle
-    scannedBarcodes = [];
-    lastScannedBarcode = null;
-    lastScanTime = 0;
-    
     // Kısa gecikme ile HTML5QrCode nesnesini temizle
     setTimeout(() => {
         if (html5QrCode) {
@@ -11388,274 +11325,6 @@ function closeQRScanner() {
 // ========================================
 // QR TRANSFER MODAL
 // ========================================
-
-// ⭐ YENİ: Okutulan barkodları ekranda göster
-function updateScannedBarcodesDisplay() {
-    const container = document.getElementById('scannedBarcodesContainer');
-    if (!container) {
-        console.warn('scannedBarcodesContainer bulunamadı');
-        return;
-    }
-    
-    const confirmBtn = document.getElementById('qrScannerConfirmBtn');
-    
-    if (scannedBarcodes.length === 0) {
-        container.innerHTML = '<div class="scanned-barcodes-empty">Henüz barkod okutulmadı</div>';
-        
-        // "Tamam ve Liste Seç" butonunu gizle
-        if (confirmBtn) {
-            confirmBtn.style.display = 'none';
-        }
-        return;
-    }
-    
-    // "Tamam ve Liste Seç" butonunu göster ve metni güncelle
-    if (confirmBtn) {
-        confirmBtn.style.display = 'block';
-        confirmBtn.textContent = `✅ Tamam - Liste Seç (${scannedBarcodes.length} barkod)`;
-    }
-    
-    let html = '<div class="scanned-barcodes-list">';
-    scannedBarcodes.forEach((barcode, index) => {
-        html += `
-            <div class="scanned-barcode-item">
-                <span class="scanned-barcode-number">${index + 1}.</span>
-                <span class="scanned-barcode-code">${barcode}</span>
-                <button class="scanned-barcode-remove" onclick="removeScannedBarcode('${barcode}')" title="Kaldır">✕</button>
-            </div>
-        `;
-    });
-    html += '</div>';
-    
-    container.innerHTML = html;
-}
-
-// ⭐ YENİ: Okutulan barkodlardan birini kaldır
-function removeScannedBarcode(barcode) {
-    const index = scannedBarcodes.indexOf(barcode);
-    if (index > -1) {
-        scannedBarcodes.splice(index, 1);
-        updateScannedBarcodesDisplay();
-        
-        const messageEl = document.getElementById('qrScannerMessage');
-        if (messageEl) {
-            messageEl.textContent = `🗑️ ${barcode} listeden kaldırıldı (${scannedBarcodes.length} barkod)`;
-            messageEl.className = 'qr-scanner-message info';
-        }
-    }
-}
-
-// ⭐ YENİ: Toplu transfer için liste seçimi aç
-function confirmScannedBarcodes() {
-    if (scannedBarcodes.length === 0) {
-        showToast('❌ Hiç barkod okutulmadı!', 'error');
-        return;
-    }
-    
-    console.log(`📋 Toplu transfer başlatılıyor: ${scannedBarcodes.length} barkod`);
-    
-    // ⭐ ÖNEMLİ: Diziyi KOPYALA - closeQRScanner temizlemeden önce!
-    const barcodesToTransfer = [...scannedBarcodes];
-    console.log(`📋 Kopyalanan barkodlar:`, barcodesToTransfer);
-    
-    // QR Scanner'ı sadece durdur, modal'ı KAPATMA (barkodları silmesin)
-    stopQRScanner();
-    
-    // Transfer modal'ını aç
-    openQRTransferModalBulk(barcodesToTransfer);
-    
-    // Transfer modal'ı açıldıktan SONRA QR Scanner modal'ını kapat
-    setTimeout(() => {
-        const modal = document.getElementById('qrScannerModal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-        // Barkodları burada temizle
-        scannedBarcodes = [];
-        lastScannedBarcode = null;
-        lastScanTime = 0;
-    }, 100);
-}
-
-// ⭐ YENİ: Toplu transfer için modal aç
-function openQRTransferModalBulk(barcodes) {
-    // ⭐ GÜVENLİK KONTROLÜ
-    if (!barcodes || barcodes.length === 0) {
-        console.error('❌ openQRTransferModalBulk: Barkodlar boş veya tanımsız!');
-        alert('HATA: Barkodlar kayboldu! Lütfen tekrar deneyin.');
-        return;
-    }
-    
-    console.log(`📋 openQRTransferModalBulk çağrıldı, ${barcodes.length} barkod:`, barcodes);
-    
-    const modal = document.getElementById('qrTransferModal');
-    const imeiDisplay = document.getElementById('qrScannedIMEI');
-    const listContainer = document.getElementById('qrTransferListContainer');
-    
-    // Barkod sayısını göster
-    imeiDisplay.textContent = `${barcodes.length} ADET BARKOD`;
-    imeiDisplay.style.fontSize = '20px';
-    imeiDisplay.style.fontWeight = 'bold';
-    
-    // Tüm mevcut listeleri göster
-    const allLists = [
-    { name: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', icon: '⚙️' },
-    { name: 'onarim', label: '🔧 Onarım Tamamlandı', icon: '🔧' },
-
-    { name: 'gokhan', label: '🧑‍🔧 Gökhan\'ın Cihazları', icon: '🧑‍🔧' },
-    { name: 'enes', label: '🧑‍🔧 Enes\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'yusuf', label: '🧑‍🔧 Yusuf\'un Cihazları', icon: '🧑‍🔧' },
-    { name: 'mert', label: '🧑‍🔧 Mert\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'samet', label: '🧑‍🔧 Samet\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'engin', label: '🧑‍🔧 Engin\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'ismail', label: '🧑‍🔧 İsmail\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'mehmet', label: '🧑‍🔧 Mehmet\'in Cihazları', icon: '🧑‍🔧' },
-
-    { name: 'atanacak', label: '📋 Atanacak', icon: '📋' },
-    { name: 'phonecheck', label: '📱 PhoneCheck', icon: '📱' },
-    { name: 'onCamDisServis', label: '🔨 Ön Cam Dış Servis', icon: '🔨' },
-    { name: 'anakartDisServis', label: '🔨 Anakart Dış Servis', icon: '🔨' },
-    { name: 'satisa', label: '💰 Satışa Gidecek', icon: '💰' },
-    { name: 'SonKullanıcı', label: '👤 Son Kullanıcı', icon: '👤' },
-    { name: 'sahiniden', label: '🏪 Sahibinden', icon: '🏪' },
-    { name: 'mediaMarkt', label: '🛒 Satış Sonrası', icon: '🛒' },
-    { name: 'teslimEdilenler', label: '✅ Teslim Edilenler', icon: '✅' },
-
-    // 🔽 Birinci listeden eklenenler
-    { name: 'pil', label: '🔋 Pil', icon: '🔋' },
-    { name: 'kasa', label: '📱 Kasa', icon: '📱' },
-    { name: 'ekran', label: '🖥️ Ekran', icon: '🖥️' },
-    { name: 'onCam', label: '🪟 Ön Cam', icon: '🪟' },
-    { name: 'pilKasa', label: '🔋📱 Pil + Kasa', icon: '🔋📱' },
-    { name: 'pilEkran', label: '🔋🖥️ Pil + Ekran', icon: '🔋🖥️' },
-    { name: 'ekranKasa', label: '🖥️📱 Ekran + Kasa', icon: '🖥️📱' },
-    { name: 'pilEkranKasa', label: '🔋🖥️📱 Pil + Ekran + Kasa', icon: '🔋🖥️📱' },
-    { name: 'demontaj', label: '🔧 Demontaj', icon: '🔧' },
-    { name: 'montaj', label: '⚙️ Montaj', icon: '⚙️' }
-];
-
-    
-    listContainer.innerHTML = '';
-    
-    allLists.forEach(list => {
-        const listItem = document.createElement('div');
-        listItem.className = 'qr-transfer-list-item';
-        listItem.innerHTML = `${list.icon}<br>${list.label.replace(list.icon + ' ', '')}`;
-        
-        // ⭐ DÜZELTME: onclick handler'ı daha güvenli hale getir
-        // Barkodların kopyasını al (closure problemi önleme)
-        const barcodeCopy = [...barcodes];
-        listItem.addEventListener('click', function() {
-            console.log(`🎯 Liste tıklandı: ${list.name}, Barkodlar:`, barcodeCopy);
-            if (!barcodeCopy || barcodeCopy.length === 0) {
-                console.error('❌ Barkodlar kayboldu!');
-                showToast('❌ Hata: Barkodlar bulunamadı!', 'error');
-                alert('HATA: Barkodlar bulunamadı! Lütfen tekrar QR okutun.');
-                return;
-            }
-            selectQRTransferListBulk(list.name, barcodeCopy);
-        });
-        
-        listContainer.appendChild(listItem);
-    });
-    
-    modal.classList.add('active');
-}
-
-// ⭐ YENİ: Toplu transfer - Liste seçimi
-async function selectQRTransferListBulk(listName, barcodes) {
-    console.log(`🔄 Toplu transfer başlatılıyor: ${barcodes.length} barkod → ${listName}`);
-    console.log(`📋 Barkodlar:`, barcodes);
-    
-    // MOBİL DEBUG - Daha detaylı
-    if (!barcodes || barcodes.length === 0) {
-        alert('HATA: Barkodlar boş geldi!');
-        return;
-    }
-    
-    alert(`Transfer Başlıyor:\n${barcodes.length} barkod\nHedef: ${listName}\nİlk barkod: ${barcodes[0]}`);
-    
-    // ⭐ DEBUG: Fonksiyon bağımlılıklarını kontrol et
-    console.log('🔍 Fonksiyon kontrolleri:');
-    console.log('- addToGriListeFromQR:', typeof addToGriListeFromQR);
-    console.log('- addToGriListe:', typeof addToGriListe);
-    console.log('- findBarcodeCurrentList:', typeof findBarcodeCurrentList);
-    console.log('- closeQRTransferModal:', typeof closeQRTransferModal);
-    console.log('- showToast:', typeof showToast);
-    
-    try {
-        // Loading göster
-        showToast(`⏳ ${barcodes.length} barkod transfer ediliyor...`, 'info');
-        
-        let successCount = 0;
-        let failCount = 0;
-        const failedBarcodes = [];
-        
-        // Her barkod için gri listeye ekle
-        for (const barcode of barcodes) {
-            try {
-                console.log(`🔄 Transfer ediliyor: ${barcode} → ${listName}`);
-                const success = await addToGriListeFromQR(barcode, listName, true); // skipToast = true
-                if (success) {
-                    successCount++;
-                    console.log(`✅ Başarılı: ${barcode}`);
-                } else {
-                    failCount++;
-                    failedBarcodes.push(barcode);
-                    console.error(`❌ Başarısız: ${barcode}`);
-                }
-            } catch (innerError) {
-                console.error(`❌ Barkod transfer hatası (${barcode}):`, innerError);
-                failCount++;
-                failedBarcodes.push(barcode);
-            }
-        }
-        
-        // Modal'ı kapat
-        closeQRTransferModal();
-    
-    console.log(`📊 Transfer Sonuçları: ${successCount} başarılı, ${failCount} başarısız`);
-    if (failedBarcodes.length > 0) {
-        console.log(`❌ Başarısız barkodlar:`, failedBarcodes);
-    }
-    
-    // MOBİL DEBUG - Sonuç alert
-    alert(`Transfer Sonucu:\n✅ Başarılı: ${successCount}\n❌ Başarısız: ${failCount}${failedBarcodes.length > 0 ? '\n\nBaşarısız barkodlar:\n' + failedBarcodes.join('\n') : ''}`);
-    
-    // Sonuç mesajı
-    if (failCount === 0) {
-        showToast(`✅ ${successCount} barkod başarıyla gri listeye eklendi!`, 'success');
-    } else {
-        showToast(`⚠️ ${successCount} başarılı, ${failCount} başarısız`, 'warning');
-    }
-    
-    // Status güncelle
-    const statusEl = document.getElementById('qrScannerStatus');
-    if (statusEl) {
-        statusEl.textContent = `Son işlem: ${successCount} barkod → Onay bekliyor (${CACHED_LIST_NAMES[listName] || listName})`;
-        statusEl.className = 'qr-scanner-status success';
-        
-        setTimeout(() => {
-            statusEl.textContent = '';
-            statusEl.className = 'qr-scanner-status';
-        }, 8000);
-    }
-    
-    console.log(`✅ Toplu transfer tamamlandı: ${successCount} başarılı, ${failCount} başarısız`);
-    
-    } catch (error) {
-        console.error('❌ selectQRTransferListBulk HATA:', error);
-        console.error('Hata detayı:', error.stack);
-        showToast(`❌ Transfer sırasında hata oluştu: ${error.message}`, 'error');
-        
-        // Hata durumunda da modal'ı kapat
-        try {
-            closeQRTransferModal();
-        } catch (closeError) {
-            console.error('Modal kapatma hatası:', closeError);
-        }
-    }
-}
 
 // Transfer modal'ını aç
 function openQRTransferModal(imei) {
@@ -11747,18 +11416,9 @@ async function selectQRTransferList(listName, imei) {
 
 // Transfer modal'ını kapat
 function closeQRTransferModal() {
-    try {
-        const modal = document.getElementById('qrTransferModal');
-        if (modal) {
-            modal.classList.remove('active');
-            console.log('✅ QR Transfer Modal kapatıldı');
-        } else {
-            console.warn('⚠️ qrTransferModal elementi bulunamadı');
-        }
-        currentScannedIMEI = null;
-    } catch (error) {
-        console.error('❌ closeQRTransferModal hatası:', error);
-    }
+    const modal = document.getElementById('qrTransferModal');
+    modal.classList.remove('active');
+    currentScannedIMEI = null;
 }
 
 // ========================================
@@ -11767,98 +11427,23 @@ function closeQRTransferModal() {
 
 // NOT: addToGriListe fonksiyonu zaten mevcuttur (satır 3772'de)
 // QR Scanner için wrapper fonksiyon
-async function addToGriListeFromQR(imei, targetList, skipToast = false) {
-    console.log(`🔍 addToGriListeFromQR çağrıldı: imei=${imei}, targetList=${targetList}, skipToast=${skipToast}`);
-    
-    // MOBİL DEBUG
-    if (!skipToast) {
-        alert(`DEBUG: addToGriListeFromQR\nimei: ${imei}\ntargetList: ${targetList}`);
-    }
-    
+async function addToGriListeFromQR(imei, targetList) {
     if (!imei || !targetList) {
         console.error('❌ Geçersiz parametre: imei veya targetList eksik');
-        if (!skipToast) {
-            showToast('Geçersiz IMEI veya liste', 'error');
-            alert('HATA: Geçersiz IMEI veya liste');
-        }
+        showToast('Geçersiz IMEI veya liste', 'error');
         return false;
     }
     
     const userName = currentUserName || (currentUserEmail ? currentUserEmail.split('@')[0] : 'QR Kullanıcı');
-    console.log(`👤 Kullanıcı adı: ${userName} (currentUserName: ${currentUserName}, currentUserEmail: ${currentUserEmail})`);
     
-    // ⭐ SELF-ASSIGNMENT KONTROLÜ - QR okutmada da kontrol
-    // ⚠️ İSTİSNA: Enes kullanıcısı düzenleyici olduğu için kendi üzerine atama yapabilir
-    const technicianLists = ['gokhan', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
-    const targetListLower = targetList.toLowerCase();
-    const currentUserLower = userName.toLowerCase();
-    
-    console.log(`🔍 Self-assignment kontrolü: targetListLower=${targetListLower}, currentUserLower=${currentUserLower}`);
-    
-    // Enes hariç diğer kullanıcılar kendi üzerine atama yapamaz
-    if (currentUserLower !== 'enes' && technicianLists.includes(targetListLower) && targetListLower === currentUserLower) {
-        console.warn(`🚫 Self-assignment engellendi: ${userName} kendi listesine (${targetList}) transfer yapamaz`);
-        if (!skipToast) {
-            showToast(`❌ HATA: ${userName} kendi üzerine cihaz atayamaz!`, 'error');
-        }
-        return false;
-    }
-    
-    console.log(`✅ Self-assignment kontrolü geçti, addToGriListe çağrılıyor...`);
-    
-    // ⭐ DÜZELTME: Kaynak listeyi otomatik bul veya 'YENİ' kullan
-    // Önce mevcut listeyi bulmayı dene
-    let fromList = 'YENİ';
-    if (typeof findBarcodeCurrentList === 'function') {
-        const currentList = findBarcodeCurrentList(imei);
-        fromList = currentList || 'YENİ';
-        console.log(`📍 Kaynak liste: ${fromList} (barkod: ${imei})`);
-    } else {
-        console.warn('⚠️ findBarcodeCurrentList fonksiyonu bulunamadı, YENİ kullanılıyor');
-    }
-    
-    // addToGriListe fonksiyonunu doğru parametrelerle çağır
-    let success = false;
-    try {
-        console.log(`🔄 addToGriListe çağrılıyor: imei=${imei}, fromList=${fromList}, targetList=${targetList}, userName=${userName}`);
-        
-        // MOBİL DEBUG - griListeData kontrolü
-        if (typeof griListeData === 'undefined') {
-            console.error('❌ griListeData tanımlı değil!');
-            alert('HATA: griListeData tanımlı değil!');
-            return false;
-        }
-        
-        // db (Firebase) kontrolü
-        if (typeof db === 'undefined') {
-            console.error('❌ Firebase db tanımlı değil!');
-            alert('HATA: Firebase db tanımlı değil!');
-            return false;
-        }
-        
-        success = await addToGriListe(imei, fromList, targetList, userName);
-        console.log(`🔍 addToGriListe sonucu: ${success}`);
-        
-        if (!skipToast && !success) {
-            alert(`HATA: addToGriListe başarısız oldu\nimei: ${imei}\nfromList: ${fromList}\ntargetList: ${targetList}`);
-        }
-        
-    } catch (addError) {
-        console.error('❌ addToGriListe hatası:', addError);
-        console.error('Hata detayı:', addError.stack);
-        if (!skipToast) {
-            alert(`HATA: ${addError.message}`);
-        }
-        success = false;
-    }
-    
-    console.log(`🔍 addToGriListe sonucu: ${success}`);
+    // ⭐ DÜZELTME: 'YENİ' yerine null gönder
+    // addToGriListe otomatik olarak kaynak listeyi bulacak ve silecek
+    // Eğer hiçbir listede yoksa zaten 'YENİ' olarak işaretleyecek
+    const success = await addToGriListe(imei, null, targetList, userName);
     
     if (success) {
         console.log('✅ QR ile gri listeye eklendi:', imei, '→', targetList);
-        if (!skipToast) {
-            showToast(`✅ ${imei} onay bekleyen transferlere eklendi`, 'success');
-        }
+        showToast(`✅ ${imei} onay bekleyen transferlere eklendi`, 'success');
         
         // Log kaydet
         if (typeof logAction === 'function') {
@@ -11867,10 +11452,8 @@ async function addToGriListeFromQR(imei, targetList, skipToast = false) {
         
         return true;
     } else {
-        console.error('❌ Gri listeye eklenemedi:', imei);
-        if (!skipToast) {
-            showToast('Hata: Gri listeye eklenemedi', 'error');
-        }
+        console.error('❌ Gri listeye eklenemedi');
+        showToast('Hata: Gri listeye eklenemedi', 'error');
         return false;
     }
 }
