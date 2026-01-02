@@ -11562,6 +11562,11 @@ async function onQRApproveScanned(decodedText, decodedResult) {
         return;
     }
     
+    // ⭐ GRİ LİSTE BİLGİSİNİ ÖNCE KAYDET (approveFromGriListe silmeden önce!)
+    const griItem = griListeData[imei];
+    const toList = griItem.toList || 'hedef liste';
+    const toListName = CACHED_LIST_NAMES[toList] || toList;
+    
     // Gri listeden onaylayıp hedef listeye transfer et
     updateQRApproveMessage(`⏳ ${imei} transfer ediliyor...`, 'info');
     
@@ -11573,9 +11578,6 @@ async function onQRApproveScanned(decodedText, decodedResult) {
         // Status güncelle
         const statusEl = document.getElementById('qrApproveStatus');
         if (statusEl) {
-            const griItem = griListeData[imei] || {};
-            const toList = griItem.toList || 'hedef liste';
-            const toListName = CACHED_LIST_NAMES[toList] || toList;
             statusEl.textContent = `Son işlem: ${imei} → ${toListName}`;
             statusEl.className = 'qr-approve-status success';
             
