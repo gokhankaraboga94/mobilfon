@@ -7030,3 +7030,119 @@ body.light-mode .maintenance-info {
 body.light-mode .maintenance-info small {
     color: #95a5a6;
 }
+
+/* ========================================
+   QR ONAY SCANNER (GRİ LİSTE ONAYLAMA) - MOBİL
+   ======================================== */
+
+/* QR Approve Container */
+.qr-approve-container {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    margin-top: 20px;
+}
+
+.qr-approve-section {
+    text-align: center;
+}
+
+.qr-approve-section label {
+    display: block;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 15px;
+}
+
+/* QR Approve Button */
+.qr-approve-button {
+    width: 100%;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+}
+
+.qr-approve-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.6);
+}
+
+.qr-approve-button:active {
+    transform: translateY(-1px);
+}
+
+/* QR Approve Status */
+.qr-approve-status {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    min-height: 20px;
+}
+
+.qr-approve-status.success {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid #2ecc71;
+}
+
+.qr-approve-status.error {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+}
+
+.qr-approve-status.warning {
+    background: rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+    border: 1px solid #f39c12;
+}
+
+.qr-approve-status.info {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+    border: 1px solid #3498db;
+}
+
+/* Light Mode - QR Approve */
+body.light-mode .qr-approve-container {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+}
+
+body.light-mode .qr-approve-section label {
+    color: white;
+}
+
+body.light-mode .qr-approve-button {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+}
+
+body.light-mode .qr-approve-status.success {
+    background: rgba(46, 204, 113, 0.15);
+    color: #229954;
+}
+
+body.light-mode .qr-approve-status.error {
+    background: rgba(231, 76, 60, 0.15);
+    color: #c0392b;
+}
+
+body.light-mode .qr-approve-status.warning {
+    background: rgba(243, 156, 18, 0.15);
+    color: #d68910;
+}
+
+body.light-mode .qr-approve-status.info {
+    background: rgba(52, 152, 219, 0.15);
+    color: #2874a6;
+}
