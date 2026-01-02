@@ -11322,26 +11322,41 @@ function openQRTransferModal(imei) {
     
     // Tüm mevcut listeleri göster
     const allLists = [
-        { name: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', icon: '⚙️' },
-        { name: 'onarim', label: '🔧 Onarım Tamamlandı', icon: '🔧' },
-        { name: 'gokhan', label: '🧑‍🔧 Gökhan\'ın Cihazları', icon: '🧑‍🔧' },
-        { name: 'enes', label: '🧑‍🔧 Enes\'in Cihazları', icon: '🧑‍🔧' },
-        { name: 'yusuf', label: '🧑‍🔧 Yusuf\'un Cihazları', icon: '🧑‍🔧' },
-        { name: 'mert', label: '🧑‍🔧 Mert\'in Cihazları', icon: '🧑‍🔧' },
-        { name: 'samet', label: '🧑‍🔧 Samet\'in Cihazları', icon: '🧑‍🔧' },
-        { name: 'engin', label: '🧑‍🔧 Engin\'in Cihazları', icon: '🧑‍🔧' },
-        { name: 'ismail', label: '🧑‍🔧 İsmail\'in Cihazları', icon: '🧑‍🔧' },
-        { name: 'mehmet', label: '🧑‍🔧 Mehmet\'in Cihazları', icon: '🧑‍🔧' },
-        { name: 'atanacak', label: '📋 Atanacak', icon: '📋' },
-        { name: 'phonecheck', label: '📱 PhoneCheck', icon: '📱' },
-        { name: 'onCamDisServis', label: '🔨 Ön Cam Dış Servis', icon: '🔨' },
-        { name: 'anakartDisServis', label: '🔨 Anakart Dış Servis', icon: '🔨' },
-        { name: 'satisa', label: '💰 Satışa Gidecek', icon: '💰' },
-        { name: 'SonKullanıcı', label: '👤 Son Kullanıcı', icon: '👤' },
-        { name: 'sahiniden', label: '🏪 Sahibinden', icon: '🏪' },
-        { name: 'mediaMarkt', label: '🛒 Satış Sonrası', icon: '🛒' },
-        { name: 'teslimEdilenler', label: '✅ Teslim Edilenler', icon: '✅' }
-    ];
+    { name: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', icon: '⚙️' },
+    { name: 'onarim', label: '🔧 Onarım Tamamlandı', icon: '🔧' },
+
+    { name: 'gokhan', label: '🧑‍🔧 Gökhan\'ın Cihazları', icon: '🧑‍🔧' },
+    { name: 'enes', label: '🧑‍🔧 Enes\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'yusuf', label: '🧑‍🔧 Yusuf\'un Cihazları', icon: '🧑‍🔧' },
+    { name: 'mert', label: '🧑‍🔧 Mert\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'samet', label: '🧑‍🔧 Samet\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'engin', label: '🧑‍🔧 Engin\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'ismail', label: '🧑‍🔧 İsmail\'in Cihazları', icon: '🧑‍🔧' },
+    { name: 'mehmet', label: '🧑‍🔧 Mehmet\'in Cihazları', icon: '🧑‍🔧' },
+
+    { name: 'atanacak', label: '📋 Atanacak', icon: '📋' },
+    { name: 'phonecheck', label: '📱 PhoneCheck', icon: '📱' },
+    { name: 'onCamDisServis', label: '🔨 Ön Cam Dış Servis', icon: '🔨' },
+    { name: 'anakartDisServis', label: '🔨 Anakart Dış Servis', icon: '🔨' },
+    { name: 'satisa', label: '💰 Satışa Gidecek', icon: '💰' },
+    { name: 'SonKullanıcı', label: '👤 Son Kullanıcı', icon: '👤' },
+    { name: 'sahiniden', label: '🏪 Sahibinden', icon: '🏪' },
+    { name: 'mediaMarkt', label: '🛒 Satış Sonrası', icon: '🛒' },
+    { name: 'teslimEdilenler', label: '✅ Teslim Edilenler', icon: '✅' },
+
+    // 🔽 Birinci listeden eklenenler
+    { name: 'pil', label: '🔋 Pil', icon: '🔋' },
+    { name: 'kasa', label: '📱 Kasa', icon: '📱' },
+    { name: 'ekran', label: '🖥️ Ekran', icon: '🖥️' },
+    { name: 'onCam', label: '🪟 Ön Cam', icon: '🪟' },
+    { name: 'pilKasa', label: '🔋📱 Pil + Kasa', icon: '🔋📱' },
+    { name: 'pilEkran', label: '🔋🖥️ Pil + Ekran', icon: '🔋🖥️' },
+    { name: 'ekranKasa', label: '🖥️📱 Ekran + Kasa', icon: '🖥️📱' },
+    { name: 'pilEkranKasa', label: '🔋🖥️📱 Pil + Ekran + Kasa', icon: '🔋🖥️📱' },
+    { name: 'demontaj', label: '🔧 Demontaj', icon: '🔧' },
+    { name: 'montaj', label: '⚙️ Montaj', icon: '⚙️' }
+];
+
     
     listContainer.innerHTML = '';
     
