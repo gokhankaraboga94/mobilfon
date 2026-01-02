@@ -7146,3 +7146,137 @@ body.light-mode .qr-approve-status.info {
     background: rgba(52, 152, 219, 0.15);
     color: #2874a6;
 }
+
+
+/* ========================================
+   TOPLU QR OKUTMA STİLLERİ
+   ======================================== */
+
+/* Okutulan Barkodlar Bölümü */
+.scanned-barcodes-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(52, 152, 219, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(52, 152, 219, 0.3);
+}
+
+.scanned-barcodes-container {
+    max-height: 250px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.scanned-barcodes-empty {
+    text-align: center;
+    padding: 20px;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+}
+
+.scanned-barcodes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.scanned-barcode-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(46, 204, 113, 0.2);
+    border: 1px solid rgba(46, 204, 113, 0.4);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.scanned-barcode-item:hover {
+    background: rgba(46, 204, 113, 0.3);
+    transform: translateX(5px);
+}
+
+.scanned-barcode-number {
+    font-weight: bold;
+    color: #3498db;
+    min-width: 25px;
+}
+
+.scanned-barcode-code {
+    flex: 1;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #2ecc71;
+    font-weight: bold;
+}
+
+.scanned-barcode-remove {
+    background: rgba(231, 76, 60, 0.8);
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scanned-barcode-remove:hover {
+    background: rgba(231, 76, 60, 1);
+    transform: scale(1.1);
+}
+
+.scanned-barcode-remove:active {
+    transform: scale(0.95);
+}
+
+/* Tamam Butonu */
+.qr-scanner-confirm-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+}
+
+.qr-scanner-confirm-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.6);
+}
+
+.qr-scanner-confirm-btn:active {
+    transform: translateY(0);
+}
+
+/* Scrollbar Styling */
+.scanned-barcodes-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.scanned-barcodes-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+.scanned-barcodes-container::-webkit-scrollbar-thumb {
+    background: rgba(52, 152, 219, 0.6);
+    border-radius: 10px;
+}
+
+.scanned-barcodes-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(52, 152, 219, 0.8);
+}
