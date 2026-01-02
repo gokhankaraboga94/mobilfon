@@ -11703,10 +11703,14 @@ async function addToGriListeFromQR(imei, targetList, skipToast = false) {
     
     console.log(`✅ Self-assignment kontrolü geçti, addToGriListe çağrılıyor...`);
     
-    // ⭐ DÜZELTME: 'YENİ' yerine null gönder
-    // addToGriListe otomatik olarak kaynak listeyi bulacak ve silecek
-    // Eğer hiçbir listede yoksa zaten 'YENİ' olarak işaretleyecek
-    const success = await addToGriListe(imei, null, targetList, userName);
+    // ⭐ DÜZELTME: Kaynak listeyi otomatik bul veya 'YENİ' kullan
+    // Önce mevcut listeyi bulmayı dene
+    const currentList = findBarcodeCurrentList(imei);
+    const fromList = currentList || 'YENİ';
+    console.log(`📍 Kaynak liste: ${fromList} (barkod: ${imei})`);
+    
+    // addToGriListe fonksiyonunu doğru parametrelerle çağır
+    const success = await addToGriListe(imei, fromList, targetList, userName);
     
     console.log(`🔍 addToGriListe sonucu: ${success}`);
     
