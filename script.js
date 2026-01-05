@@ -2955,11 +2955,55 @@ async function analyzeSyncIssues() {
 
 // Liste önceliklerini belirle
 function getListPriority(lists) {
-    // Öncelik sırası: Teslim Edilenler > Onarım Tamamlandı > PhoneCheck > Diğerleri
+    // ✅ YENİ MANTIK: En son eklenen (en yüksek timestamp) listede tut
+    // Teknisyen listelerine öncelik ver (çünkü aktif çalışma alanları)
+    const technicianLists = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
+    
+    // Özel durumlar için öncelik kontrolü
+    // 1. Eğer teslimEdilenler varsa, kesinlikle orada kalmalı
     if (lists.includes('teslimEdilenler')) return 'teslimEdilenler';
-    if (lists.includes('onarim')) return 'onarim';
-    if (lists.includes('phonecheck')) return 'phonecheck';
-    return lists[0]; // İlk listedeki tutulsun
+    
+    // 2. Teknisyen listelerinden biri varsa öncelik ver
+    const techListInConflict = lists.find(list => technicianLists.includes(list));
+    if (techListInConflict) {
+        // Teknisyen listelerinden en son eklenen
+        let latestTechList = techListInConflict;
+        let latestTimestamp = 0;
+        
+        lists.forEach(listName => {
+            if (technicianLists.includes(listName)) {
+                // Bu listedeki tüm barkodlar için timestamp kontrol et
+                const timestamps = codeTimestamps[listName] || {};
+                Object.values(timestamps).forEach(ts => {
+                    const tsNum = typeof ts === 'number' ? ts : convertToTimestamp(ts);
+                    if (tsNum > latestTimestamp) {
+                        latestTimestamp = tsNum;
+                        latestTechList = listName;
+                    }
+                });
+            }
+        });
+        
+        return latestTechList;
+    }
+    
+    // 3. Genel durum: En yüksek timestamp'e sahip listeyi bul
+    let latestList = lists[0];
+    let latestTimestamp = 0;
+    
+    lists.forEach(listName => {
+        const timestamps = codeTimestamps[listName] || {};
+        Object.values(timestamps).forEach(ts => {
+            const tsNum = typeof ts === 'number' ? ts : (ts ? convertToTimestamp(ts) : 0);
+            if (tsNum > latestTimestamp) {
+                latestTimestamp = tsNum;
+                latestList = listName;
+            }
+        });
+    });
+    
+    console.log(`📊 Çakışma önceliği: ${latestList} seçildi (En son eklenen)`);
+    return latestList;
 }
 
 // Tüm çakışmaları düzelt
@@ -3036,23 +3080,38 @@ async function fixAllConflicts() {
 
 // Tekil çakışmayı düzelt
 async function fixConflict(barcode, lists) {
-    // Kural 1: PhoneCheck ve Onarım Tamamlandı'da aynı anda bulunuyorsa → PhoneCheck'ten sil
+    console.log(`🔍 Çakışma düzeltiliyor: ${barcode} -> ${lists.join(', ')}`);
+    
+    // ✅ YENİ MANTIK: Özel durumlar için kurallar
+    
+    // Kural 1: PhoneCheck ve Onarım Tamamlandı çakışması
+    // Onarım daha ileri aşama olduğu için PhoneCheck'ten sil
     if (lists.includes('phonecheck') && lists.includes('onarim')) {
+        console.log(`📌 PhoneCheck ↔ Onarım çakışması: PhoneCheck'ten siliniyor`);
         await removeFromList(barcode, 'phonecheck');
         return;
     }
 
-    // Kural 2: Onarım Tamamlandı ve Teslim Edilenler'de aynı anda bulunuyorsa → Onarım Tamamlandı'dan sil
+    // Kural 2: Onarım Tamamlandı ve Teslim Edilenler çakışması
+    // Teslim Edilenler son aşama, Onarım'dan sil
     if (lists.includes('onarim') && lists.includes('teslimEdilenler')) {
+        console.log(`📌 Onarım ↔ Teslim Edilenler çakışması: Onarım'dan siliniyor`);
         await removeFromList(barcode, 'onarim');
         return;
     }
 
-    // Kural 3: Diğer çakışmalar için ilk listedekini tut, diğerlerinden sil
+    // Kural 3: Genel çakışma - EN SON EKLENDİĞİ LİSTEDE TUT
+    // Timestamp'e göre en yeni listeyi bul ve diğerlerinden sil
     const listToKeep = getListPriority(lists);
+    
+    console.log(`📌 Genel çakışma: ${listToKeep} tutulacak, diğerleri silinecek`);
+    
     for (const listName of lists) {
         if (listName !== listToKeep) {
+            console.log(`   ❌ ${listName} listesinden siliniyor`);
             await removeFromList(barcode, listName);
+        } else {
+            console.log(`   ✅ ${listName} listesinde kalacak`);
         }
     }
 }
@@ -3932,41 +3991,17 @@ async function addToGriListe(barcode, fromList, toList, user) {
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
         
-        // 2. ⭐ KAYNAK LİSTEDEN SİL (YENİ değilse)
-        if (actualFromList && actualFromList !== 'YENİ') {
-            const fromDbPath = actualFromList === 'onarim' ? 'onarimTamamlandi' : actualFromList;
-            
-            // Firebase'den sil
-            await db.ref(`servis/${fromDbPath}/${barcode}`).remove();
-            
-            // Local state'den sil
-            if (userCodes[actualFromList]) {
-                userCodes[actualFromList].delete(barcode);
-                if (codeTimestamps[actualFromList]) {
-                    delete codeTimestamps[actualFromList][barcode];
-                }
-                if (codeUsers[actualFromList]) {
-                    delete codeUsers[actualFromList][barcode];
-                }
-                
-                // Cache invalidation
-                if (typeof RenderCache !== 'undefined') {
-                    RenderCache.invalidate(actualFromList);
-                }
-                
-                // UI güncelle
-                updateLabelAndCount(actualFromList);
-                renderMiniList(actualFromList);
-            }
-            
-            console.log(`🗑️ Kaynak listeden silindi: ${barcode} (${actualFromList})`);
-        }
+        // ✅ ÖNEMLİ: KAYNAK LİSTEDEN SİLME!
+        // Gri liste sadece "onay bekliyor" durumu
+        // Barkod okutulana kadar cihaz kaynak listede KALMALI
+        // Barkod okutulduğunda approveFromGriListe fonksiyonu kaynak listeden silecek
+        
+        console.log(`⏳ Gri Listeye eklendi (kaynak listede KALIYOR): ${barcode} (${actualFromList} → ${toList})`);
         
         // 3. UI güncelle
         renderGriListe();
         updateGriListeCount();
         
-        console.log(`⏳ Gri Listeye eklendi: ${barcode} (${actualFromList} → ${toList})`);
         return true;
     } catch (error) {
         console.error('Gri Listeye ekleme hatası:', error);
