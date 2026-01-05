@@ -636,6 +636,13 @@
                     <div class="label">Anakart Dış Servis</div>
                     <div id="adminAnakartDisServis" class="value">0</div>
                 </div>
+                
+                <!-- YENİ EKLENEN: GARANTİ SERVİS -->
+                <div class="admin-stat-box" id="adminGarantiServisBox" onclick="showAdminCardDetails('garantiServis')">
+                    <div class="label">🛡️ Garanti Servis</div>
+                    <div id="adminGarantiServis" class="value">0</div>
+                </div>
+                
                 <!-- ESKİ DIŞ SERVİS SİLİNDİ -->
 
                 <div class="admin-stat-box" id="adminSatisaBox">
@@ -1198,6 +1205,16 @@
                         <textarea id="anakartDisServisInput"
                             placeholder="Anakart için dış servise gönderilecek barkodlar..."></textarea>
                         <div id="anakartDisServisList" class="mini-list"></div>
+                    </div>
+
+                    <!-- Garanti Servis Section -->
+                    <div class="section" data-section="garantiServis">
+                        <label for="garantiServisInput">
+                            <span id="garantiServisLabel">🛡️ Garanti Servis - 0</span>
+                        </label>
+                        <textarea id="garantiServisInput"
+                            placeholder="Garanti kapsamındaki cihazlar..."></textarea>
+                        <div id="garantiServisList" class="mini-list"></div>
                     </div>
 
                     <!-- Son Kullanıcı Section -->
