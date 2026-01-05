@@ -609,7 +609,7 @@ function hideAdminPanelItems() {
         'adminParcaBekliyorBox',   // PARÇA BEKLİYOR
         'adminPhonecheckBox',      // PHONECHECK
         'adminOnarimBox',          // ONARIM TAMAMLANDI
-        'adminOnCamDisServisBox',  // ÖN CAM DIŞ SERVİS
+        // 'adminOnCamDisServisBox' ARTIK GİZLENMİYOR - KULLANICILARA GÖSTER
         'adminSatisaBox',          // SATIŞA GİDECEK
         'adminSahinidenBox'        // SAHİBİNDEN
     ];
@@ -621,7 +621,7 @@ function hideAdminPanelItems() {
         }
     });
 
-    console.log('✅ Admin Panel Dashboard: 7 alan gizlendi (veriler korunuyor)');
+    console.log('✅ Admin Panel Dashboard: 6 alan gizlendi (Ön Cam Dış Servis gösteriliyor)');
 }
 
 
@@ -892,6 +892,7 @@ function showMainView() {
             // Click handler'ları başlat
             setTimeout(() => {
                 initTimeoutDashboardClickHandlers();
+                initAdminPanelClickHandlers(); // Admin Paneli kartları için
             }, 100);
         } else {
             document.getElementById('timeoutDashboardPanel').style.display = 'none';
@@ -7354,6 +7355,22 @@ function convertToTimestamp(dateString) {
 
     return Date.now(); // Fallback
 }
+
+// ========================================
+// FORMAT DATE FONKSİYONU
+// ========================================
+function formatDate(date) {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+        return 'Bilinmiyor';
+    }
+    
+    return date.toLocaleDateString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
 // ========================================
 // ✅ YENİ FONKSİYONLAR: TOPLU SİLME İÇİN
 // ========================================
@@ -7462,11 +7479,12 @@ async function deleteSelectedBarcodes(listName) {
 
 function updateAdminStats() {
     const totalCodesWithOnarim = new Set();
-    // onarim listesini de dahil ediyoruz
-    const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'onarim'];
+    // ✅ ÖN CAM VE ANAKART DIŞ SERVİS HARİÇ - onarim listesi dahil
+    const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'satisa', 'sahiniden', 'mediaMarkt', 'onarim'];
 
     Object.keys(userCodes).forEach(key => {
-        if (!listsToCount.includes(key) && !['teslimEdilenler'].includes(key)) {
+        // ✅ Dış servisleri ve teslim edilenleri hariç tut
+        if (!listsToCount.includes(key) && !['teslimEdilenler', 'onCamDisServis', 'anakartDisServis'].includes(key)) {
             listsToCount.push(key);
         }
     });
@@ -10129,8 +10147,9 @@ async function checkTimeouts() {
         const ignoredSnapshot = await db.ref('timeoutIgnored').once('value');
         const ignoredList = ignoredSnapshot.val() || {};
 
-        // Kontrol edilecek listeleri belirle (Satış, Teslim, Atanacak ve Geçmiş hariç hepsi)
-        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'atanacak', 'eslesenler', 'adet', 'history', 'serviceReturns'];
+        // Kontrol edilecek listeleri belirle (Satış, Teslim, Atanacak, Dış Servisler ve Geçmiş hariç hepsi)
+        // ✅ ÖN CAM VE ANAKART DIŞ SERVİS ZAMAN AŞIMI DASHBOARD'DAN HARİÇ
+        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'atanacak', 'eslesenler', 'adet', 'history', 'serviceReturns', 'onCamDisServis', 'anakartDisServis'];
         const targetLists = Object.keys(userCodes).filter(listName => !excludeLists.includes(listName));
 
         // PhoneCheck ve Onarım listelerini manuel olarak da garantiye al
@@ -10937,6 +10956,422 @@ function initTimeoutDashboardClickHandlers() {
     }
 
     console.log('✅ Timeout Dashboard click handler\'ları başlatıldı');
+}
+
+// ========================================
+// ADMIN PANEL CARD CLICK HANDLERS
+// ========================================
+
+// Admin Paneli kartlarına click event listener'ları ekle
+function initAdminPanelClickHandlers() {
+    // Sadece admin ve semi-admin için
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+
+    // Tüm admin-stat-box elementlerini bul ve cursor ekle
+    const adminCards = document.querySelectorAll('.admin-stat-box[onclick*="showAdminCardDetails"]');
+    
+    adminCards.forEach(card => {
+        card.style.cursor = 'pointer';
+    });
+
+    console.log('✅ Admin Paneli click handler\'ları başlatıldı');
+}
+
+// Admin Paneli kartı detaylarını göster
+function showAdminCardDetails(cardType) {
+    // Sadece admin ve semi-admin için
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') return;
+
+    let devices = [];
+    let title = '';
+    let subtitle = '';
+    let color = '#3498db';
+
+    // Kart tipine göre verileri hazırla
+    switch(cardType) {
+        case 'total':
+            // Servisteki Toplam Cihaz - ÖN CAM VE ANAKART DIŞ SERVİS HARİÇ
+            title = '📊 Servisteki Toplam Cihazlar';
+            subtitle = 'Tüm Listelerdeki Cihazlar (Dış Servisler Hariç)';
+            color = '#3498db';
+            
+            // ✅ ÖN CAM VE ANAKART DIŞ SERVİS HARİÇ tüm listelerden cihazları topla
+            const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 
+                             'engin', 'ismail', 'mehmet', 'onarim', 
+                             'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı'];
+            
+            allLists.forEach(listName => {
+                if (userCodes[listName] && userCodes[listName].size > 0) {
+                    const codes = Array.from(userCodes[listName]);
+                    codes.forEach(barcode => {
+                        const timestamp = codeTimestamps[listName] ? codeTimestamps[listName][barcode] : null;
+                        const user = codeUsers[listName] ? codeUsers[listName][barcode] : 'Bilinmiyor';
+                        
+                        // Timestamp'i number'a çevir
+                        const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
+                        
+                        devices.push({
+                            barcode: barcode,
+                            listName: listName,
+                            lastActionDate: timestampNum ? formatDate(new Date(timestampNum)) : 'Bilinmiyor',
+                            user: user,
+                            days: timestampNum ? Math.floor((Date.now() - timestampNum) / (1000 * 60 * 60 * 24)) : 0
+                        });
+                    });
+                }
+            });
+            break;
+
+        case 'SonKullanıcı':
+            title = '👤 Son Kullanıcı Cihazları';
+            subtitle = 'Son Kullanıcı Listesindeki Cihazlar';
+            color = '#9b59b6';
+            
+            if (userCodes['SonKullanıcı'] && userCodes['SonKullanıcı'].size > 0) {
+                const codes = Array.from(userCodes['SonKullanıcı']);
+                codes.forEach(barcode => {
+                    const timestamp = codeTimestamps['SonKullanıcı'] ? codeTimestamps['SonKullanıcı'][barcode] : null;
+                    const user = codeUsers['SonKullanıcı'] ? codeUsers['SonKullanıcı'][barcode] : 'Bilinmiyor';
+                    
+                    const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
+                    
+                    devices.push({
+                        barcode: barcode,
+                        listName: 'SonKullanıcı',
+                        lastActionDate: timestampNum ? formatDate(new Date(timestampNum)) : 'Bilinmiyor',
+                        user: user,
+                        days: timestampNum ? Math.floor((Date.now() - timestampNum) / (1000 * 60 * 60 * 24)) : 0
+                    });
+                });
+            }
+            break;
+
+        case 'onCamDisServis':
+            title = '🔨 Ön Cam Dış Servis';
+            subtitle = 'Dış Serviste Bekleyen Cihazlar';
+            color = '#e67e22';
+            
+            if (userCodes['onCamDisServis'] && userCodes['onCamDisServis'].size > 0) {
+                const codes = Array.from(userCodes['onCamDisServis']);
+                codes.forEach(barcode => {
+                    const timestamp = codeTimestamps['onCamDisServis'] ? codeTimestamps['onCamDisServis'][barcode] : null;
+                    const user = codeUsers['onCamDisServis'] ? codeUsers['onCamDisServis'][barcode] : 'Bilinmiyor';
+                    
+                    const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
+                    
+                    devices.push({
+                        barcode: barcode,
+                        listName: 'onCamDisServis',
+                        lastActionDate: timestampNum ? formatDate(new Date(timestampNum)) : 'Bilinmiyor',
+                        user: user,
+                        days: timestampNum ? Math.floor((Date.now() - timestampNum) / (1000 * 60 * 60 * 24)) : 0
+                    });
+                });
+            }
+            break;
+
+        case 'anakartDisServis':
+            title = '🔨 Anakart Dış Servis';
+            subtitle = 'Dış Serviste Bekleyen Cihazlar';
+            color = '#e74c3c';
+            
+            if (userCodes['anakartDisServis'] && userCodes['anakartDisServis'].size > 0) {
+                const codes = Array.from(userCodes['anakartDisServis']);
+                codes.forEach(barcode => {
+                    const timestamp = codeTimestamps['anakartDisServis'] ? codeTimestamps['anakartDisServis'][barcode] : null;
+                    const user = codeUsers['anakartDisServis'] ? codeUsers['anakartDisServis'][barcode] : 'Bilinmiyor';
+                    
+                    const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
+                    
+                    devices.push({
+                        barcode: barcode,
+                        listName: 'anakartDisServis',
+                        lastActionDate: timestampNum ? formatDate(new Date(timestampNum)) : 'Bilinmiyor',
+                        user: user,
+                        days: timestampNum ? Math.floor((Date.now() - timestampNum) / (1000 * 60 * 60 * 24)) : 0
+                    });
+                });
+            }
+            break;
+
+        case 'teknisyenler':
+            title = '👥 Toplam Teknisyen Cihazları';
+            subtitle = 'Tüm Teknisyenlerdeki Cihazlar';
+            color = '#16a085';
+            
+            const techLists = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet'];
+            
+            techLists.forEach(listName => {
+                if (userCodes[listName] && userCodes[listName].size > 0) {
+                    const codes = Array.from(userCodes[listName]);
+                    codes.forEach(barcode => {
+                        const timestamp = codeTimestamps[listName] ? codeTimestamps[listName][barcode] : null;
+                        const user = codeUsers[listName] ? codeUsers[listName][barcode] : 'Bilinmiyor';
+                        
+                        const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
+                        
+                        devices.push({
+                            barcode: barcode,
+                            listName: listName,
+                            lastActionDate: timestampNum ? formatDate(new Date(timestampNum)) : 'Bilinmiyor',
+                            user: user,
+                            days: timestampNum ? Math.floor((Date.now() - timestampNum) / (1000 * 60 * 60 * 24)) : 0
+                        });
+                    });
+                }
+            });
+            break;
+
+        case 'teslimEdilenler':
+            title = '✅ Teslim Edilenler';
+            subtitle = 'Teslim Edilen Cihazlar';
+            color = '#27ae60';
+            
+            if (userCodes['teslimEdilenler'] && userCodes['teslimEdilenler'].size > 0) {
+                const codes = Array.from(userCodes['teslimEdilenler']);
+                codes.forEach(barcode => {
+                    const timestamp = codeTimestamps['teslimEdilenler'] ? codeTimestamps['teslimEdilenler'][barcode] : null;
+                    const user = codeUsers['teslimEdilenler'] ? codeUsers['teslimEdilenler'][barcode] : 'Bilinmiyor';
+                    
+                    const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
+                    
+                    devices.push({
+                        barcode: barcode,
+                        listName: 'teslimEdilenler',
+                        lastActionDate: timestampNum ? formatDate(new Date(timestampNum)) : 'Bilinmiyor',
+                        user: user,
+                        days: timestampNum ? Math.floor((Date.now() - timestampNum) / (1000 * 60 * 60 * 24)) : 0
+                    });
+                });
+            }
+            break;
+
+        default:
+            showToast('Bu kart için detay görünümü henüz eklenmedi.', 'info');
+            return;
+    }
+
+    // Cihaz yoksa bildirim göster
+    if (devices.length === 0) {
+        showToast(`Bu kategoride cihaz bulunmuyor.`, 'info');
+        return;
+    }
+
+    // Detay modalını render et (Timeout modaliyle aynı stil)
+    renderAdminCardModal(devices, title, subtitle, color);
+}
+
+// Admin Paneli kartı detay modalını render et
+function renderAdminCardModal(devices, title, subtitle, color) {
+    // Liste adlarını Türkçe'ye çevir
+    const listNames = {
+        atanacak: '📋 Atanacak',
+        parcaBekliyor: '⚙️ Parça Bekliyor',
+        phonecheck: '📱 PhoneCheck',
+        gokhan: '🧑‍🔧 Gökhan',
+        enes: '🧑‍🔧 Enes',
+        yusuf: '🧑‍🔧 Yusuf',
+        samet: '🧑‍🔧 Samet',
+        engin: '🧑‍🔧 Engin',
+        ismail: '🧑‍🔧 İsmail',
+        mehmet: '🧑‍🔧 Mehmet',
+        onarim: '🔧 Onarım Tamamlandı',
+        onCamDisServis: '🔨 Ön Cam Dış Servis',
+        anakartDisServis: '🔨 Anakart Dış Servis',
+        satisa: '💰 Satışa Gidecek',
+        sahiniden: '🏪 Sahibinden',
+        mediaMarkt: '🛒 Satış Sonrası',
+        SonKullanıcı: '👤 Son Kullanıcı',
+        teslimEdilenler: '✅ Teslim Edilenler'
+    };
+
+    // Cihazları gün sayısına göre sırala (En çok bekleyen en üstte)
+    devices.sort((a, b) => b.days - a.days);
+
+    // Cihaz listesi HTML'i oluştur
+    let devicesHTML = '';
+    devices.forEach((device, index) => {
+        const listDisplayName = listNames[device.listName] || device.listName;
+        devicesHTML += `
+            <tr style="border-left: 4px solid ${color};">
+                <td style="padding: 12px; text-align: center; font-weight: 600;">${index + 1}</td>
+                <td style="padding: 12px; font-family: monospace; font-weight: 600;">${device.barcode}</td>
+                <td style="padding: 12px;">${listDisplayName}</td>
+                <td style="padding: 12px; text-align: center; font-weight: 600; color: ${color};">${device.days} gün</td>
+                <td style="padding: 12px; text-align: center;">${device.lastActionDate}</td>
+                <td style="padding: 12px;">👤 ${device.user}</td>
+            </tr>
+        `;
+    });
+
+    // Global değişkene mevcut listeyi kaydet (arama için)
+    window.currentAdminCardDevicesList = devices;
+
+    const modalHTML = `
+        <div class="timeout-device-modal-overlay" id="adminCardDeviceModalOverlay" onclick="closeAdminCardDeviceModal()">
+            <div class="timeout-device-modal" onclick="event.stopPropagation()" style="border-top: 4px solid ${color};">
+                <div class="timeout-device-modal-header" style="border-bottom: 2px solid ${color};">
+                    <div>
+                        <h2 style="margin: 0; color: ${color};">${title}</h2>
+                        <p style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">${subtitle} • Toplam ${devices.length} cihaz</p>
+                    </div>
+                    <button class="timeout-device-modal-close" onclick="closeAdminCardDeviceModal()">✕</button>
+                </div>
+                
+                <!-- SEARCH BOX -->
+                <div class="timeout-device-search-box">
+                    <div class="timeout-device-search-input-wrapper">
+                        <span class="timeout-device-search-icon">🔍</span>
+                        <input type="text" 
+                               id="adminCardDeviceSearchInput" 
+                               placeholder="Barkod ara veya okut..." 
+                               autocomplete="off"
+                               onkeyup="searchBarcodeInAdminCardList(event)">
+                        <button class="timeout-device-search-clear" onclick="clearAdminCardDeviceSearch()" title="Aramayı Temizle">✕</button>
+                    </div>
+                    <div id="adminCardDeviceSearchResult" class="timeout-device-search-result"></div>
+                </div>
+                
+                <div class="timeout-device-modal-body">
+                    <table class="timeout-device-table">
+                        <thead>
+                            <tr>
+                                <th style="padding: 12px; text-align: center; width: 50px;">#</th>
+                                <th style="padding: 12px; text-align: left;">Barkod</th>
+                                <th style="padding: 12px; text-align: left;">Bulunduğu Liste</th>
+                                <th style="padding: 12px; text-align: center; width: 100px;">Bekleyen Gün</th>
+                                <th style="padding: 12px; text-align: center; width: 120px;">Son İşlem</th>
+                                <th style="padding: 12px; text-align: left;">Transfer Eden Kullanıcı</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${devicesHTML}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Modal'ı body'ye ekle
+    const existingModal = document.getElementById('adminCardDeviceModalOverlay');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Modal'ı göster
+    setTimeout(() => {
+        const modal = document.getElementById('adminCardDeviceModalOverlay');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+        }
+    }, 10);
+}
+
+// Admin Paneli kartı detay modalını kapat
+function closeAdminCardDeviceModal() {
+    const modal = document.getElementById('adminCardDeviceModalOverlay');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    }
+    // Global değişkeni temizle
+    window.currentAdminCardDevicesList = null;
+}
+
+// Admin Paneli kartı device listesinde barkod ara
+function searchBarcodeInAdminCardList(event) {
+    const searchInput = document.getElementById('adminCardDeviceSearchInput');
+    const resultDiv = document.getElementById('adminCardDeviceSearchResult');
+
+    if (!searchInput || !resultDiv) return;
+
+    let searchValue = searchInput.value.trim().toUpperCase();
+
+    // Peş peşe barkod okutma desteği
+    if (searchValue.length > 15) {
+        const numericOnly = searchValue.replace(/[^0-9]/g, '');
+        if (numericOnly.length >= 15) {
+            searchValue = numericOnly.slice(-15);
+            searchInput.value = searchValue;
+        }
+    }
+
+    // Önceki highlight'ları temizle
+    const allRows = document.querySelectorAll('#adminCardDeviceModalOverlay .timeout-device-table tbody tr');
+    allRows.forEach(row => {
+        row.classList.remove('timeout-device-search-highlight');
+    });
+
+    // Boş arama
+    if (!searchValue) {
+        resultDiv.innerHTML = '';
+        resultDiv.className = 'timeout-device-search-result';
+        return;
+    }
+
+    // Enter tuşu ile arama
+    if (event && event.key === 'Enter') {
+        setTimeout(() => {
+            searchInput.select();
+        }, 100);
+    }
+
+    // Listede ara
+    const devices = window.currentAdminCardDevicesList || [];
+    let foundIndex = -1;
+
+    for (let i = 0; i < devices.length; i++) {
+        if (devices[i].barcode.toUpperCase() === searchValue) {
+            foundIndex = i;
+            break;
+        }
+    }
+
+    if (foundIndex !== -1) {
+        // Bulundu
+        const position = foundIndex + 1;
+        resultDiv.innerHTML = `<span class="search-found">✅ Bulundu! Sıra: <strong>${position}</strong> / ${devices.length}</span>`;
+        resultDiv.className = 'timeout-device-search-result found';
+
+        // İlgili satırı highlight et ve scroll yap
+        const targetRow = allRows[foundIndex];
+        if (targetRow) {
+            targetRow.classList.add('timeout-device-search-highlight');
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } else {
+        // Bulunamadı
+        resultDiv.innerHTML = `<span class="search-not-found">❌ Bulunamadı! Listede <strong>${devices.length}</strong> cihaz var.</span>`;
+        resultDiv.className = 'timeout-device-search-result not-found';
+    }
+}
+
+// Admin Paneli kartı arama kutusunu temizle
+function clearAdminCardDeviceSearch() {
+    const searchInput = document.getElementById('adminCardDeviceSearchInput');
+    const resultDiv = document.getElementById('adminCardDeviceSearchResult');
+    
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+    
+    if (resultDiv) {
+        resultDiv.innerHTML = '';
+        resultDiv.className = 'timeout-device-search-result';
+    }
+    
+    // Highlight'ları temizle
+    const allRows = document.querySelectorAll('#adminCardDeviceModalOverlay .timeout-device-table tbody tr');
+    allRows.forEach(row => {
+        row.classList.remove('timeout-device-search-highlight');
+    });
 }
 
 
