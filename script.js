@@ -6636,7 +6636,7 @@ function debouncedSaveCodes(name, value) {
     }, BATCH_DELAY);
 }
 
-function saveCodes(name, value) {
+async function saveCodes(name, value) {
     if (isUpdating || !dataLoaded) return;
 
     // ✅ CACHE INVALIDATION: Bu liste için cache'i temizle
@@ -6730,6 +6730,7 @@ function saveCodes(name, value) {
     const timestamp = getTimestamp();
 
     const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler', 'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
+    // ✅ ATANACAK LİSTESİ DASHBOARD'A EKLENDİ - Direkt ekleme, gri liste yok
     const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
 
     // ========================================
@@ -6742,7 +6743,7 @@ function saveCodes(name, value) {
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
     if (specialLists.includes(name)) {
-        codes.forEach(code => {
+        for (const code of codes) {
             if (!userCodes[name].has(code) && !griListeData[code]) {
                 // Barkodun şu anki listesini bul
                 let previousList = null;
@@ -6771,7 +6772,7 @@ function saveCodes(name, value) {
                     // Gri listeye ekle
                     addToGriListe(code, previousList || 'YENİ', name, currentUserName);
                     showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
-                    return; // forEach'ten çık, bir sonraki koda geç
+                    continue; // for loop'un bir sonraki iterasyonuna geç
                 }
                 // ========================================
 
@@ -6779,9 +6780,11 @@ function saveCodes(name, value) {
 
                 saveBarcodeHistory(code, removedFrom, name, currentUserName);
 
-                // burası değişti - Son Kullanıcı kontrolü eklendi ↓
+                // ✅ ATANACAK LİSTESİ: Teslim alınan sayısını artır
                 if (dashboardSourceLists.includes(name)) {
-                    addReceivedIMEI(code, name);
+                    await addReceivedIMEI(code, name);
+                    // Dashboard UI'ını güncelle
+                    updateDashboardUI();
                 }
 
                 // burası değişti - Teslim edilenler listesine ekleniyorsa sayaç artır VE received'dan çıkar
@@ -6821,7 +6824,7 @@ function saveCodes(name, value) {
                     allCodes.add(code);
                 }
             }
-        });
+        }
 
         updateLabelAndCount(name);
         // Parça türleri dashboard'unu güncelle
@@ -6841,7 +6844,7 @@ function saveCodes(name, value) {
     const griListeExcludedForOthers = ['teslimEdilenler', 'atanacak'];
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
 
-    codes.forEach(code => {
+    for (const code of codes) {
         if (!userCodes[name].has(code) && !griListeData[code]) {
 
             // Gri Liste kontrolü - Tüm kullanıcılar için
@@ -6869,7 +6872,7 @@ function saveCodes(name, value) {
                 // Gri listeye ekle
                 addToGriListe(code, previousList || 'YENİ', name, currentUserName);
                 showToast(`⏳ ${code} onay listesine eklendi (${CACHED_LIST_NAMES[name] || name})`, 'info');
-                return; // forEach'ten çık
+                continue; // for loop'un bir sonraki iterasyonuna geç
             }
 
             const previousList = removeFromOtherLists(code, name);
@@ -6882,7 +6885,7 @@ function saveCodes(name, value) {
             userCodes[name].add(code);
             allCodes.add(code);
         }
-    });
+    }
 
     updateLabelAndCount(name);
     debouncedRenderList();
