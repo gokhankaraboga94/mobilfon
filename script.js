@@ -524,6 +524,8 @@ function getListDisplayName(listName) {
         'satisa': 'Satışa Gidecek',
         'sahiniden': 'Sahibinden',
         'onCamDisServis': 'Ön Cam Dış Servis',
+        'anakartDisServis': 'Anakart Dış Servis',
+        'garantiServis': '🛡️ Garanti Servis',
         'pil': 'Pil',
         'mediaMarkt': 'Satış Sonrası',
         'kasa': 'Kasa',
@@ -562,6 +564,8 @@ function getSectionInfo(sectionName) {
         'satisa': { label: '💰 Satışa Gidecek' },
         'sahiniden': { label: '🏪 Sahibinden' },
         'onCamDisServis': { label: '🔨 Ön Cam Dış Servis' },
+        'anakartDisServis': { label: '🔨 Anakart Dış Servis' },
+        'garantiServis': { label: '🛡️ Garanti Servis' },
         'pil': { label: '🔋 Pil' },
         'mediaMarkt': { label: '🛒 Satış Sonrası' },
         'kasa': { label: '📱 Kasa' },
@@ -3682,6 +3686,7 @@ const inputs = {
     onarim: document.getElementById("onarimInput"),
     onCamDisServis: document.getElementById("onCamDisServisInput"),
     anakartDisServis: document.getElementById("anakartDisServisInput"),
+    garantiServis: document.getElementById("garantiServisInput"),
 
     satisa: document.getElementById("satisaInput"),
     sahiniden: document.getElementById("sahinidenInput"),
@@ -3719,6 +3724,7 @@ const labels = {
     SonKullanıcı: document.getElementById("SonKullanıcıLabel"),
     onCamDisServis: document.getElementById("onCamDisServisLabel"),
     anakartDisServis: document.getElementById("anakartDisServisLabel"),
+    garantiServis: document.getElementById("garantiServisLabel"),
     satisa: document.getElementById("satisaLabel"),
     sahiniden: document.getElementById("sahinidenLabel"),
     mediaMarkt: document.getElementById("mediaMarktLabel"),
@@ -3754,6 +3760,7 @@ const miniLists = {
     SonKullanıcı: document.getElementById("SonKullanıcıList"),
     onCamDisServis: document.getElementById("onCamDisServisList"),
     anakartDisServis: document.getElementById("anakartDisServisList"),
+    garantiServis: document.getElementById("garantiServisList"),
     satisa: document.getElementById("satisaList"),
     sahiniden: document.getElementById("sahinidenList"),
     mediaMarkt: document.getElementById("mediaMarktList"),
@@ -3791,6 +3798,7 @@ const userCodes = {
     mert: new Set(),
     onCamDisServis: new Set(),
     anakartDisServis: new Set(),
+    garantiServis: new Set(),
     onarim: new Set(),
     SonKullanıcı: new Set(),
     satisa: new Set(),
@@ -3827,6 +3835,7 @@ const codeTimestamps = {
     SonKullanıcı: {},
     onCamDisServis: {},
     anakartDisServis: {},
+    garantiServis: {},
     satisa: {},
     sahiniden: {},
     mediaMarkt: {},
@@ -3856,6 +3865,7 @@ const codeUsers = {
     ismail: {},
     onCamDisServis: {},
     anakartDisServis: {},
+    garantiServis: {},
     mehmet: {},
     mert: {},
     onarim: {},
@@ -6729,16 +6739,16 @@ async function saveCodes(name, value) {
 
     const timestamp = getTimestamp();
 
-    const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler', 'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
+    const specialLists = ['phonecheck', 'parcaBekliyor', 'atanacak', 'onarim', 'onCamDisServis', 'anakartDisServis', 'garantiServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler', 'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
     // ✅ ATANACAK LİSTESİ DASHBOARD'A EKLENDİ - Direkt ekleme, gri liste yok
     const dashboardSourceLists = ['atanacak', 'SonKullanıcı', 'sahiniden', 'mediaMarkt'];
 
     // ========================================
     // GRİ LİSTE KONTROLÜ - TÜM KULLANICILAR VE TÜM LİSTELER
     // Admin dahil herkes için transferler gri listeye düşer
-    // HARIÇ: teslimEdilenler - direkt transfer olur
+    // HARIÇ: teslimEdilenler, atanacak, garantiServis - direkt transfer olur
     // ========================================
-    const griListeExcludedLists = ['teslimEdilenler', 'atanacak']; // Bu listeler gri listeye düşmez
+    const griListeExcludedLists = ['teslimEdilenler', 'atanacak', 'garantiServis']; // Bu listeler gri listeye düşmez
     const shouldUseGriListe = !griListeExcludedLists.includes(name);
 
     // saveCodes fonksiyonunda (satır ~1020 civarı)
@@ -6839,9 +6849,9 @@ async function saveCodes(name, value) {
     // ========================================
     // TÜM DİĞER LİSTELER İÇİN GRİ LİSTE KONTROLÜ
     // Admin dahil tüm kullanıcılar için geçerli
-    // HARIÇ: teslimEdilenler - direkt transfer olur
+    // HARIÇ: teslimEdilenler, atanacak, garantiServis - direkt transfer olur
     // ========================================
-    const griListeExcludedForOthers = ['teslimEdilenler', 'atanacak'];
+    const griListeExcludedForOthers = ['teslimEdilenler', 'atanacak', 'garantiServis'];
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
 
     for (const code of codes) {
@@ -7482,12 +7492,12 @@ async function deleteSelectedBarcodes(listName) {
 
 function updateAdminStats() {
     const totalCodesWithOnarim = new Set();
-    // ✅ ÖN CAM VE ANAKART DIŞ SERVİS HARİÇ - onarim listesi dahil
+    // ✅ ÖN CAM, ANAKART DIŞ SERVİS VE GARANTİ SERVİS HARİÇ - onarim listesi dahil
     const listsToCount = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'satisa', 'sahiniden', 'mediaMarkt', 'onarim'];
 
     Object.keys(userCodes).forEach(key => {
-        // ✅ Dış servisleri ve teslim edilenleri hariç tut
-        if (!listsToCount.includes(key) && !['teslimEdilenler', 'onCamDisServis', 'anakartDisServis'].includes(key)) {
+        // ✅ Dış servisleri, garanti servisi ve teslim edilenleri hariç tut
+        if (!listsToCount.includes(key) && !['teslimEdilenler', 'onCamDisServis', 'anakartDisServis', 'garantiServis'].includes(key)) {
             listsToCount.push(key);
         }
     });
@@ -7520,6 +7530,7 @@ function updateAdminStats() {
     document.getElementById('adminOnarim').textContent = userCodes.onarim ? userCodes.onarim.size : 0;
     document.getElementById('adminOnCamDisServis').textContent = userCodes.onCamDisServis ? userCodes.onCamDisServis.size : 0;      // YENİ EKLENDİ
     document.getElementById('adminAnakartDisServis').textContent = userCodes.anakartDisServis ? userCodes.anakartDisServis.size : 0;  // YENİ EKLENDİ
+    document.getElementById('adminGarantiServis').textContent = userCodes.garantiServis ? userCodes.garantiServis.size : 0;  // YENİ EKLENDİ
     document.getElementById('adminSatisa').textContent = userCodes.satisa ? userCodes.satisa.size : 0;
     document.getElementById('adminSahiniden').textContent = userCodes.sahiniden ? userCodes.sahiniden.size : 0;
     document.getElementById('partsDashboardMediaMarkt').textContent = userCodes.mediaMarkt ? userCodes.mediaMarkt.size : 0;
@@ -7617,7 +7628,7 @@ function loadData() {
                         setTimeout(() => {
                             const allSections = [
                                 'atanacak', 'parcaBekliyor', 'phonecheck', 'onarim',
-                                'onCamDisServis', 'anakartDisServis', 'SonKullanıcı',
+                                'onCamDisServis', 'anakartDisServis', 'garantiServis', 'SonKullanıcı',
                                 'satisa', 'sahiniden', 'mediaMarkt', 'teslimEdilenler'
                             ];
 
@@ -10150,9 +10161,9 @@ async function checkTimeouts() {
         const ignoredSnapshot = await db.ref('timeoutIgnored').once('value');
         const ignoredList = ignoredSnapshot.val() || {};
 
-        // Kontrol edilecek listeleri belirle (Satış, Teslim, Atanacak, Dış Servisler ve Geçmiş hariç hepsi)
-        // ✅ ÖN CAM VE ANAKART DIŞ SERVİS ZAMAN AŞIMI DASHBOARD'DAN HARİÇ
-        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'atanacak', 'eslesenler', 'adet', 'history', 'serviceReturns', 'onCamDisServis', 'anakartDisServis'];
+        // Kontrol edilecek listeleri belirle (Satış, Teslim, Atanacak, Dış Servisler, Garanti Servis ve Geçmiş hariç hepsi)
+        // ✅ ÖN CAM, ANAKART DIŞ SERVİS VE GARANTİ SERVİS ZAMAN AŞIMI DASHBOARD'DAN HARİÇ
+        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'atanacak', 'eslesenler', 'adet', 'history', 'serviceReturns', 'onCamDisServis', 'anakartDisServis', 'garantiServis'];
         const targetLists = Object.keys(userCodes).filter(listName => !excludeLists.includes(listName));
 
         // PhoneCheck ve Onarım listelerini manuel olarak da garantiye al
@@ -11097,6 +11108,30 @@ function showAdminCardDetails(cardType) {
             }
             break;
 
+        case 'garantiServis':
+            title = '🛡️ Garanti Servis';
+            subtitle = 'Garanti Kapsamındaki Cihazlar';
+            color = '#9b59b6';
+            
+            if (userCodes['garantiServis'] && userCodes['garantiServis'].size > 0) {
+                const codes = Array.from(userCodes['garantiServis']);
+                codes.forEach(barcode => {
+                    const timestamp = codeTimestamps['garantiServis'] ? codeTimestamps['garantiServis'][barcode] : null;
+                    const user = codeUsers['garantiServis'] ? codeUsers['garantiServis'][barcode] : 'Bilinmiyor';
+                    
+                    const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
+                    
+                    devices.push({
+                        barcode: barcode,
+                        listName: 'garantiServis',
+                        lastActionDate: timestampNum ? formatDate(new Date(timestampNum)) : 'Bilinmiyor',
+                        user: user,
+                        days: timestampNum ? Math.floor((Date.now() - timestampNum) / (1000 * 60 * 60 * 24)) : 0
+                    });
+                });
+            }
+            break;
+
         case 'teknisyenler':
             title = '👥 Toplam Teknisyen Cihazları';
             subtitle = 'Tüm Teknisyenlerdeki Cihazlar';
@@ -11181,6 +11216,7 @@ function renderAdminCardModal(devices, title, subtitle, color) {
         onarim: '🔧 Onarım Tamamlandı',
         onCamDisServis: '🔨 Ön Cam Dış Servis',
         anakartDisServis: '🔨 Anakart Dış Servis',
+        garantiServis: '🛡️ Garanti Servis',
         satisa: '💰 Satışa Gidecek',
         sahiniden: '🏪 Sahibinden',
         mediaMarkt: '🛒 Satış Sonrası',
