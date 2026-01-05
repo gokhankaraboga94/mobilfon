@@ -599,7 +599,7 @@
                     <div id="adminGriListeCount" class="value gri-liste-value">0</div>
                 </div>
 
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminTotalBarcodesBox" onclick="showAdminCardDetails('total')">
                     <div class="label">Servisteki Toplam Cihaz</div>
                     <div id="adminTotalBarcodes" class="value">0</div>
                 </div>
@@ -617,7 +617,7 @@
                     <div id="adminPhonecheck" class="value">0</div>
                 </div>
 
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminSonKullaniciBox" onclick="showAdminCardDetails('SonKullanıcı')">
                     <div class="label">SonKullanıcı</div>
                     <div id="SonKullanıcı" class="value">0</div>
                 </div>
@@ -628,11 +628,11 @@
                     <div id="adminOnarim" class="value">0</div>
                 </div>
                 <!-- YENİ EKLENEN DIŞ SERVİSLER -->
-                <div class="admin-stat-box" id="adminOnCamDisServisBox">
+                <div class="admin-stat-box" id="adminOnCamDisServisBox" onclick="showAdminCardDetails('onCamDisServis')">
                     <div class="label">Ön Cam Dış Servis</div>
                     <div id="adminOnCamDisServis" class="value">0</div>
                 </div>
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminAnakartDisServisBox" onclick="showAdminCardDetails('anakartDisServis')">
                     <div class="label">Anakart Dış Servis</div>
                     <div id="adminAnakartDisServis" class="value">0</div>
                 </div>
@@ -648,11 +648,11 @@
                 </div>
        
 
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminTeknisyenlerBox" onclick="showAdminCardDetails('teknisyenler')">
                     <div class="label">Toplam Teknisyen Cihazları</div>
                     <div id="adminTeknisyenler" class="value">0</div>
                 </div>
-                <div class="admin-stat-box">
+                <div class="admin-stat-box" id="adminTeslimEdilenlerBox" onclick="showAdminCardDetails('teslimEdilenler')">
                     <div class="label">Teslim Edilenler</div>
                     <div id="adminTeslimEdilenler" class="value">0</div>
                 </div>
@@ -755,12 +755,6 @@
                     <div class="parts-stat-icon">🏪</div>
                     <div class="parts-stat-value" id="partsDashboardSahiniden">0</div>
                     <div class="parts-stat-label">SAHİBİNDEN</div>
-                </div>
-
-                <div class="parts-stat-card onCamDisServis" onclick="openSectionInDashboard('onCamDisServis', event)">
-                    <div class="parts-stat-icon">🔨</div>
-                    <div class="parts-stat-value" id="partsDashboardOnCamDisServis">0</div>
-                    <div class="parts-stat-label">ÖN CAM DIŞ SERVİS</div>
                 </div>
 
                 <!-- Yeni Parça Türleri -->
