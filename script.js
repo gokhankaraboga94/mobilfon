@@ -5815,6 +5815,12 @@ auth.onAuthStateChanged(async user => {
                     console.log('✅ Bakım Modu Sistemi Başlatıldı');
                 }, 3000);
 
+                // ✅ ADMIN DASHBOARD KONTROLLERINI GÖSTER
+                setTimeout(() => {
+                    updateAdminDashboardControls();
+                    console.log('✅ Admin Dashboard Kontrolleri Gösterildi');
+                }, 500);
+
                 // ✅ ADMIN DOĞRUDAN ANA SAYFAYI GÖRSÜN
                 setTimeout(() => showMainView(), 100);
             } else if (user.email === 'depo@mobilfon.com') {
@@ -12772,3 +12778,296 @@ async function initMaintenanceMode() {
 }
 
 console.log('✅ Bakım Modu fonksiyonları yüklendi');
+
+// ========================================
+// ADMIN DASHBOARD CONTROL FUNCTIONS
+// ========================================
+
+/**
+ * Dashboard sayaçlarını sıfırlama fonksiyonu
+ * Sadece admin kullanıcılar için 6262 şifresi ile korunur
+ */
+async function clearDashboardCounts() {
+    // Admin kontrolü
+    if (currentUserRole !== 'admin') {
+        showToast('❌ Bu işlem için admin yetkisi gereklidir!', 'error');
+        return;
+    }
+
+    // Şifre kontrolü
+    const password = prompt('🔐 Dashboard sıfırlama şifresi:');
+    
+    if (password !== '6262') {
+        showToast('❌ Hatalı şifre! İşlem iptal edildi.', 'error');
+        console.warn('🚫 Dashboard sıfırlama: Hatalı şifre girişi');
+        return;
+    }
+
+    // Onay kontrolü
+    const confirmation = confirm(
+        '⚠️ UYARI: Aşağıdaki liste sayaçları SIFIRLANACAK:\n\n' +
+        '• PARÇA BEKLİYOR\n' +
+        '• PHONECHECK\n' +
+        '• ONARIM TAMAMLANDI\n' +
+        '• ATANACAKLAR\n' +
+        '• SATIŞA GİDECEK\n' +
+        '• SAHİBİNDEN\n' +
+        '• PİL\n' +
+        '• SATIŞ SONRASI\n' +
+        '• KASA\n' +
+        '• EKRAN\n' +
+        '• ÖN CAM\n' +
+        '• PİL + KASA\n' +
+        '• PİL + EKRAN\n' +
+        '• EKRAN + KASA\n' +
+        '• PİL + EKRAN + KASA\n' +
+        '• DEMONTAJ\n' +
+        '• MONTAJ\n\n' +
+        'Bu işlem GERİ ALINAMAZ!\n' +
+        'Devam etmek istiyor musunuz?'
+    );
+
+    if (!confirmation) {
+        showToast('ℹ️ İşlem iptal edildi.', 'info');
+        return;
+    }
+
+    try {
+        showToast('🔄 Dashboard yedekleniyor ve sıfırlanıyor...', 'info');
+
+        // Önce mevcut durumu yedekle
+        const listsToBackup = [
+            'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa', 
+            'sahiniden', 'pil', 'mediaMarkt', 'kasa', 'ekran', 'onCam',
+            'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj'
+        ];
+
+        const backup = {
+            timestamp: Date.now(),
+            date: new Date().toISOString(),
+            user: currentUserName,
+            data: {}
+        };
+
+        // Her liste için mevcut veriyi yedekle
+        console.log('📦 Yedekleme başlıyor...');
+        for (const listName of listsToBackup) {
+            // Firebase path'i - onarim için onarimTamamlandi kullan
+            const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+            
+            const snapshot = await db.ref(`servis/${dbPath}`).once('value');
+            
+            backup.data[listName] = {
+                firebaseData: snapshot.val() || {}
+            };
+            
+            console.log(`✅ ${listName} yedeklendi (${Object.keys(backup.data[listName].firebaseData).length} kayıt)`);
+        }
+
+        // Yedeği database'e kaydet
+        await db.ref('dashboardBackups').push(backup);
+        console.log('✅ Dashboard yedeklendi:', backup);
+
+        // Şimdi listeleri sıfırla - .remove() metodu ile
+        showToast('🗑️ Veriler siliniyor...', 'info');
+        
+        for (const listName of listsToBackup) {
+            // Firebase path'i - onarim için onarimTamamlandi kullan
+            const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+            
+            // Firebase'den sil
+            await db.ref(`servis/${dbPath}`).remove();
+            console.log(`🗑️ Firebase: servis/${dbPath} silindi`);
+            
+            // Local cache'i temizle
+            if (userCodes[listName]) {
+                userCodes[listName].clear();
+                console.log(`✅ ${listName} local cache temizlendi`);
+            }
+            
+            if (codeTimestamps[listName]) {
+                codeTimestamps[listName] = {};
+            }
+            
+            if (codeUsers[listName]) {
+                codeUsers[listName] = {};
+            }
+            
+            // Render cache'i temizle
+            RenderCache.invalidate(listName);
+            DirtyLists.mark(listName);
+        }
+
+        // Tüm cache'i temizle
+        RenderCache.invalidateAll();
+        
+        console.log('✅ Tüm listeler Firebase ve local cache\'den silindi');
+
+        // Log kaydı oluştur
+        const logEntry = {
+            timestamp: Date.now(),
+            date: new Date().toISOString(),
+            user: currentUserName,
+            action: 'DASHBOARD_CLEAR',
+            description: 'Dashboard sayaçları sıfırlandı',
+            affectedLists: listsToBackup,
+            backupId: backup.timestamp
+        };
+
+        await db.ref('systemLogs/dashboardOperations').push(logEntry);
+
+        showToast('✅ Dashboard başarıyla sıfırlandı ve yedeklendi!', 'success');
+        console.log('✅ Dashboard sıfırlandı ve log kaydedildi');
+
+        // Sayfayı yenile
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+
+    } catch (error) {
+        console.error('❌ Dashboard sıfırlama hatası:', error);
+        showToast('❌ Dashboard sıfırlanırken hata oluştu!', 'error');
+    }
+}
+
+/**
+ * Dashboard sayaçlarını son yedekten geri yükleme fonksiyonu
+ * Sadece admin kullanıcılar için
+ */
+async function restoreDashboardCounts() {
+    // Admin kontrolü
+    if (currentUserRole !== 'admin') {
+        showToast('❌ Bu işlem için admin yetkisi gereklidir!', 'error');
+        return;
+    }
+
+    try {
+        showToast('🔄 Son yedek kontrol ediliyor...', 'info');
+
+        // Son yedeği bul
+        const backupsSnapshot = await db.ref('dashboardBackups')
+            .orderByChild('timestamp')
+            .limitToLast(1)
+            .once('value');
+
+        if (!backupsSnapshot.exists()) {
+            showToast('❌ Hiç yedek bulunamadı!', 'error');
+            return;
+        }
+
+        const backups = backupsSnapshot.val();
+        const lastBackupKey = Object.keys(backups)[0];
+        const lastBackup = backups[lastBackupKey];
+
+        // Yedek bilgilerini göster
+        const backupDate = new Date(lastBackup.timestamp).toLocaleString('tr-TR');
+        const backupUser = lastBackup.user;
+
+        const confirmation = confirm(
+            `📦 SON YEDEK BİLGİLERİ:\n\n` +
+            `📅 Tarih: ${backupDate}\n` +
+            `👤 Kullanıcı: ${backupUser}\n\n` +
+            `Bu yedekten GERİ YÜKLEMEK istiyor musunuz?\n\n` +
+            `⚠️ Mevcut veriler yedeğin üzerine yazılacak!`
+        );
+
+        if (!confirmation) {
+            showToast('ℹ️ İşlem iptal edildi.', 'info');
+            return;
+        }
+
+        showToast('🔄 Dashboard geri yükleniyor...', 'info');
+
+        // Yedeği geri yükle - set() metodu ile
+        for (const listName in lastBackup.data) {
+            const listData = lastBackup.data[listName];
+            
+            // Firebase path'i - onarim için onarimTamamlandi kullan
+            const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+            
+            if (listData.firebaseData) {
+                await db.ref(`servis/${dbPath}`).set(listData.firebaseData);
+                console.log(`✅ Firebase: servis/${dbPath} geri yüklendi`);
+            }
+            
+            // Local cache'i güncelle
+            if (userCodes[listName]) {
+                userCodes[listName].clear();
+                
+                const fbData = listData.firebaseData;
+                if (fbData) {
+                    // Firebase'deki tüm 15 haneli kodları Set'e ekle
+                    Object.keys(fbData).forEach(code => {
+                        if (/^\d{15}$/.test(code)) {
+                            userCodes[listName].add(code);
+                            
+                            // Timestamps ve users'ı da güncelle
+                            if (typeof fbData[code] === 'object') {
+                                codeTimestamps[listName][code] = fbData[code].ts || '';
+                                codeUsers[listName][code] = fbData[code].user || '';
+                            } else {
+                                codeTimestamps[listName][code] = fbData[code];
+                                codeUsers[listName][code] = null;
+                            }
+                        }
+                    });
+                    
+                    console.log(`✅ ${listName} local cache güncellendi (${userCodes[listName].size} cihaz)`);
+                }
+            }
+            
+            // Render cache'i temizle
+            RenderCache.invalidate(listName);
+            DirtyLists.mark(listName);
+        }
+
+        // Tüm cache'i temizle
+        RenderCache.invalidateAll();
+        
+        console.log('✅ Dashboard geri yüklendi ve cache güncellendi');
+
+        // Log kaydı oluştur
+        const logEntry = {
+            timestamp: Date.now(),
+            date: new Date().toISOString(),
+            user: currentUserName,
+            action: 'DASHBOARD_RESTORE',
+            description: `Dashboard ${backupDate} tarihli yedekten geri yüklendi`,
+            backupId: lastBackup.timestamp,
+            restoredBy: currentUserName
+        };
+
+        await db.ref('systemLogs/dashboardOperations').push(logEntry);
+
+        showToast('✅ Dashboard başarıyla geri yüklendi!', 'success');
+        console.log('✅ Dashboard geri yüklendi ve log kaydedildi');
+
+        // Sayfayı yenile
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+
+    } catch (error) {
+        console.error('❌ Dashboard geri yükleme hatası:', error);
+        showToast('❌ Dashboard geri yüklenirken hata oluştu!', 'error');
+    }
+}
+
+/**
+ * Admin dashboard kontrollerini göster/gizle
+ */
+function updateAdminDashboardControls() {
+    const controlsDiv = document.getElementById('adminDashboardControls');
+    
+    if (controlsDiv) {
+        if (currentUserRole === 'admin') {
+            controlsDiv.style.display = 'flex';
+            console.log('✅ Admin dashboard kontrolleri gösteriliyor');
+        } else {
+            controlsDiv.style.display = 'none';
+        }
+    }
+}
+
+console.log('✅ Admin Dashboard Control fonksiyonları yüklendi');
+
