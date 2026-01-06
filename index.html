@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="style_new.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
+
     <!-- HTML5-QRCode Library for QR Scanner -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
@@ -84,7 +84,8 @@
                 <button onclick="openAccounting()" id="accountingBtn">📒 Muhasebe Sistemi</button>
                 <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı
                     Yönetimi</button>
-                <button onclick="toggleMaintenanceMode()" id="maintenanceBtn" style="display: block;" class="maintenance-btn">
+                <button onclick="toggleMaintenanceMode()" id="maintenanceBtn" style="display: block;"
+                    class="maintenance-btn">
                     <span id="maintenanceBtnIcon">🔧</span>
                     <span id="maintenanceBtnText">Bakım & Onarım</span>
                 </button>
@@ -639,21 +640,23 @@
                     <div id="adminOnarim" class="value">0</div>
                 </div>
                 <!-- YENİ EKLENEN DIŞ SERVİSLER -->
-                <div class="admin-stat-box" id="adminOnCamDisServisBox" onclick="showAdminCardDetails('onCamDisServis')">
+                <div class="admin-stat-box" id="adminOnCamDisServisBox"
+                    onclick="showAdminCardDetails('onCamDisServis')">
                     <div class="label">Ön Cam Dış Servis</div>
                     <div id="adminOnCamDisServis" class="value">0</div>
                 </div>
-                <div class="admin-stat-box" id="adminAnakartDisServisBox" onclick="showAdminCardDetails('anakartDisServis')">
+                <div class="admin-stat-box" id="adminAnakartDisServisBox"
+                    onclick="showAdminCardDetails('anakartDisServis')">
                     <div class="label">Anakart Dış Servis</div>
                     <div id="adminAnakartDisServis" class="value">0</div>
                 </div>
-                
+
                 <!-- YENİ EKLENEN: GARANTİ SERVİS -->
                 <div class="admin-stat-box" id="adminGarantiServisBox" onclick="showAdminCardDetails('garantiServis')">
                     <div class="label">🛡️ Garanti Servis</div>
                     <div id="adminGarantiServis" class="value">0</div>
                 </div>
-                
+
                 <!-- ESKİ DIŞ SERVİS SİLİNDİ -->
 
                 <div class="admin-stat-box" id="adminSatisaBox">
@@ -664,13 +667,14 @@
                     <div class="label">Sahibinden</div>
                     <div id="adminSahiniden" class="value">0</div>
                 </div>
-       
+
 
                 <div class="admin-stat-box" id="adminTeknisyenlerBox" onclick="showAdminCardDetails('teknisyenler')">
                     <div class="label">Toplam Teknisyen Cihazları</div>
                     <div id="adminTeknisyenler" class="value">0</div>
                 </div>
-                <div class="admin-stat-box" id="adminTeslimEdilenlerBox" onclick="showAdminCardDetails('teslimEdilenler')">
+                <div class="admin-stat-box" id="adminTeslimEdilenlerBox"
+                    onclick="showAdminCardDetails('teslimEdilenler')">
                     <div class="label">Teslim Edilenler</div>
                     <div id="adminTeslimEdilenler" class="value">0</div>
                 </div>
@@ -735,13 +739,15 @@
             <div class="parts-dashboard-header">
                 <h2>🔧 Parça/İşlem Türleri Dashboard</h2>
                 <p style="opacity: 0.9; margin-top: 5px;">Her parça türünde bekleyen cihaz sayıları</p>
-                
+
                 <!-- ADMIN DASHBOARD CONTROL BUTTONS -->
                 <div id="adminDashboardControls" class="admin-dashboard-controls" style="display: none;">
-                    <button onclick="clearDashboardCounts()" class="admin-dashboard-btn clear-btn" title="Dashboard Sayaçlarını Sıfırla">
+                    <button onclick="clearDashboardCounts()" class="admin-dashboard-btn clear-btn"
+                        title="Dashboard Sayaçlarını Sıfırla">
                         🗑️ CLEAR
                     </button>
-                    <button onclick="restoreDashboardCounts()" class="admin-dashboard-btn restore-btn" title="Son Yedekten Geri Yükle">
+                    <button onclick="restoreDashboardCounts()" class="admin-dashboard-btn restore-btn"
+                        title="Son Yedekten Geri Yükle">
                         ♻️ RESTORE
                     </button>
                 </div>
@@ -943,7 +949,8 @@
         </div>
 
         <!-- QR OKUT BÖLÜMÜ (SADECE MOBİL) -->
-        <div class="container qr-scanner-container" style="margin: 20px auto; max-width: 1200px; display: none;" id="qrScannerSection">
+        <div class="container qr-scanner-container" style="margin: 20px auto; max-width: 1200px; display: none;"
+            id="qrScannerSection">
             <div class="section qr-scanner-section" style="flex: 1 1 100%;">
                 <label>📱 QR Okut (Mobil):</label>
                 <button id="qrScanBtn" class="qr-scan-button" onclick="openQRScanner()">
@@ -954,7 +961,8 @@
         </div>
 
         <!-- QR ONAY BÖLÜMÜ (SADECE MOBİL) - GRİ LİSTE ONAYLAMA -->
-        <div class="container qr-approve-container" style="margin: 20px auto; max-width: 1200px; display: none;" id="qrApproveSection">
+        <div class="container qr-approve-container" style="margin: 20px auto; max-width: 1200px; display: none;"
+            id="qrApproveSection">
             <div class="section qr-approve-section" style="flex: 1 1 100%;">
                 <label>✅ Gri Liste Onay (Mobil):</label>
                 <button id="qrApproveBtn" class="qr-approve-button" onclick="openQRApproveScanner()">
@@ -977,12 +985,15 @@
                 <div class="qr-scanner-info">
                     <p>📌 QR kodu kamera önüne tutun</p>
                     <p id="qrScannerMessage" class="qr-scanner-message"></p>
-                    
+
                     <!-- ÇOKLU MOD DURUM GÖSTERGESİ -->
-                    <div id="qrMultiModeIndicator" style="display: none; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #27ae60, #229954); border-radius: 8px; text-align: center; color: white;">
+                    <div id="qrMultiModeIndicator"
+                        style="display: none; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #27ae60, #229954); border-radius: 8px; text-align: center; color: white;">
                         <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px;">📦 Çoklu Mod Aktif</p>
                         <p id="qrMultiModeInfo" style="margin: 0 0 10px 0; font-size: 13px;">0 adet okutuldu → -</p>
-                        <button onclick="endQRMultiMode()" style="background: white; color: #27ae60; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">🛑 Çoklu Modu Bitir</button>
+                        <button onclick="endQRMultiMode()"
+                            style="background: white; color: #27ae60; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">🛑
+                            Çoklu Modu Bitir</button>
                     </div>
                 </div>
             </div>
@@ -998,14 +1009,18 @@
                 <div class="qr-transfer-info">
                     <p><strong>Okutulan IMEI:</strong> <span id="qrScannedIMEI">-</span></p>
                     <p>Bu cihazı hangi listeye transfer etmek istiyorsunuz?</p>
-                    
+
                     <!-- ÇOKLU MOD TOGGLE -->
-                    <div style="margin-top: 15px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; text-align: center;">
-                        <label style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="qrMultiModeToggle" onchange="toggleQRMultiMode()" style="width: 20px; height: 20px; cursor: pointer;">
+                    <div
+                        style="margin-top: 15px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; text-align: center;">
+                        <label
+                            style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="qrMultiModeToggle" onchange="toggleQRMultiMode()"
+                                style="width: 20px; height: 20px; cursor: pointer;">
                             <span style="font-weight: 600; font-size: 14px;">📦 Çoklu Mod (Art arda QR okutma)</span>
                         </label>
-                        <p id="qrMultiModeStatus" style="margin: 5px 0 0 0; font-size: 12px; color: #7f8c8d; display: none;"></p>
+                        <p id="qrMultiModeStatus"
+                            style="margin: 5px 0 0 0; font-size: 12px; color: #7f8c8d; display: none;"></p>
                     </div>
                 </div>
                 <div class="qr-transfer-list-container" id="qrTransferListContainer">
@@ -1249,8 +1264,7 @@
                         <label for="garantiServisInput">
                             <span id="garantiServisLabel">🛡️ Garanti Servis - 0</span>
                         </label>
-                        <textarea id="garantiServisInput"
-                            placeholder="Garanti kapsamındaki cihazlar..."></textarea>
+                        <textarea id="garantiServisInput" placeholder="Garanti kapsamındaki cihazlar..."></textarea>
                         <div id="garantiServisList" class="mini-list"></div>
                     </div>
 
@@ -1662,26 +1676,26 @@
             </div>
 
 
-    <!-- BAKIM MODU EKRANI -->
-    <div id="maintenanceScreen" style="display: none;">
-        <div class="maintenance-screen-content">
-            <div class="maintenance-icon">🔧</div>
-            <h1 class="maintenance-title">Sistem Bakımda</h1>
-            <p class="maintenance-message">
-                Sistem şu anda bakım çalışması yapılmaktadır.<br>
-                Lütfen daha sonra tekrar deneyiniz.
-            </p>
-            <div class="maintenance-spinner">
-                <div class="spinner-ring"></div>
-                <div class="spinner-ring"></div>
-                <div class="spinner-ring"></div>
+            <!-- BAKIM MODU EKRANI -->
+            <div id="maintenanceScreen" style="display: none;">
+                <div class="maintenance-screen-content">
+                    <div class="maintenance-icon">🔧</div>
+                    <h1 class="maintenance-title">Sistem Bakımda</h1>
+                    <p class="maintenance-message">
+                        Sistem şu anda bakım çalışması yapılmaktadır.<br>
+                        Lütfen daha sonra tekrar deneyiniz.
+                    </p>
+                    <div class="maintenance-spinner">
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                        <div class="spinner-ring"></div>
+                    </div>
+                    <p class="maintenance-info">
+                        ⏰ Bakım çalışması devam ediyor...<br>
+                        <small>En kısa sürede hizmetinizde olacağız.</small>
+                    </p>
+                </div>
             </div>
-            <p class="maintenance-info">
-                ⏰ Bakım çalışması devam ediyor...<br>
-                <small>En kısa sürede hizmetinizde olacağız.</small>
-            </p>
-        </div>
-    </div>
 
 
 </body>
