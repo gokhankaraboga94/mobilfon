@@ -7264,3 +7264,35 @@ body.light-mode .qr-approve-status.info {
     background: rgba(52, 152, 219, 0.15);
     color: #2874a6;
 }
+
+/* ==========================================================================
+   MASAÜSTÜ NAVIGASYON GİZLEME DÜZELTMESİ
+   Bu kodları style_new.css dosyasının en altına yapıştırın.
+   ========================================================================== */
+
+@media (min-width: 769px) {
+    /* Menü 'collapsed' (kapalı) olduğunda stiller */
+    .admin-nav.collapsed {
+        /* Seçenek 1: Tamamen Gizle (Buton dışarıdaysa bunu kullanın) */
+        /* display: none; */ 
+        
+        /* Seçenek 2: Daralt (İkon moduna geçir - Tavsiye Edilen) */
+        width: 0px; 
+        padding: 0;
+        overflow: hidden;
+        border: none;
+        transition: all 0.3s ease; /* Yumuşak geçiş efekti */
+    }
+
+    /* Menü kapandığında içerik alanını sola yanaştır */
+    /* Not: Ana içerik div'inizin class'ı farklıysa (örn: .main-content) değiştirebilirsiniz */
+    .admin-nav.collapsed ~ .dashboard-panel,
+    .admin-nav.collapsed ~ #adminPanel, 
+    .admin-nav.collapsed ~ .warehouse-panel,
+    .admin-nav.collapsed ~ .timeout-dashboard-panel {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
