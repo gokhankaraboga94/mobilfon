@@ -932,9 +932,12 @@ body::before {
 }
 
 @keyframes pulse-sayim {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
     }
+
     50% {
         box-shadow: 0 4px 20px rgba(39, 174, 96, 0.7);
     }
@@ -3250,7 +3253,8 @@ body::before {
    ADMIN NAV TOGGLE BUTTON (MOBILE)
    ======================================== */
 .admin-nav-toggle {
-    display: none; /* Hidden by default, shown in mobile */
+    display: none;
+    /* Hidden by default, shown in mobile */
     position: fixed;
     top: 10px;
     right: 10px;
@@ -3296,6 +3300,7 @@ body.light-mode .admin-nav-toggle {
 
 /* MOBILE & SMALL TABLETS (768px) */
 @media (max-width: 768px) {
+
     /* Show toggle button on mobile */
     .admin-nav-toggle {
         display: flex !important;
@@ -5573,6 +5578,7 @@ button[id*="Btn"] {
         opacity: 0;
         transform: scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
@@ -6132,8 +6138,15 @@ body.light-mode .parts-stat-label {
 }
 
 @keyframes pulse-hint {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 body.light-mode .gri-liste-scan-hint {
@@ -6159,8 +6172,15 @@ body.light-mode .gri-liste-scan-hint {
 }
 
 @keyframes pulse-badge {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 /* Light Mode */
@@ -6294,8 +6314,13 @@ body.light-mode .gri-liste-user {
 }
 
 @keyframes gri-liste-bar {
-    0% { background-position: 0% 0%; }
-    100% { background-position: 200% 0%; }
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 200% 0%;
+    }
 }
 
 .admin-stat-box.gri-liste-stat:hover {
@@ -6322,8 +6347,15 @@ body.light-mode .gri-liste-user {
 }
 
 @keyframes pulse-gri-box {
-    0%, 100% { box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3); }
-    50% { box-shadow: 0 4px 25px rgba(255, 193, 7, 0.6); }
+
+    0%,
+    100% {
+        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 4px 25px rgba(255, 193, 7, 0.6);
+    }
 }
 
 /* Light Mode */
@@ -6450,6 +6482,7 @@ body.light-mode .admin-stat-box.gri-liste-stat .value.gri-liste-value {
         opacity: 0;
         transform: translateY(-50px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -6648,6 +6681,7 @@ body.light-mode .admin-stat-box.gri-liste-stat .value.gri-liste-value {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+
     .qr-scanner-modal-content,
     .qr-transfer-modal-content {
         max-width: 95%;
@@ -6684,7 +6718,7 @@ body.light-mode .qr-transfer-modal-content {
 
 .technicians-strip {
     background: linear-gradient(135deg, rgb(45 45 133 / 95%) 0%, rgba(30, 30, 50, 0.95) 100%);
-    
+
     border: 2px solid rgba(255, 255, 255, 0.15);
     border-radius: 16px;
     padding: 25px;
@@ -6749,7 +6783,7 @@ body.light-mode .technicians-strip-header h3 {
     .technicians-strip-content {
         gap: 15px;
     }
-    
+
     .technicians-strip-content .parts-stat-card {
         width: 120px;
     }
@@ -6972,9 +7006,12 @@ body.light-mode .overlay-btn-clear {
 }
 
 @keyframes maintenancePulse {
-    0%, 100% {
+
+    0%,
+    100% {
         box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
     }
+
     50% {
         box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
     }
@@ -6999,6 +7036,7 @@ body.light-mode .overlay-btn-clear {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -7021,6 +7059,7 @@ body.light-mode .overlay-btn-clear {
         transform: translateY(50px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
@@ -7034,12 +7073,16 @@ body.light-mode .overlay-btn-clear {
 }
 
 @keyframes rotateTool {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: rotate(0deg);
     }
+
     25% {
         transform: rotate(-15deg);
     }
+
     75% {
         transform: rotate(15deg);
     }
@@ -7113,15 +7156,15 @@ body.light-mode .overlay-btn-clear {
         padding: 30px 20px;
         margin: 20px;
     }
-    
+
     .maintenance-icon {
         font-size: 80px;
     }
-    
+
     .maintenance-title {
         font-size: 32px;
     }
-    
+
     .maintenance-message {
         font-size: 16px;
     }
@@ -7271,25 +7314,27 @@ body.light-mode .qr-approve-status.info {
    ========================================================================== */
 
 @media (min-width: 769px) {
+
     /* Menü 'collapsed' (kapalı) olduğunda stiller */
     .admin-nav.collapsed {
         /* Seçenek 1: Tamamen Gizle (Buton dışarıdaysa bunu kullanın) */
-        /* display: none; */ 
-        
+        /* display: none; */
+
         /* Seçenek 2: Daralt (İkon moduna geçir - Tavsiye Edilen) */
-        width: 0px; 
+        width: 0px;
         padding: 0;
         overflow: hidden;
         border: none;
-        transition: all 0.3s ease; /* Yumuşak geçiş efekti */
+        transition: all 0.3s ease;
+        /* Yumuşak geçiş efekti */
     }
 
     /* Menü kapandığında içerik alanını sola yanaştır */
     /* Not: Ana içerik div'inizin class'ı farklıysa (örn: .main-content) değiştirebilirsiniz */
-    .admin-nav.collapsed ~ .dashboard-panel,
-    .admin-nav.collapsed ~ #adminPanel, 
-    .admin-nav.collapsed ~ .warehouse-panel,
-    .admin-nav.collapsed ~ .timeout-dashboard-panel {
+    .admin-nav.collapsed~.dashboard-panel,
+    .admin-nav.collapsed~#adminPanel,
+    .admin-nav.collapsed~.warehouse-panel,
+    .admin-nav.collapsed~.timeout-dashboard-panel {
         margin-left: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
@@ -7366,7 +7411,7 @@ body.light-mode .qr-approve-status.info {
         margin-top: 10px;
         justify-content: center;
     }
-    
+
     .admin-dashboard-btn {
         padding: 8px 16px;
         font-size: 12px;
@@ -7381,4 +7426,3 @@ body.light-mode .admin-dashboard-btn.clear-btn {
 body.light-mode .admin-dashboard-btn.restore-btn {
     box-shadow: 0 4px 12px rgba(230, 126, 34, 0.3);
 }
-
