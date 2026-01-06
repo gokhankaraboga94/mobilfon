@@ -11854,6 +11854,11 @@ let html5QrCode = null;
 let currentScannedIMEI = null;
 let isQRScannerActive = false;
 
+// Çoklu QR mod değişkenleri
+let qrMultiModeActive = false;  // Çoklu mod aktif mi?
+let qrMultiModeTargetList = null;  // Hedef liste
+let qrMultiModeCount = 0;  // Okutulan QR sayısı
+
 // Mobil cihaz kontrolü
 function isMobileDevice() {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
@@ -12022,6 +12027,20 @@ function openQRTransferModal(imei) {
     imeiDisplay.textContent = imei;
     currentScannedIMEI = imei;
     
+    // Çoklu mod durumunu göster
+    const multiModeToggle = document.getElementById('qrMultiModeToggle');
+    const multiModeStatus = document.getElementById('qrMultiModeStatus');
+    
+    if (qrMultiModeActive) {
+        multiModeToggle.checked = true;
+        multiModeStatus.style.display = 'block';
+        multiModeStatus.textContent = `✅ Çoklu Mod Aktif - ${qrMultiModeCount} adet okutuldu → ${CACHED_LIST_NAMES[qrMultiModeTargetList] || qrMultiModeTargetList}`;
+        multiModeStatus.style.color = '#27ae60';
+    } else {
+        multiModeToggle.checked = false;
+        multiModeStatus.style.display = 'none';
+    }
+    
     // Tüm mevcut listeleri göster
     const allLists = [
     { name: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', icon: '⚙️' },
@@ -12065,6 +12084,14 @@ function openQRTransferModal(imei) {
     allLists.forEach(list => {
         const listItem = document.createElement('div');
         listItem.className = 'qr-transfer-list-item';
+        
+        // Çoklu modda seçili listeyi vurgula
+        if (qrMultiModeActive && list.name === qrMultiModeTargetList) {
+            listItem.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
+            listItem.style.color = 'white';
+            listItem.style.border = '2px solid #27ae60';
+        }
+        
         listItem.innerHTML = `${list.icon}<br>${list.label.replace(list.icon + ' ', '')}`;
         listItem.onclick = () => selectQRTransferList(list.name, imei);
         listContainer.appendChild(listItem);
@@ -12077,23 +12104,51 @@ function openQRTransferModal(imei) {
 async function selectQRTransferList(listName, imei) {
     console.log(`🔄 Transfer seçildi: ${imei} → ${listName} (Gri Liste üzerinden)`);
     
+    // Çoklu mod aktivasyonu kontrolü
+    const multiModeToggle = document.getElementById('qrMultiModeToggle');
+    
+    if (multiModeToggle && multiModeToggle.checked && !qrMultiModeActive) {
+        // İlk seçim - Çoklu modu başlat
+        qrMultiModeActive = true;
+        qrMultiModeTargetList = listName;
+        qrMultiModeCount = 0;
+        
+        showToast(`📦 Çoklu Mod Aktif: ${CACHED_LIST_NAMES[listName] || listName}`, 'info');
+        console.log(`📦 Çoklu Mod başlatıldı: Hedef → ${listName}`);
+    }
+    
     // Gri listeye ekle (async işlem)
     const success = await addToGriListeFromQR(imei, listName);
     
     if (success) {
-        // Modal'ı kapat
-        closeQRTransferModal();
-        
-        // Status güncelle
-        const statusEl = document.getElementById('qrScannerStatus');
-        if (statusEl) {
-            statusEl.textContent = `Son işlem: ${imei} → Onay bekliyor (${CACHED_LIST_NAMES[listName] || listName})`;
-            statusEl.className = 'qr-scanner-status success';
+        if (qrMultiModeActive) {
+            // Çoklu Mod - Modal açık kalır, kamera tekrar başlar
+            qrMultiModeCount++;
             
+            // Modal'ı kapat
+            closeQRTransferModal();
+            
+            // Kısa bekleme sonrası kamerayı yeniden aç
             setTimeout(() => {
-                statusEl.textContent = '';
-                statusEl.className = 'qr-scanner-status';
-            }, 8000);
+                openQRScanner();
+                showToast(`✅ ${qrMultiModeCount}. QR eklendi - Sonraki QR'ı okutun`, 'success');
+            }, 500);
+            
+        } else {
+            // Normal Mod - Modal kapan
+            closeQRTransferModal();
+            
+            // Status güncelle
+            const statusEl = document.getElementById('qrScannerStatus');
+            if (statusEl) {
+                statusEl.textContent = `Son işlem: ${imei} → Onay bekliyor (${CACHED_LIST_NAMES[listName] || listName})`;
+                statusEl.className = 'qr-scanner-status success';
+                
+                setTimeout(() => {
+                    statusEl.textContent = '';
+                    statusEl.className = 'qr-scanner-status';
+                }, 8000);
+            }
         }
     } else {
         // Hata durumunda modal açık kalır, kullanıcı tekrar deneyebilir
@@ -12102,10 +12157,47 @@ async function selectQRTransferList(listName, imei) {
 }
 
 // Transfer modal'ını kapat
+// Çoklu mod toggle
+function toggleQRMultiMode() {
+    const toggle = document.getElementById('qrMultiModeToggle');
+    const status = document.getElementById('qrMultiModeStatus');
+    
+    if (toggle.checked) {
+        status.style.display = 'block';
+        status.textContent = 'Çoklu mod: İlk hedef listeyi seçin';
+        status.style.color = '#3498db';
+        console.log('📦 Çoklu Mod: Hazır (Liste seçilmeyi bekliyor)');
+    } else {
+        // Çoklu modu kapat
+        if (qrMultiModeActive) {
+            showToast(`📦 Çoklu Mod Sonlandı: ${qrMultiModeCount} adet QR okutuldu`, 'info');
+            console.log(`📦 Çoklu Mod sonlandırıldı: ${qrMultiModeCount} adet`);
+        }
+        qrMultiModeActive = false;
+        qrMultiModeTargetList = null;
+        qrMultiModeCount = 0;
+        status.style.display = 'none';
+    }
+}
+
 function closeQRTransferModal() {
     const modal = document.getElementById('qrTransferModal');
-    modal.classList.remove('active');
-    currentScannedIMEI = null;
+    
+    // Çoklu mod aktif değilse normal kapanış
+    if (!qrMultiModeActive) {
+        modal.classList.remove('active');
+        currentScannedIMEI = null;
+        
+        // Checkbox'ı sıfırla
+        const toggle = document.getElementById('qrMultiModeToggle');
+        if (toggle) toggle.checked = false;
+        const status = document.getElementById('qrMultiModeStatus');
+        if (status) status.style.display = 'none';
+    } else {
+        // Çoklu modda sadece modal'ı kapat, değişkenleri sıfırlama
+        modal.classList.remove('active');
+        currentScannedIMEI = null;
+    }
 }
 
 // ========================================
