@@ -735,6 +735,16 @@
             <div class="parts-dashboard-header">
                 <h2>🔧 Parça/İşlem Türleri Dashboard</h2>
                 <p style="opacity: 0.9; margin-top: 5px;">Her parça türünde bekleyen cihaz sayıları</p>
+                
+                <!-- ADMIN DASHBOARD CONTROL BUTTONS -->
+                <div id="adminDashboardControls" class="admin-dashboard-controls" style="display: none;">
+                    <button onclick="clearDashboardCounts()" class="admin-dashboard-btn clear-btn" title="Dashboard Sayaçlarını Sıfırla">
+                        🗑️ CLEAR
+                    </button>
+                    <button onclick="restoreDashboardCounts()" class="admin-dashboard-btn restore-btn" title="Son Yedekten Geri Yükle">
+                        ♻️ RESTORE
+                    </button>
+                </div>
             </div>
 
             <div class="parts-dashboard-stats">
