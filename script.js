@@ -299,14 +299,14 @@ function openSectionInDashboard(sectionName, event) {
     let inputTimeout = null;
     let processedIMEIs = new Set(); // İşlenmiş IMEI'leri takip et (çift toast engelle)
     
-    clonedInput.addEventListener('input', function(e) {
+    clonedInput.addEventListener('input', async function(e) {
         // Timeout'u temizle
         if (inputTimeout) {
             clearTimeout(inputTimeout);
         }
         
         // 100ms sonra işle (paste işlemini bekle)
-        inputTimeout = setTimeout(() => {
+        inputTimeout = setTimeout(async () => {
             const currentValue = clonedInput.value;
             
             // Tüm satırları al
@@ -331,21 +331,43 @@ function openSectionInDashboard(sectionName, event) {
             if (newIMEIs.length > 0) {
                 console.log('🔍 Yeni IMEI algılandı:', newIMEIs);
                 
-                // Tüm IMEI'leri sessizce gönder (toast gösterme)
-                newIMEIs.forEach((imei) => {
-                    sendToGriListe(imei, sectionName, null, true); // isMultiple=true (toast gösterme)
-                });
+                // Sayım Modu kontrolü için sayaç
+                let addedCount = 0;
+                let skippedCount = 0;
                 
-                // Tek bir toast mesajı göster
-                if (newIMEIs.length === 1) {
-                    setTimeout(() => {
-                        showToast(`✅ ${newIMEIs[0]} gri listeye eklendi!`, 'success');
-                    }, 50);
-                } else {
-                    setTimeout(() => {
-                        showToast(`✅ ${newIMEIs.length} adet barkod gri listeye eklendi!`, 'success');
-                    }, 50);
+                // Tüm IMEI'leri işle
+                for (const imei of newIMEIs) {
+                    // Sayım Modu AÇIKSA ve IMEI listede varsa, işleme
+                    if (sayimModuActive && userCodes[sectionName] && userCodes[sectionName].has(imei)) {
+                        skippedCount++;
+                        console.log(`✅ Sayım Modu: ${imei} listede MEVCUT - Atlandı`);
+                    } else {
+                        // Gri listeye gönder (toast gösterme)
+                        await sendToGriListe(imei, sectionName, null, true);
+                        addedCount++;
+                    }
                 }
+                
+                // Tek bir özet toast mesajı göster
+                setTimeout(() => {
+                    if (sayimModuActive) {
+                        // Sayım Modu mesajları
+                        if (addedCount > 0 && skippedCount > 0) {
+                            showToast(`⏳ Sayım: ${addedCount} eklendi, ${skippedCount} listede mevcut`, 'warning');
+                        } else if (addedCount > 0) {
+                            showToast(`⏳ Sayım: ${addedCount} adet gri listeye eklendi (Listede YOK)`, 'warning');
+                        } else if (skippedCount > 0) {
+                            showToast(`✅ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
+                        }
+                    } else {
+                        // Normal mod mesajları
+                        if (newIMEIs.length === 1) {
+                            showToast(`✅ ${newIMEIs[0]} gri listeye eklendi!`, 'success');
+                        } else {
+                            showToast(`✅ ${newIMEIs.length} adet barkod gri listeye eklendi!`, 'success');
+                        }
+                    }
+                }, 50);
                 
                 // Son IMEI'den sonra yeni satır yoksa ekle
                 if (!currentValue.endsWith('\n')) {
@@ -473,6 +495,39 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         return;
     }
     
+    // ========================================
+    // SAYIM MODU KONTROLÜ - OVERLAY İÇİN
+    // ========================================
+    if (sayimModuActive) {
+        console.log(`🔍 Sayım Modu Aktif (Overlay) - Kontrol ediliyor: ${barcode} → ${targetList} listesinde`);
+        
+        const existsInCurrentList = userCodes[targetList] && userCodes[targetList].has(barcode);
+        
+        console.log(`   userCodes[${targetList}] var mı?`, !!userCodes[targetList]);
+        console.log(`   userCodes[${targetList}].has(${barcode})?`, existsInCurrentList);
+        
+        if (userCodes[targetList]) {
+            console.log(`   ${targetList} listesindeki toplam cihaz sayısı:`, userCodes[targetList].size);
+            console.log(`   ${targetList} listesindeki ilk 5 cihaz:`, Array.from(userCodes[targetList]).slice(0, 5));
+        }
+        
+        if (existsInCurrentList) {
+            // IMEI listede mevcut - Hiçbir işlem yapma
+            console.log(`✅ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
+            if (!isMultiple) {
+                showToast(`✅ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
+            }
+            return; // Fonksiyondan çık, gri listeye ekleme
+        } else {
+            // IMEI listede YOK - Gri listeye eklenecek (devam et)
+            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde YOK - Gri listeye ekleniyor`);
+            // Fonksiyon normal akışa devam edecek
+        }
+    }
+    // ========================================
+    // SAYIM MODU KONTROLÜ BİTİŞ
+    // ========================================
+    
     // ⭐ SELF-ASSIGNMENT KONTROLÜ - Kullanıcı kendi üzerine cihaz atayamaz
     // ⚠️ İSTİSNA: Enes kullanıcısı düzenleyici olduğu için kendi üzerine atama yapabilir
     const technicianLists = ['gokhan', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
@@ -493,9 +548,13 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         const success = await addToGriListe(barcode, null, targetList, currentUserName);
         
         if (success) {
-            // Başarı mesajı
+            // Başarı mesajı - Sayım Modu'nda özel mesaj
             if (!isMultiple) {
-                showToast(`✅ ${barcode} gri listeye eklendi! (Hedef: ${getListDisplayName(targetList)})`, 'success');
+                if (sayimModuActive) {
+                    showToast(`⏳ Sayım: ${barcode} gri listeye eklendi (Listede YOK)`, 'warning');
+                } else {
+                    showToast(`✅ ${barcode} gri listeye eklendi! (Hedef: ${getListDisplayName(targetList)})`, 'success');
+                }
             }
             console.log('✅ Gri listeye eklendi:', barcode);
         } else {
@@ -3009,6 +3068,25 @@ function getListPriority(lists) {
 // Tüm çakışmaları düzelt
 async function fixAllConflicts() {
     console.log('🔄 fixAllConflicts called');
+    
+    // ========================================
+    // ŞİFRE KONTROLÜ - 6262
+    // ========================================
+    const password = prompt('⚠️ Çakışmaları düzeltmek için şifre gerekli:\n(İşlem geri alınamaz!)');
+    
+    if (password !== '6262') {
+        if (password !== null) { // Kullanıcı Cancel'a basmadıysa
+            showToast('❌ Yanlış şifre! Çakışmalar düzeltilmedi.', 'error');
+            console.log('🚫 Yanlış şifre girişi');
+        }
+        return; // Fonksiyondan çık
+    }
+    
+    console.log('✅ Şifre doğru - Çakışmalar düzeltiliyor');
+    // ========================================
+    // ŞİFRE KONTROLÜ BİTİŞ
+    // ========================================
+    
     const fixAllBtn = document.getElementById('fixAllBtn');
     const syncResults = document.getElementById('syncResults');
 
@@ -3955,6 +4033,11 @@ let dataLoaded = false;
 let editingBarcode = null;
 let editingList = null;
 let editingUserId = null;
+
+// ========================================
+// SAYIM MODU SİSTEMİ
+// ========================================
+let sayimModuActive = false; // Sayım modu durumu
 
 // ========================================
 // GRİ LİSTE SİSTEMİ - ONAY BEKLEYEN TRANSFERLER
@@ -5659,6 +5742,7 @@ auth.onAuthStateChanged(async user => {
                 document.getElementById('depoStatsBtn').style.display = 'block'; // Depo Stats butonu
                 document.getElementById('resetDashboardBtn').style.display = 'block';
                 document.getElementById('restoreDashboardBtn').style.display = 'inline-block';
+                document.getElementById('sayimModuBtn').style.display = 'flex'; // Sayım Modu butonu
                 
                 // Bakım Modu Butonu - Debug
                 const maintenanceBtn = document.getElementById('maintenanceBtn');
@@ -6789,6 +6873,56 @@ async function saveCodes(name, value) {
     // saveCodes fonksiyonunda (satır ~1020 civarı)
     if (specialLists.includes(name)) {
         for (const code of codes) {
+            // ========================================
+            // SAYIM MODU KONTROLÜ - TÜM LİSTELER
+            // Sayım Modu açıkken TÜM listelerde çalışır:
+            // - Teknisyen listeleri (gokhan, enes, yusuf, samet, engin, ismail, mehmet, mert)
+            // - Parça/İşlem türleri (pil, kasa, ekran, onCam, pilKasa, pilEkran, ekranKasa, pilEkranKasa, demontaj, montaj)
+            // - Özel listeler (atanacak, parcaBekliyor, phonecheck, onarim)
+            // - Dış servisler (onCamDisServis, anakartDisServis, garantiServis)
+            // - Diğer listeler (SonKullanıcı, satisa, sahiniden, mediaMarkt, teslimEdilenler)
+            // ========================================
+            if (sayimModuActive) {
+                console.log(`🔍 Sayım Modu Aktif - Kontrol ediliyor: ${code} → ${name} listesinde`);
+                
+                const existsInCurrentList = userCodes[name] && userCodes[name].has(code);
+                
+                console.log(`   userCodes[${name}] var mı?`, !!userCodes[name]);
+                console.log(`   userCodes[${name}].has(${code})?`, existsInCurrentList);
+                
+                if (userCodes[name]) {
+                    console.log(`   ${name} listesindeki toplam cihaz sayısı:`, userCodes[name].size);
+                    console.log(`   ${name} listesindeki ilk 5 cihaz:`, Array.from(userCodes[name]).slice(0, 5));
+                }
+                
+                if (existsInCurrentList) {
+                    // IMEI listede mevcut - Hiçbir işlem yapma
+                    console.log(`✅ Sayım Modu: ${code} "${CACHED_LIST_NAMES[name] || name}" listesinde MEVCUT - İşlem yapılmadı`);
+                    continue; // Bir sonraki IMEI'ye geç
+                } else {
+                    // IMEI listede YOK - Gri listeye ekle
+                    console.log(`❌ Sayım Modu: ${code} "${CACHED_LIST_NAMES[name] || name}" listesinde YOK - Gri listeye ekleniyor`);
+                    
+                    // Barkodun başka bir listede olup olmadığını kontrol et
+                    let previousList = null;
+                    for (const [listName, codeSet] of Object.entries(userCodes)) {
+                        if (codeSet && codeSet.has && codeSet.has(code)) {
+                            previousList = listName;
+                            console.log(`   📍 ${code} başka bir listede bulundu: ${listName}`);
+                            break;
+                        }
+                    }
+                    
+                    // Gri listeye ekle
+                    await addToGriListe(code, previousList || 'YENİ', name, currentUserName);
+                    showToast(`⏳ Sayım: ${code} gri listeye eklendi ("${CACHED_LIST_NAMES[name] || name}" listesinde YOK)`, 'warning');
+                    continue; // Bir sonraki IMEI'ye geç
+                }
+            }
+            // ========================================
+            // SAYIM MODU KONTROLÜ BİTİŞ
+            // ========================================
+            
             if (!userCodes[name].has(code) && !griListeData[code]) {
                 // Barkodun şu anki listesini bul
                 let previousList = null;
@@ -6890,6 +7024,50 @@ async function saveCodes(name, value) {
     const shouldUseGriListeForAll = !griListeExcludedForOthers.includes(name);
 
     for (const code of codes) {
+        // ========================================
+        // SAYIM MODU KONTROLÜ - TEKNİSYEN VE DİĞER LİSTELER
+        // ========================================
+        if (sayimModuActive) {
+            console.log(`🔍 Sayım Modu Aktif - Kontrol ediliyor: ${code} → ${name} listesinde`);
+            
+            const existsInCurrentList = userCodes[name] && userCodes[name].has(code);
+            
+            console.log(`   userCodes[${name}] var mı?`, !!userCodes[name]);
+            console.log(`   userCodes[${name}].has(${code})?`, existsInCurrentList);
+            
+            if (userCodes[name]) {
+                console.log(`   ${name} listesindeki toplam cihaz sayısı:`, userCodes[name].size);
+                console.log(`   ${name} listesindeki ilk 5 cihaz:`, Array.from(userCodes[name]).slice(0, 5));
+            }
+            
+            if (existsInCurrentList) {
+                // IMEI listede mevcut - Hiçbir işlem yapma
+                console.log(`✅ Sayım Modu: ${code} "${CACHED_LIST_NAMES[name] || name}" listesinde MEVCUT - İşlem yapılmadı`);
+                continue; // Bir sonraki IMEI'ye geç
+            } else {
+                // IMEI listede YOK - Gri listeye ekle
+                console.log(`❌ Sayım Modu: ${code} "${CACHED_LIST_NAMES[name] || name}" listesinde YOK - Gri listeye ekleniyor`);
+                
+                // Barkodun başka bir listede olup olmadığını kontrol et
+                let previousList = null;
+                for (const [listName, codeSet] of Object.entries(userCodes)) {
+                    if (codeSet && codeSet.has && codeSet.has(code)) {
+                        previousList = listName;
+                        console.log(`   📍 ${code} başka bir listede bulundu: ${listName}`);
+                        break;
+                    }
+                }
+                
+                // Gri listeye ekle
+                await addToGriListe(code, previousList || 'YENİ', name, currentUserName);
+                showToast(`⏳ Sayım: ${code} gri listeye eklendi ("${CACHED_LIST_NAMES[name] || name}" listesinde YOK)`, 'warning');
+                continue; // Bir sonraki IMEI'ye geç
+            }
+        }
+        // ========================================
+        // SAYIM MODU KONTROLÜ BİTİŞ
+        // ========================================
+        
         if (!userCodes[name].has(code) && !griListeData[code]) {
 
             // Gri Liste kontrolü - Tüm kullanıcılar için
@@ -8273,12 +8451,12 @@ function openSyncModalFromNotification() {
 
 // Çakışma kontrolünü başlat
 function startConflictMonitoring() {
-    // İlk kontrol
+    // İlk kontrol - 30 DAKIKA SONRA (1800000 ms)
     setTimeout(() => {
         checkAndNotifyConflicts();
-    }, 3000);
+    }, 30 * 60 * 1000); // 30 dakika = 1800000 ms
 
-    // Her 60 saniyede bir kontrol et
+    // Her 60 dakikada bir kontrol et
     conflictCheckInterval = setInterval(() => {
         checkAndNotifyConflicts();
     }, 60 * 60 * 1000);
@@ -12207,6 +12385,60 @@ async function toggleMaintenanceMode() {
         console.error('❌ Bakım modu değiştirilemedi:', error);
         showToast('❌ Bakım modu değiştirilemedi!', 'error');
     }
+}
+
+// ========================================
+// SAYIM MODU SİSTEMİ
+// ========================================
+
+/**
+ * Sayım Modunu açıp kapatır
+ */
+function toggleSayimModu() {
+    if (currentUserRole !== 'admin') {
+        showToast('❌ Bu işlem için yetkiniz yok!', 'error');
+        return;
+    }
+
+    sayimModuActive = !sayimModuActive;
+    
+    const btn = document.getElementById('sayimModuBtn');
+    const icon = document.getElementById('sayimModuIcon');
+    const text = document.getElementById('sayimModuText');
+    
+    if (sayimModuActive) {
+        btn.classList.add('active');
+        icon.textContent = '✅';
+        text.textContent = 'Sayım Modu: AÇIK';
+        showToast('📊 Sayım Modu AÇILDI! TÜM listelerde eşleşmeyen IMEI\'ler gri listeye eklenecek.', 'success');
+        console.log('📊 Sayım Modu AÇIK - TÜM listelerde eşleşmeyen IMEI\'ler gri listeye eklenecek');
+    } else {
+        btn.classList.remove('active');
+        icon.textContent = '📊';
+        text.textContent = 'Sayım Modu: KAPALI';
+        showToast('📊 Sayım Modu KAPATILDI! Sistem normal modda çalışıyor.', 'info');
+        console.log('📊 Sayım Modu KAPALI - Normal mod');
+    }
+}
+
+/**
+ * Sayım Modunda IMEI kontrolü yapar
+ * @param {string} imei - Kontrol edilecek IMEI
+ * @param {string} currentList - Kontrol yapılan liste
+ * @returns {boolean} - IMEI mevcut listede var mı?
+ */
+function checkIMEIInSayimModu(imei, currentList) {
+    // Eğer sayım modu kapalıysa, normal akış devam etsin
+    if (!sayimModuActive) return null;
+    
+    // IMEI'nin mevcut listede olup olmadığını kontrol et
+    if (userCodes[currentList] && userCodes[currentList].has(imei)) {
+        console.log(`✅ Sayım Modu: ${imei} listede mevcut - İşlem yapılmadı`);
+        return true; // Listede var, gri listeye ekleme
+    }
+    
+    console.log(`❌ Sayım Modu: ${imei} listede YOK - Gri listeye eklenecek`);
+    return false; // Listede yok, gri listeye ekle
 }
 
 /**
