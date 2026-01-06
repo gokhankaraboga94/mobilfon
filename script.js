@@ -358,7 +358,7 @@ function openSectionInDashboard(sectionName, event) {
                         } else if (addedCount > 0) {
                             showToast(`⏳ Sayım: ${addedCount} adet gri listeye eklendi (Listede YOK)`, 'warning');
                         } else if (skippedCount > 0) {
-                            showToast(`✅ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
+                            showToast(`❌ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
                         }
                     } else {
                         // Normal mod mesajları
@@ -514,9 +514,9 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         
         if (existsInCurrentList) {
             // IMEI listede mevcut - Hiçbir işlem yapma
-            console.log(`✅ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
+            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
             if (!isMultiple) {
-                showToast(`✅ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
+                showToast(`❌ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
             }
             return; // Fonksiyondan çık, gri listeye ekleme
         } else {
