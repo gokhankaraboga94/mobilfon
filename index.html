@@ -976,6 +976,15 @@
                 <div class="qr-transfer-info">
                     <p><strong>Okutulan IMEI:</strong> <span id="qrScannedIMEI">-</span></p>
                     <p>Bu cihazı hangi listeye transfer etmek istiyorsunuz?</p>
+                    
+                    <!-- ÇOKLU MOD TOGGLE -->
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; text-align: center;">
+                        <label style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="qrMultiModeToggle" onchange="toggleQRMultiMode()" style="width: 20px; height: 20px; cursor: pointer;">
+                            <span style="font-weight: 600; font-size: 14px;">📦 Çoklu Mod (Art arda QR okutma)</span>
+                        </label>
+                        <p id="qrMultiModeStatus" style="margin: 5px 0 0 0; font-size: 12px; color: #7f8c8d; display: none;"></p>
+                    </div>
                 </div>
                 <div class="qr-transfer-list-container" id="qrTransferListContainer">
                     <!-- Liste seçenekleri buraya yüklenecek -->
