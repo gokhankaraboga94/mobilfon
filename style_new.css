@@ -897,6 +897,49 @@ body::before {
     box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
 }
 
+/* Sayım Modu Butonu */
+.sayim-modu-btn {
+    padding: 10px 18px;
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+    z-index: 100;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sayim-modu-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4);
+}
+
+.sayim-modu-btn.active {
+    background: linear-gradient(135deg, #27ae60, #229954);
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    animation: pulse-sayim 2s infinite;
+}
+
+.sayim-modu-btn.active:hover {
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6);
+}
+
+@keyframes pulse-sayim {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(39, 174, 96, 0.7);
+    }
+}
+
 /* Navigation Search */
 .nav-search {
     position: relative;
