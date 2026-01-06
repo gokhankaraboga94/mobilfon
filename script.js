@@ -12,52 +12,52 @@ const error = console.error.bind(console); // Always log errors
 const RenderCache = {
     // Her liste için son render edilen veri hash'i
     listHashes: {},
-    
+
     // Her liste için son render edilen HTML
     renderedHTML: {},
-    
+
     // Değişiklik var mı kontrol et
-    hasChanged: function(listName, codes, timestamps, users) {
+    hasChanged: function (listName, codes, timestamps, users) {
         const newHash = this.generateHash(listName, codes, timestamps, users);
         const oldHash = this.listHashes[listName];
-        
+
         if (oldHash === newHash) {
             return false; // Değişiklik yok, render gereksiz
         }
-        
+
         this.listHashes[listName] = newHash;
         return true; // Değişiklik var, render gerekli
     },
-    
+
     // Veri hash'i oluştur (basit ve hızlı)
-    generateHash: function(listName, codes, timestamps, users) {
+    generateHash: function (listName, codes, timestamps, users) {
         const codeArray = Array.isArray(codes) ? codes : Array.from(codes || []);
         // Sadece kod sayısı + ilk/son kod + toplam timestamp sayısı
-        const key = `${codeArray.length}-${codeArray[0] || ''}-${codeArray[codeArray.length-1] || ''}-${Object.keys(timestamps || {}).length}`;
+        const key = `${codeArray.length}-${codeArray[0] || ''}-${codeArray[codeArray.length - 1] || ''}-${Object.keys(timestamps || {}).length}`;
         return key;
     },
-    
+
     // Liste için cache'i temizle (veri değiştiğinde)
-    invalidate: function(listName) {
+    invalidate: function (listName) {
         delete this.listHashes[listName];
         delete this.renderedHTML[listName];
     },
-    
+
     // Tüm cache'i temizle
-    invalidateAll: function() {
+    invalidateAll: function () {
         this.listHashes = {};
         this.renderedHTML = {};
     },
-    
+
     // Render istatistikleri
     stats: {
         skipped: 0,
         rendered: 0,
-        reset: function() { this.skipped = 0; this.rendered = 0; }
+        reset: function () { this.skipped = 0; this.rendered = 0; }
     },
-    
+
     // İstatistikleri göster (debug için)
-    showStats: function() {
+    showStats: function () {
         const total = this.stats.skipped + this.stats.rendered;
         const savedPercent = total > 0 ? ((this.stats.skipped / total) * 100).toFixed(1) : 0;
         console.log(`📊 Render Cache Stats: ${this.stats.skipped} skipped, ${this.stats.rendered} rendered (${savedPercent}% CPU saved)`);
@@ -69,31 +69,31 @@ const RenderCache = {
 // ========================================
 const DirtyLists = {
     _dirty: new Set(),
-    
+
     // Listeyi kirli olarak işaretle
-    mark: function(listName) {
+    mark: function (listName) {
         this._dirty.add(listName);
     },
-    
+
     // Liste kirli mi?
-    isDirty: function(listName) {
+    isDirty: function (listName) {
         return this._dirty.has(listName);
     },
-    
+
     // Listeyi temizle
-    clean: function(listName) {
+    clean: function (listName) {
         this._dirty.delete(listName);
     },
-    
+
     // Tüm kirli listeleri al ve temizle
-    getAndClearAll: function() {
+    getAndClearAll: function () {
         const dirty = Array.from(this._dirty);
         this._dirty.clear();
         return dirty;
     },
-    
+
     // Herhangi bir kirli liste var mı?
-    hasAny: function() {
+    hasAny: function () {
         return this._dirty.size > 0;
     }
 };
@@ -154,6 +154,199 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ========================================
+// SAYIM MODU (INVENTORY MODE)
+// ========================================
+let sayimModuActive = false; // Sayım modu aktif mi?
+let sayimModuCache = new Set(); // Dashboard listelerindeki tüm barkodlar
+let sayimModuScannedBarcodes = new Set(); // Sayım sırasında okutulan barkodlar
+
+/**
+ * Sayım Modunu aç/kapat
+ */
+function toggleSayimModu() {
+    console.log(`🔘 toggleSayimModu() ÇAĞRILDI - Mevcut durum: ${sayimModuActive ? 'AÇIK' : 'KAPALI'}`);
+
+    // Admin kontrolü
+    if (currentUserRole !== 'admin') {
+        showToast('❌ Bu işlem için yetkiniz yok!', 'error');
+        return;
+    }
+
+    sayimModuActive = !sayimModuActive;
+
+    console.log(`🔘 Yeni durum: ${sayimModuActive ? 'AÇIK' : 'KAPALI'}`);
+
+    const btn = document.getElementById('sayimModuBtn');
+    const btnText = document.getElementById('sayimModuText');
+    const btnIcon = document.getElementById('sayimModuIcon');
+
+    if (sayimModuActive) {
+        // SAYIM MODU AÇILIYOR
+        console.log('📊 Sayım Modu AÇILIYOR...');
+
+        // Cache'i başlat - Sadece Parça/İşlem Türleri listelerini cache'e al
+        initializeSayimModuCache();
+
+        // Okutulan barkodları temizle
+        sayimModuScannedBarcodes.clear();
+
+        // UI güncelle
+        if (btn) btn.classList.add('active');
+        if (btnText) btnText.textContent = 'Sayım Modu: AÇIK';
+        if (btnIcon) btnIcon.textContent = '✅';
+
+        showToast(`📊 Sayım Modu AÇILDI! ${sayimModuCache.size} cihaz cache'e alındı`, 'success');
+        console.log(`✅ Sayım Modu aktif - ${sayimModuCache.size} cihaz cache'lendi`);
+        console.log(`📋 Cache'deki ilk 10 barkod:`, Array.from(sayimModuCache).slice(0, 10));
+
+    } else {
+        // SAYIM MODU KAPATILIYOR
+        console.log('📊 Sayım Modu KAPATILIYOR...');
+
+        // ⭐ ÖNEMLİ: Önce tüm overlay'leri kapat
+        // Bu, overlay input'larının Sayım Modu kapatıldıktan sonra tetiklenmesini engeller
+        console.log("🚪 Tüm overlay'ler kapatılıyor...");
+
+        closeDashboardSection();
+
+        // Kısa bir gecikme ile overlay'lerin kapanmasını bekle
+        setTimeout(async () => {
+            // Okutulmayan barkodları gri listeye transfer et
+            await processSayimModuDeactivation();
+
+            // UI güncelle
+            if (btn) btn.classList.remove('active');
+            if (btnText) btnText.textContent = 'Sayım Modu: KAPALI';
+            if (btnIcon) btnIcon.textContent = '📊';
+        }, 100);
+    }
+}
+
+/**
+ * Sayım Modu için cache'i başlat
+ * Sadece Parça/İşlem Türleri listelerini cache'e alır
+ */
+function initializeSayimModuCache() {
+    sayimModuCache.clear();
+
+    // Parça/İşlem Türleri listeleri
+    const partOperationLists = [
+        'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa', 'sahiniden',
+        'pil', 'mediaMarkt', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran',
+        'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj'
+    ];
+
+    let totalCached = 0;
+
+    // Her listeden barkodları cache'e ekle
+    partOperationLists.forEach(listName => {
+        if (userCodes[listName] && userCodes[listName].size > 0) {
+            userCodes[listName].forEach(barcode => {
+                sayimModuCache.add(barcode);
+                totalCached++;
+            });
+            console.log(`  ✅ ${listName}: ${userCodes[listName].size} cihaz cache'lendi`);
+        }
+    });
+
+    console.log(`📦 Toplam ${totalCached} cihaz cache'e alındı (${sayimModuCache.size} benzersiz barkod)`);
+}
+
+/**
+ * Sayım Modu kapatıldığında okutulmayan barkodları gri listeye transfer et
+ */
+async function processSayimModuDeactivation() {
+    console.log(`🔍 ========== SAYIM MODU KAPATILIYOR ==========`);
+    console.log(`📦 Cache içeriği (${sayimModuCache.size} adet):`, Array.from(sayimModuCache));
+    console.log(`✅ Okutulan barkodlar (${sayimModuScannedBarcodes.size} adet):`, Array.from(sayimModuScannedBarcodes));
+
+    // Okutulmayan barkodları bul (cache'de var ama scanned'de yok)
+    const unscannedBarcodes = Array.from(sayimModuCache).filter(
+        barcode => !sayimModuScannedBarcodes.has(barcode)
+    );
+
+    console.log(`❌ Okutulmayan barkodlar (${unscannedBarcodes.length} adet):`, unscannedBarcodes);
+
+    // Sadece 15 haneli barkodları filtrele
+    const unscanned15Digit = unscannedBarcodes.filter(barcode => /^\d{15}$/.test(barcode));
+
+    console.log(`🔍 Sayım Modu Kapanıyor:`);
+    console.log(`   Toplam cache: ${sayimModuCache.size}`);
+    console.log(`   Okutulan: ${sayimModuScannedBarcodes.size}`);
+    console.log(`   Okutulmayan: ${unscannedBarcodes.length}`);
+    console.log(`   Okutulmayan 15 haneli: ${unscanned15Digit.length}`);
+
+    if (unscanned15Digit.length > 0) {
+        showToast(`🔄 ${unscanned15Digit.length} adet okutulmayan barkod gri listeye aktarılıyor...`, 'info');
+
+        let successCount = 0;
+        let failCount = 0;
+
+        // Her bir okutulmayan 15 haneli barkodu gri listeye ekle
+        for (const barcode of unscanned15Digit) {
+            try {
+                // Barkodun hangi listede olduğunu bul
+                let sourceList = null;
+                for (const [listName, codeSet] of Object.entries(userCodes)) {
+                    if (codeSet.has(barcode)) {
+                        sourceList = listName;
+                        break;
+                    }
+                }
+
+                if (sourceList) {
+                    console.log(`🔄 Transfer ediliyor: ${barcode} (${sourceList} → gri liste)`);
+                    // Gri listeye ekle - addToGriListe(barcode, fromList, toList, user)
+                    // toList = sourceList çünkü onaylandığında aynı listeye geri dönecek
+                    const success = await addToGriListe(barcode, sourceList, sourceList, currentUserName);
+                    if (success) {
+                        successCount++;
+                        console.log(`✅ Transfer başarılı: ${barcode}`);
+                    } else {
+                        failCount++;
+                        console.error(`❌ Transfer başarısız: ${barcode}`);
+                    }
+                } else {
+                    console.warn(`⚠️ ${barcode} için kaynak liste bulunamadı`);
+                    failCount++;
+                }
+
+                // Her 10 barkodda bir kısa bekleme (Firebase rate limit)
+                if ((successCount + failCount) % 10 === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+
+            } catch (error) {
+                console.error(`❌ ${barcode} gri listeye eklenirken hata:`, error);
+                failCount++;
+            }
+        }
+
+        showToast(
+            `✅ Sayım Modu KAPANDI!\n${successCount} barkod gri listeye eklendi${failCount > 0 ? `, ${failCount} hata` : ''}`,
+            successCount > 0 ? 'success' : 'warning'
+        );
+
+        console.log(`✅ Sayım Modu kapatıldı - ${successCount} başarılı, ${failCount} hata`);
+    } else {
+        showToast('✅ Sayım Modu KAPANDI! Tüm cihazlar okutuldu.', 'success');
+        console.log('✅ Sayım Modu kapatıldı - Tüm cihazlar okutuldu');
+    }
+
+    // Cache'leri temizle
+    sayimModuCache.clear();
+    sayimModuScannedBarcodes.clear();
+}
+
+/**
+ * Barkodun cache'de olup olmadığını kontrol et
+ */
+function isBarcodeInCache(barcode) {
+    return sayimModuCache.has(barcode);
+}
+
+// ========================================
+
 // DASHBOARD SECTION MODAL FONKSİYONLARI
 // ========================================
 
@@ -162,12 +355,12 @@ document.addEventListener('DOMContentLoaded', function () {
  */
 function openSectionInDashboard(sectionName, event) {
     console.log('🎯 Karta overlay ekleniyor:', sectionName);
-    
+
     // Event'i durdur
     if (event) {
         event.stopPropagation();
     }
-    
+
     // Tıklanan kartı bul
     let clickedCard = null;
     if (event && event.currentTarget) {
@@ -175,12 +368,12 @@ function openSectionInDashboard(sectionName, event) {
     } else {
         clickedCard = document.querySelector(`.parts-stat-card.${sectionName}`);
     }
-    
+
     if (!clickedCard) {
         console.error('❌ Kart bulunamadı!');
         return;
     }
-    
+
     // Kartta zaten overlay varsa, kapat
     const existingOverlay = clickedCard.querySelector('.dashboard-section-overlay');
     if (existingOverlay) {
@@ -192,29 +385,29 @@ function openSectionInDashboard(sectionName, event) {
             existingOverlay.remove();
         }
     }
-    
+
     // Diğer tüm overlay'leri kapat
     document.querySelectorAll('.dashboard-section-overlay.active').forEach(overlay => {
         overlay.classList.remove('active');
         setTimeout(() => overlay.remove(), 300);
     });
-    
+
     // Section bilgilerini al
     const sectionInfo = getSectionInfo(sectionName);
-    
+
     // Input ID'sini oluştur
     const inputId = sectionName + 'Input';
     const listId = sectionName + 'List';
-    
+
     // Orijinal elementleri bul
     const originalInput = document.getElementById(inputId);
     const originalList = document.getElementById(listId);
-    
+
     if (!originalInput || !originalList) {
         console.error('❌ Input veya liste bulunamadı:', inputId, listId);
         return;
     }
-    
+
     // Overlay HTML'i oluştur
     const overlay = document.createElement('div');
     overlay.className = 'dashboard-section-overlay';
@@ -227,13 +420,13 @@ function openSectionInDashboard(sectionName, event) {
             <!-- İçerik buraya eklenecek -->
         </div>
     `;
-    
+
     // Overlay'i karta ekle
     clickedCard.appendChild(overlay);
-    
+
     // Body elementini bul
     const overlayBody = overlay.querySelector('.dashboard-section-overlay-body');
-    
+
     // Input'un klonunu oluştur (ÇALIŞIR HALDE - VERİ GİRİŞİ İÇİN)
     const clonedInput = originalInput.cloneNode(true);
     clonedInput.id = inputId + '_overlay';
@@ -242,7 +435,7 @@ function openSectionInDashboard(sectionName, event) {
     clonedInput.style.display = 'block'; // Kesinlikle görünür
     clonedInput.style.visibility = 'visible'; // Görünürlük açık
     clonedInput.style.opacity = '1'; // Tam opak
-    
+
     // Liste'nin klonunu oluştur
     const clonedList = originalList.cloneNode(true);
     clonedList.id = listId + '_overlay';
@@ -255,67 +448,67 @@ function openSectionInDashboard(sectionName, event) {
     clonedList.style.background = 'rgba(0, 0, 0, 0.2)';
     clonedList.style.borderRadius = '8px';
     clonedList.style.marginTop = '15px';
-    
+
     // Liste içeriğini orijinal listeden kopyala
     clonedList.innerHTML = originalList.innerHTML;
-    
+
     // İçeriği ekle - ÖNCE INPUT SONRA HİNT SONRA LİSTE
     overlayBody.innerHTML = ''; // Önce temizle
     overlayBody.appendChild(clonedInput); // 1. Input ekle
-    
+
     // 2. Kullanım talimatı ekle
     const hint = document.createElement('div');
     hint.className = 'overlay-input-hint';
     hint.textContent = '🔄 Barkod okutun veya yapıştırın - Otomatik gönderilir';
     overlayBody.appendChild(hint);
-    
+
     overlayBody.appendChild(clonedList); // 3. Liste ekle
-    
+
     console.log('📝 Input eklendi:', clonedInput);
     console.log('📋 Liste eklendi:', clonedList);
-    
+
     // Input'a Enter tuşu ile veri gönderme özelliği ekle
-    clonedInput.addEventListener('keypress', function(e) {
+    clonedInput.addEventListener('keypress', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             const lines = clonedInput.value.split('\n');
             const lastLine = lines[lines.length - 1].trim();
-            
+
             if (lastLine && lastLine.length >= 15) {
                 // Son satırdaki barkodu gönder (sadece Enter'a basıldığında)
                 sendToGriListe(lastLine, sectionName, null);
             }
-            
+
             // Her durumda yeni satır ekle
             clonedInput.value += '\n';
-            
+
             // Cursor'u en sona götür
             setTimeout(() => {
                 clonedInput.scrollTop = clonedInput.scrollHeight;
             }, 10);
         }
     });
-    
+
     // Barkod okuyucu otomatik algılama ve gönderme
     let inputTimeout = null;
     let processedIMEIs = new Set(); // İşlenmiş IMEI'leri takip et (çift toast engelle)
-    
-    clonedInput.addEventListener('input', async function(e) {
+
+    clonedInput.addEventListener('input', async function (e) {
         // Timeout'u temizle
         if (inputTimeout) {
             clearTimeout(inputTimeout);
         }
-        
+
         // 100ms sonra işle (paste işlemini bekle)
         inputTimeout = setTimeout(async () => {
             const currentValue = clonedInput.value;
-            
+
             // Tüm satırları al
             const lines = currentValue.split('\n');
-            
+
             // Her satırdan 15 haneli IMEI'leri çıkar
             const newIMEIs = [];
-            
+
             lines.forEach(line => {
                 const imeiMatch = line.match(/\d{15}/);
                 if (imeiMatch) {
@@ -327,28 +520,36 @@ function openSectionInDashboard(sectionName, event) {
                     }
                 }
             });
-            
+
             // Yeni IMEI'ler varsa işle
             if (newIMEIs.length > 0) {
                 console.log('🔍 Yeni IMEI algılandı:', newIMEIs);
-                
+                console.log(`📊 Sayım Modu durumu: ${sayimModuActive ? 'AÇIK' : 'KAPALI'}`);
+
                 // Sayım Modu kontrolü için sayaç
                 let addedCount = 0;
                 let skippedCount = 0;
-                
+
                 // Tüm IMEI'leri işle
                 for (const imei of newIMEIs) {
-                    // Sayım Modu AÇIKSA ve IMEI listede varsa, işleme
+                    // Sayım Modu AÇIKSA ve IMEI listede varsa, okutulan olarak işaretle ve atla
                     if (sayimModuActive && userCodes[sectionName] && userCodes[sectionName].has(imei)) {
+                        sayimModuScannedBarcodes.add(imei);
                         skippedCount++;
-                        console.log(`✅ Sayım Modu: ${imei} listede MEVCUT - Atlandı`);
+                        console.log(`✅ Sayım Modu (Overlay): ${imei} "${sectionName}" listesinde MEVCUT - Okutulan olarak işaretlendi (Toplam okutulan: ${sayimModuScannedBarcodes.size})`);
+                        console.log(`   📋 sayimModuScannedBarcodes içeriği:`, Array.from(sayimModuScannedBarcodes));
+                    } else if (!sayimModuActive) {
+                        // Normal mod - Gri listeye gönder (toast gösterme)
+                        await sendToGriListe(imei, sectionName, null, true);
+                        addedCount++;
                     } else {
-                        // Gri listeye gönder (toast gösterme)
+                        // Sayım Modu AÇIK ama IMEI listede YOK - Gri listeye gönder
+                        console.log(`⚠️ Sayım Modu (Overlay): ${imei} "${sectionName}" listesinde YOK - Gri listeye ekleniyor`);
                         await sendToGriListe(imei, sectionName, null, true);
                         addedCount++;
                     }
                 }
-                
+
                 // Tek bir özet toast mesajı göster
                 setTimeout(() => {
                     if (sayimModuActive) {
@@ -369,11 +570,11 @@ function openSectionInDashboard(sectionName, event) {
                         }
                     }
                 }, 50);
-                
+
                 // Son IMEI'den sonra yeni satır yoksa ekle
                 if (!currentValue.endsWith('\n')) {
                     clonedInput.value = currentValue + '\n';
-                    
+
                     // Cursor'u en sona götür
                     clonedInput.selectionStart = clonedInput.value.length;
                     clonedInput.selectionEnd = clonedInput.value.length;
@@ -382,13 +583,13 @@ function openSectionInDashboard(sectionName, event) {
             }
         }, 100);
     });
-    
+
     // Input'a Ctrl+Enter ile çoklu veri gönderme
-    clonedInput.addEventListener('keydown', function(e) {
+    clonedInput.addEventListener('keydown', function (e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
             const codes = clonedInput.value.trim().split('\n').filter(c => c.trim());
-            
+
             if (codes.length > 0) {
                 // Her satırı gri listeye gönder
                 codes.forEach(code => {
@@ -397,23 +598,23 @@ function openSectionInDashboard(sectionName, event) {
                         sendToGriListe(barcode, sectionName, null, true);
                     }
                 });
-                
+
                 clonedInput.value = '';
                 showToast(`✅ ${codes.length} adet kod gri listeye gönderildi!`, 'success');
             }
         }
     });
-    
+
     // Overlay'i aktif et (animasyon için küçük gecikme)
     setTimeout(() => {
         overlay.classList.add('active');
     }, 10);
-    
+
     // Input'a otomatik focus
     setTimeout(() => {
         clonedInput.focus();
     }, 350);
-    
+
     console.log('✅ Overlay karta eklendi:', sectionName);
 }
 
@@ -424,12 +625,12 @@ function closeCardOverlay(button, event) {
     if (event) {
         event.stopPropagation();
     }
-    
+
     const overlay = button.closest('.dashboard-section-overlay');
     if (overlay) {
         overlay.classList.remove('active');
         setTimeout(() => overlay.remove(), 300);
-        
+
         // NOT: processedIMEIs Set'i her overlay için local scope'ta olduğu için
         // overlay kapatıldığında otomatik temizlenir
         console.log('🚪 Overlay kapatıldı');
@@ -443,10 +644,10 @@ function copyOverlayInput(sectionName, event) {
     if (event) {
         event.stopPropagation();
     }
-    
+
     const inputId = sectionName + 'Input_overlay';
     const input = document.getElementById(inputId);
-    
+
     if (input && input.value.trim()) {
         input.select();
         document.execCommand('copy');
@@ -463,10 +664,10 @@ function clearOverlayInput(sectionName, event) {
     if (event) {
         event.stopPropagation();
     }
-    
+
     const inputId = sectionName + 'Input_overlay';
     const input = document.getElementById(inputId);
-    
+
     if (input) {
         if (confirm('İçeriği temizlemek istediğinize emin misiniz?')) {
             input.value = '';
@@ -481,7 +682,7 @@ function clearOverlayInput(sectionName, event) {
  */
 async function sendToGriListe(barcode, targetList, inputElement, isMultiple = false) {
     console.log('📤 Gri listeye gönderiliyor:', barcode, '→', targetList);
-    
+
     // Barkod kontrolü
     if (!barcode || barcode.length < 5) {
         if (!isMultiple) {
@@ -489,32 +690,33 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         }
         return;
     }
-    
+
     // Kullanıcı kontrolü
     if (!currentUserName) {
         showToast('❌ Kullanıcı girişi yapılmamış!', 'error');
         return;
     }
-    
+
     // ========================================
     // SAYIM MODU KONTROLÜ - OVERLAY İÇİN
     // ========================================
     if (sayimModuActive) {
         console.log(`🔍 Sayım Modu Aktif (Overlay) - Kontrol ediliyor: ${barcode} → ${targetList} listesinde`);
-        
+
         const existsInCurrentList = userCodes[targetList] && userCodes[targetList].has(barcode);
-        
+
         console.log(`   userCodes[${targetList}] var mı?`, !!userCodes[targetList]);
         console.log(`   userCodes[${targetList}].has(${barcode})?`, existsInCurrentList);
-        
+
         if (userCodes[targetList]) {
             console.log(`   ${targetList} listesindeki toplam cihaz sayısı:`, userCodes[targetList].size);
             console.log(`   ${targetList} listesindeki ilk 5 cihaz:`, Array.from(userCodes[targetList]).slice(0, 5));
         }
-        
+
         if (existsInCurrentList) {
-            // IMEI listede mevcut - Hiçbir işlem yapma
-            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
+            // IMEI listede mevcut - Hiçbir işlem yapma, ama okutulan olarak işaretle
+            sayimModuScannedBarcodes.add(barcode);
+            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı (Okutulan: ${sayimModuScannedBarcodes.size})`);
             if (!isMultiple) {
                 showToast(`❌ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
             }
@@ -528,13 +730,13 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
     // ========================================
     // SAYIM MODU KONTROLÜ BİTİŞ
     // ========================================
-    
+
     // ⭐ SELF-ASSIGNMENT KONTROLÜ - Kullanıcı kendi üzerine cihaz atayamaz
     // ⚠️ İSTİSNA: Enes kullanıcısı düzenleyici olduğu için kendi üzerine atama yapabilir
     const technicianLists = ['gokhan', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
     const targetListLower = targetList.toLowerCase();
     const currentUserLower = currentUserName.toLowerCase();
-    
+
     // Enes hariç diğer kullanıcılar kendi üzerine atama yapamaz
     if (currentUserLower !== 'enes' && technicianLists.includes(targetListLower) && targetListLower === currentUserLower) {
         if (!isMultiple) {
@@ -543,11 +745,11 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         console.warn(`🚫 Self-assignment engellendi: ${currentUserName} kendi listesine transfer yapamaz`);
         return;
     }
-    
+
     try {
         // ⭐ addToGriListe fonksiyonunu kullan (otomatik kaynak liste bulma ve silme ile)
         const success = await addToGriListe(barcode, null, targetList, currentUserName);
-        
+
         if (success) {
             // Başarı mesajı - Sayım Modu'nda özel mesaj
             if (!isMultiple) {
@@ -563,7 +765,7 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
                 showToast('❌ Gri listeye eklenemedi!', 'error');
             }
         }
-        
+
     } catch (error) {
         console.error('❌ Gri listeye ekleme hatası:', error);
         if (!isMultiple) {
@@ -598,7 +800,7 @@ function getListDisplayName(listName) {
         'demontaj': 'Demontaj',
         'montaj': 'Montaj'
     };
-    
+
     return displayNames[listName] || listName;
 }
 
@@ -638,19 +840,19 @@ function getSectionInfo(sectionName) {
         'demontaj': { label: '🔧 Demontaj' },
         'montaj': { label: '⚙️ Montaj' }
     };
-    
+
     return sectionMap[sectionName] || { label: sectionName };
 }
 
 // ESC tuşu ile kapatma
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         closeDashboardSection();
     }
 });
 
 // Modal dışına tıklandığında kapatma
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     const modal = document.getElementById('dashboardSectionModal');
     if (modal && e.target === modal) {
         closeDashboardSection();
@@ -668,15 +870,15 @@ document.addEventListener('click', function(e) {
 function toggleAdminNav() {
     const adminNav = document.getElementById('adminNav');
     const toggleBtn = document.getElementById('adminNavToggle');
-    
+
     if (!adminNav || !toggleBtn) return;
-    
+
     // Toggle collapsed class
     adminNav.classList.toggle('collapsed');
-    
+
     // Rotate icon
     toggleBtn.classList.toggle('rotated');
-    
+
     // Save state to localStorage
     const isCollapsed = adminNav.classList.contains('collapsed');
     localStorage.setItem('adminNavCollapsed', isCollapsed);
@@ -686,16 +888,16 @@ function toggleAdminNav() {
 function initAdminNavState() {
     const adminNav = document.getElementById('adminNav');
     const toggleBtn = document.getElementById('adminNavToggle');
-    
+
     if (!adminNav || !toggleBtn) return;
-    
+
     // Check saved state
     const savedState = localStorage.getItem('adminNavCollapsed');
-    
+
     // On mobile, default to collapsed
     const isMobile = window.innerWidth <= 768;
     const shouldCollapse = isMobile && (savedState === null || savedState === 'true');
-    
+
     if (shouldCollapse) {
         adminNav.classList.add('collapsed');
     } else {
@@ -979,6 +1181,16 @@ function showMainView() {
             document.getElementById('adminPanel').style.display = 'block';
             // Admin Panel Dashboard'tan belirli alanları gizle
             hideAdminPanelItems();
+        }
+
+        // ✅ SAYIM MODU BUTONU - SADECE ADMIN
+        const sayimModuBtn = document.getElementById('sayimModuBtn');
+        if (sayimModuBtn) {
+            if (currentUserRole === 'admin') {
+                sayimModuBtn.style.display = 'block';
+            } else {
+                sayimModuBtn.style.display = 'none';
+            }
         }
 
         // ✅ DASHBOARD - SADECE ADMIN VE SEMI-ADMIN
@@ -3060,18 +3272,18 @@ function getListPriority(lists) {
     // ✅ YENİ MANTIK: En son eklenen (en yüksek timestamp) listede tut
     // Teknisyen listelerine öncelik ver (çünkü aktif çalışma alanları)
     const technicianLists = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
-    
+
     // Özel durumlar için öncelik kontrolü
     // 1. Eğer teslimEdilenler varsa, kesinlikle orada kalmalı
     if (lists.includes('teslimEdilenler')) return 'teslimEdilenler';
-    
+
     // 2. Teknisyen listelerinden biri varsa öncelik ver
     const techListInConflict = lists.find(list => technicianLists.includes(list));
     if (techListInConflict) {
         // Teknisyen listelerinden en son eklenen
         let latestTechList = techListInConflict;
         let latestTimestamp = 0;
-        
+
         lists.forEach(listName => {
             if (technicianLists.includes(listName)) {
                 // Bu listedeki tüm barkodlar için timestamp kontrol et
@@ -3085,14 +3297,14 @@ function getListPriority(lists) {
                 });
             }
         });
-        
+
         return latestTechList;
     }
-    
+
     // 3. Genel durum: En yüksek timestamp'e sahip listeyi bul
     let latestList = lists[0];
     let latestTimestamp = 0;
-    
+
     lists.forEach(listName => {
         const timestamps = codeTimestamps[listName] || {};
         Object.values(timestamps).forEach(ts => {
@@ -3103,7 +3315,7 @@ function getListPriority(lists) {
             }
         });
     });
-    
+
     console.log(`📊 Çakışma önceliği: ${latestList} seçildi (En son eklenen)`);
     return latestList;
 }
@@ -3111,12 +3323,12 @@ function getListPriority(lists) {
 // Tüm çakışmaları düzelt
 async function fixAllConflicts() {
     console.log('🔄 fixAllConflicts called');
-    
+
     // ========================================
     // ŞİFRE KONTROLÜ - 6262
     // ========================================
     const password = prompt('⚠️ Çakışmaları düzeltmek için şifre gerekli:\n(İşlem geri alınamaz!)');
-    
+
     if (password !== '6262') {
         if (password !== null) { // Kullanıcı Cancel'a basmadıysa
             showToast('❌ Yanlış şifre! Çakışmalar düzeltilmedi.', 'error');
@@ -3124,12 +3336,12 @@ async function fixAllConflicts() {
         }
         return; // Fonksiyondan çık
     }
-    
+
     console.log('✅ Şifre doğru - Çakışmalar düzeltiliyor');
     // ========================================
     // ŞİFRE KONTROLÜ BİTİŞ
     // ========================================
-    
+
     const fixAllBtn = document.getElementById('fixAllBtn');
     const syncResults = document.getElementById('syncResults');
 
@@ -3202,9 +3414,9 @@ async function fixAllConflicts() {
 // Tekil çakışmayı düzelt
 async function fixConflict(barcode, lists) {
     console.log(`🔍 Çakışma düzeltiliyor: ${barcode} -> ${lists.join(', ')}`);
-    
+
     // ✅ YENİ MANTIK: Özel durumlar için kurallar
-    
+
     // Kural 1: PhoneCheck ve Onarım Tamamlandı çakışması
     // Onarım daha ileri aşama olduğu için PhoneCheck'ten sil
     if (lists.includes('phonecheck') && lists.includes('onarim')) {
@@ -3224,9 +3436,9 @@ async function fixConflict(barcode, lists) {
     // Kural 3: Genel çakışma - EN SON EKLENDİĞİ LİSTEDE TUT
     // Timestamp'e göre en yeni listeyi bul ve diğerlerinden sil
     const listToKeep = getListPriority(lists);
-    
+
     console.log(`📌 Genel çakışma: ${listToKeep} tutulacak, diğerleri silinecek`);
-    
+
     for (const listName of lists) {
         if (listName !== listToKeep) {
             console.log(`   ❌ ${listName} listesinden siliniyor`);
@@ -4080,7 +4292,7 @@ let editingUserId = null;
 // ========================================
 // SAYIM MODU SİSTEMİ
 // ========================================
-let sayimModuActive = false; // Sayım modu durumu
+// sayimModuActive is declared at the top of the file (line 159)
 
 // ========================================
 // GRİ LİSTE SİSTEMİ - ONAY BEKLEYEN TRANSFERLER
@@ -4090,7 +4302,7 @@ let griListeData = {}; // {barcode: {fromList, toList, user, timestamp}}
 // Gri Listeye ekleme
 async function addToGriListe(barcode, fromList, toList, user) {
     const timestamp = getTimestamp();
-    
+
     // ⭐ EĞER fromList BELİRTİLMEMİŞSE VEYA 'YENİ' İSE, OTOMATİK BUL
     let actualFromList = fromList;
     if (!fromList || fromList === 'YENİ' || fromList === 'dashboard_overlay') {
@@ -4102,7 +4314,7 @@ async function addToGriListe(barcode, fromList, toList, user) {
             actualFromList = 'YENİ'; // Gerçekten yeni bir cihaz
         }
     }
-    
+
     const griItem = {
         barcode: barcode,
         fromList: actualFromList,
@@ -4116,18 +4328,18 @@ async function addToGriListe(barcode, fromList, toList, user) {
         // 1. Gri listeye ekle
         await db.ref(`servis/griListe/${barcode}`).set(griItem);
         griListeData[barcode] = griItem;
-        
+
         // ✅ ÖNEMLİ: KAYNAK LİSTEDEN SİLME!
         // Gri liste sadece "onay bekliyor" durumu
         // Barkod okutulana kadar cihaz kaynak listede KALMALI
         // Barkod okutulduğunda approveFromGriListe fonksiyonu kaynak listeden silecek
-        
+
         console.log(`⏳ Gri Listeye eklendi (kaynak listede KALIYOR): ${barcode} (${actualFromList} → ${toList})`);
-        
+
         // 3. UI güncelle
         renderGriListe();
         updateGriListeCount();
-        
+
         return true;
     } catch (error) {
         console.error('Gri Listeye ekleme hatası:', error);
@@ -4154,14 +4366,14 @@ async function approveFromGriListe(barcode) {
         // 2. ⭐ KAYNAK LİSTEDEN SİL (Güvenlik için - addToGriListe zaten silmiş olsa da kontrol et)
         if (fromList && fromList !== 'YENİ') {
             const fromDbPath = fromList === 'onarim' ? 'onarimTamamlandi' : fromList;
-            
+
             // Firebase'den sil (hata vermezse devam et)
             try {
                 await db.ref(`servis/${fromDbPath}/${barcode}`).remove();
             } catch (e) {
                 console.log('Kaynak listeden zaten silinmiş olabilir:', e.message);
             }
-            
+
             // Local state'den sil
             if (userCodes[fromList] && userCodes[fromList].has(barcode)) {
                 userCodes[fromList].delete(barcode);
@@ -4171,16 +4383,16 @@ async function approveFromGriListe(barcode) {
                 if (codeUsers[fromList]) {
                     delete codeUsers[fromList][barcode];
                 }
-                
+
                 // Cache invalidation
                 if (typeof RenderCache !== 'undefined') {
                     RenderCache.invalidate(fromList);
                 }
-                
+
                 // UI güncelle
                 updateLabelAndCount(fromList);
                 renderMiniList(fromList);
-                
+
                 console.log(`🗑️ Kaynak listeden silindi (onay sırasında): ${barcode} (${fromList})`);
             }
         }
@@ -4199,7 +4411,7 @@ async function approveFromGriListe(barcode) {
             userCodes[toList].add(barcode);
             codeTimestamps[toList][barcode] = timestamp;
             codeUsers[toList][barcode] = currentUserName;
-            
+
             // ✅ CACHE INVALIDATION
             RenderCache.invalidate(toList);
         }
@@ -4454,9 +4666,9 @@ function showToast(message, type = 'info') {
 
     // Onay listesi ve transfer bildirimleri için daha uzun süre (5 saniye)
     // Diğer bildirimler için standart süre (3.5 saniye)
-    const isImportantNotification = message.includes('onay listesine') || 
-                                    message.includes('listesine transfer edildi') ||
-                                    message.includes('listesine eklendi');
+    const isImportantNotification = message.includes('onay listesine') ||
+        message.includes('listesine transfer edildi') ||
+        message.includes('listesine eklendi');
     const displayDuration = isImportantNotification ? 5000 : 3500;
 
     setTimeout(() => {
@@ -5714,7 +5926,7 @@ async function deleteBarcode(code, listName) {
         userCodes[listName].delete(code);
         delete codeTimestamps[listName][code];
         delete codeUsers[listName][code];
-        
+
         // ✅ CACHE INVALIDATION
         RenderCache.invalidate(listName);
 
@@ -5786,7 +5998,7 @@ auth.onAuthStateChanged(async user => {
                 document.getElementById('resetDashboardBtn').style.display = 'block';
                 document.getElementById('restoreDashboardBtn').style.display = 'inline-block';
                 document.getElementById('sayimModuBtn').style.display = 'flex'; // Sayım Modu butonu
-                
+
                 // Bakım Modu Butonu - Debug
                 const maintenanceBtn = document.getElementById('maintenanceBtn');
                 if (maintenanceBtn) {
@@ -5795,7 +6007,7 @@ auth.onAuthStateChanged(async user => {
                 } else {
                     console.error('❌ Bakım Modu Butonu Bulunamadı!');
                 }
-                
+
                 currentUserPermissions = null;
                 document.getElementById('adminNav').style.display = 'flex';
                 document.getElementById('navUserInfo').style.display = 'flex';
@@ -6036,7 +6248,7 @@ auth.onAuthStateChanged(async user => {
         currentUserName = null;
         currentUserPermissions = null;
         dataLoaded = false;
-        
+
         // ✅ BAKIM MODU DİNLEYİCİSİNİ DURDUR
         stopMaintenanceModeListener();
     }
@@ -6575,10 +6787,10 @@ function removeFromOtherLists(code, exceptList) {
             userCodes[name].delete(code);
             delete codeTimestamps[name][code];
             delete codeUsers[name][code];
-            
+
             // ✅ CACHE INVALIDATION
             RenderCache.invalidate(name);
-            
+
             const dbPath = name === 'onarim' ? 'onarimTamamlandi' : name;
             db.ref(`servis/${dbPath}`).child(code).remove();
             updateLabelAndCount(name);
@@ -6889,11 +7101,11 @@ async function saveCodes(name, value) {
     // Birden fazla IMEI yapıştırıldığında hepsini yakala
     // Desteklenen ayraçlar: yeni satır, boşluk, tab, virgül, noktalı virgül
     // ========================================
-    
+
     // Önce tüm 15 haneli sayıları bul (global arama)
     const allMatches = value.match(/\d{15}/g);
     const codes = allMatches ? [...new Set(allMatches)] : []; // Tekrar edenleri kaldır
-    
+
     // Eğer hiç kod bulunamazsa, eski yöntemi de dene (satır bazlı)
     if (codes.length === 0) {
         const rawLines = value.trim().split(/[\n\r\t,;\s]+/).map(l => l.trim()).filter(l => l.length > 0);
@@ -6933,17 +7145,17 @@ async function saveCodes(name, value) {
             // ========================================
             if (sayimModuActive) {
                 console.log(`🔍 Sayım Modu Aktif - Kontrol ediliyor: ${code} → ${name} listesinde`);
-                
+
                 const existsInCurrentList = userCodes[name] && userCodes[name].has(code);
-                
+
                 console.log(`   userCodes[${name}] var mı?`, !!userCodes[name]);
                 console.log(`   userCodes[${name}].has(${code})?`, existsInCurrentList);
-                
+
                 if (userCodes[name]) {
                     console.log(`   ${name} listesindeki toplam cihaz sayısı:`, userCodes[name].size);
                     console.log(`   ${name} listesindeki ilk 5 cihaz:`, Array.from(userCodes[name]).slice(0, 5));
                 }
-                
+
                 if (existsInCurrentList) {
                     // IMEI listede mevcut - Hiçbir işlem yapma
                     console.log(`✅ Sayım Modu: ${code} "${CACHED_LIST_NAMES[name] || name}" listesinde MEVCUT - İşlem yapılmadı`);
@@ -6951,7 +7163,7 @@ async function saveCodes(name, value) {
                 } else {
                     // IMEI listede YOK - Gri listeye ekle
                     console.log(`❌ Sayım Modu: ${code} "${CACHED_LIST_NAMES[name] || name}" listesinde YOK - Gri listeye ekleniyor`);
-                    
+
                     // Barkodun başka bir listede olup olmadığını kontrol et
                     let previousList = null;
                     for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -6961,7 +7173,7 @@ async function saveCodes(name, value) {
                             break;
                         }
                     }
-                    
+
                     // Gri listeye ekle
                     await addToGriListe(code, previousList || 'YENİ', name, currentUserName);
                     showToast(`⏳ Sayım: ${code} gri listeye eklendi ("${CACHED_LIST_NAMES[name] || name}" listesinde YOK)`, 'warning');
@@ -6971,7 +7183,7 @@ async function saveCodes(name, value) {
             // ========================================
             // SAYIM MODU KONTROLÜ BİTİŞ
             // ========================================
-            
+
             if (!userCodes[name].has(code) && !griListeData[code]) {
                 // Barkodun şu anki listesini bul
                 let previousList = null;
@@ -7078,17 +7290,17 @@ async function saveCodes(name, value) {
         // ========================================
         if (sayimModuActive) {
             console.log(`🔍 Sayım Modu Aktif - Kontrol ediliyor: ${code} → ${name} listesinde`);
-            
+
             const existsInCurrentList = userCodes[name] && userCodes[name].has(code);
-            
+
             console.log(`   userCodes[${name}] var mı?`, !!userCodes[name]);
             console.log(`   userCodes[${name}].has(${code})?`, existsInCurrentList);
-            
+
             if (userCodes[name]) {
                 console.log(`   ${name} listesindeki toplam cihaz sayısı:`, userCodes[name].size);
                 console.log(`   ${name} listesindeki ilk 5 cihaz:`, Array.from(userCodes[name]).slice(0, 5));
             }
-            
+
             if (existsInCurrentList) {
                 // IMEI listede mevcut - Hiçbir işlem yapma
                 console.log(`✅ Sayım Modu: ${code} "${CACHED_LIST_NAMES[name] || name}" listesinde MEVCUT - İşlem yapılmadı`);
@@ -7096,7 +7308,7 @@ async function saveCodes(name, value) {
             } else {
                 // IMEI listede YOK - Gri listeye ekle
                 console.log(`❌ Sayım Modu: ${code} "${CACHED_LIST_NAMES[name] || name}" listesinde YOK - Gri listeye ekleniyor`);
-                
+
                 // Barkodun başka bir listede olup olmadığını kontrol et
                 let previousList = null;
                 for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -7106,7 +7318,7 @@ async function saveCodes(name, value) {
                         break;
                     }
                 }
-                
+
                 // Gri listeye ekle
                 await addToGriListe(code, previousList || 'YENİ', name, currentUserName);
                 showToast(`⏳ Sayım: ${code} gri listeye eklendi ("${CACHED_LIST_NAMES[name] || name}" listesinde YOK)`, 'warning');
@@ -7116,7 +7328,7 @@ async function saveCodes(name, value) {
         // ========================================
         // SAYIM MODU KONTROLÜ BİTİŞ
         // ========================================
-        
+
         if (!userCodes[name].has(code) && !griListeData[code]) {
 
             // Gri Liste kontrolü - Tüm kullanıcılar için
@@ -7380,20 +7592,20 @@ inputs.scanner.addEventListener("input", e => {
     clearTimeout(scannerTimeout);
     scannerTimeout = setTimeout(() => {
         const raw = e.target.value.trim();
-        
+
         // ========================================
         // ÇOKLU IMEI DESTEĞİ
         // Birden fazla IMEI yapıştırıldığında hepsini işle
         // ========================================
         const allMatches = raw.match(/\d{15}/g);
-        
+
         if (allMatches && allMatches.length > 0) {
             // Tekrar edenleri kaldır
             const uniqueCodes = [...new Set(allMatches)];
-            
+
             let processedCount = 0;
             let notFoundCount = 0;
-            
+
             uniqueCodes.forEach(code => {
                 // ========================================
                 // GRİ LİSTE KONTROLÜ - Barkod gri listede mi bak
@@ -7406,7 +7618,7 @@ inputs.scanner.addEventListener("input", e => {
                     notFoundCount++;
                 }
             });
-            
+
             // Sonuç bildirimi
             if (uniqueCodes.length > 1) {
                 // Birden fazla IMEI işlendi
@@ -7422,7 +7634,7 @@ inputs.scanner.addEventListener("input", e => {
                 showToast(`Barkod gri listede bulunamadı: ${uniqueCodes[0]}`, 'info');
             }
         }
-        
+
         e.target.value = "";
     }, 150);
 });
@@ -7638,7 +7850,7 @@ function formatDate(date) {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
         return 'Bilinmiyor';
     }
-    
+
     return date.toLocaleDateString('tr-TR', {
         day: '2-digit',
         month: '2-digit',
@@ -11245,7 +11457,7 @@ function initAdminPanelClickHandlers() {
 
     // Tüm admin-stat-box elementlerini bul ve cursor ekle
     const adminCards = document.querySelectorAll('.admin-stat-box[onclick*="showAdminCardDetails"]');
-    
+
     adminCards.forEach(card => {
         card.style.cursor = 'pointer';
     });
@@ -11264,28 +11476,28 @@ function showAdminCardDetails(cardType) {
     let color = '#3498db';
 
     // Kart tipine göre verileri hazırla
-    switch(cardType) {
+    switch (cardType) {
         case 'total':
             // Servisteki Toplam Cihaz - ÖN CAM VE ANAKART DIŞ SERVİS HARİÇ
             title = '📊 Servisteki Toplam Cihazlar';
             subtitle = 'Tüm Listelerdeki Cihazlar (Dış Servisler Hariç)';
             color = '#3498db';
-            
+
             // ✅ ÖN CAM VE ANAKART DIŞ SERVİS HARİÇ tüm listelerden cihazları topla
-            const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet', 
-                             'engin', 'ismail', 'mehmet', 'onarim', 
-                             'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı'];
-            
+            const allLists = ['atanacak', 'parcaBekliyor', 'phonecheck', 'gokhan', 'enes', 'yusuf', 'samet',
+                'engin', 'ismail', 'mehmet', 'onarim',
+                'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı'];
+
             allLists.forEach(listName => {
                 if (userCodes[listName] && userCodes[listName].size > 0) {
                     const codes = Array.from(userCodes[listName]);
                     codes.forEach(barcode => {
                         const timestamp = codeTimestamps[listName] ? codeTimestamps[listName][barcode] : null;
                         const user = codeUsers[listName] ? codeUsers[listName][barcode] : 'Bilinmiyor';
-                        
+
                         // Timestamp'i number'a çevir
                         const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
-                        
+
                         devices.push({
                             barcode: barcode,
                             listName: listName,
@@ -11302,15 +11514,15 @@ function showAdminCardDetails(cardType) {
             title = '👤 Son Kullanıcı Cihazları';
             subtitle = 'Son Kullanıcı Listesindeki Cihazlar';
             color = '#9b59b6';
-            
+
             if (userCodes['SonKullanıcı'] && userCodes['SonKullanıcı'].size > 0) {
                 const codes = Array.from(userCodes['SonKullanıcı']);
                 codes.forEach(barcode => {
                     const timestamp = codeTimestamps['SonKullanıcı'] ? codeTimestamps['SonKullanıcı'][barcode] : null;
                     const user = codeUsers['SonKullanıcı'] ? codeUsers['SonKullanıcı'][barcode] : 'Bilinmiyor';
-                    
+
                     const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
-                    
+
                     devices.push({
                         barcode: barcode,
                         listName: 'SonKullanıcı',
@@ -11326,15 +11538,15 @@ function showAdminCardDetails(cardType) {
             title = '🔨 Ön Cam Dış Servis';
             subtitle = 'Dış Serviste Bekleyen Cihazlar';
             color = '#e67e22';
-            
+
             if (userCodes['onCamDisServis'] && userCodes['onCamDisServis'].size > 0) {
                 const codes = Array.from(userCodes['onCamDisServis']);
                 codes.forEach(barcode => {
                     const timestamp = codeTimestamps['onCamDisServis'] ? codeTimestamps['onCamDisServis'][barcode] : null;
                     const user = codeUsers['onCamDisServis'] ? codeUsers['onCamDisServis'][barcode] : 'Bilinmiyor';
-                    
+
                     const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
-                    
+
                     devices.push({
                         barcode: barcode,
                         listName: 'onCamDisServis',
@@ -11350,15 +11562,15 @@ function showAdminCardDetails(cardType) {
             title = '🔨 Anakart Dış Servis';
             subtitle = 'Dış Serviste Bekleyen Cihazlar';
             color = '#e74c3c';
-            
+
             if (userCodes['anakartDisServis'] && userCodes['anakartDisServis'].size > 0) {
                 const codes = Array.from(userCodes['anakartDisServis']);
                 codes.forEach(barcode => {
                     const timestamp = codeTimestamps['anakartDisServis'] ? codeTimestamps['anakartDisServis'][barcode] : null;
                     const user = codeUsers['anakartDisServis'] ? codeUsers['anakartDisServis'][barcode] : 'Bilinmiyor';
-                    
+
                     const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
-                    
+
                     devices.push({
                         barcode: barcode,
                         listName: 'anakartDisServis',
@@ -11374,15 +11586,15 @@ function showAdminCardDetails(cardType) {
             title = '🛡️ Garanti Servis';
             subtitle = 'Garanti Kapsamındaki Cihazlar';
             color = '#9b59b6';
-            
+
             if (userCodes['garantiServis'] && userCodes['garantiServis'].size > 0) {
                 const codes = Array.from(userCodes['garantiServis']);
                 codes.forEach(barcode => {
                     const timestamp = codeTimestamps['garantiServis'] ? codeTimestamps['garantiServis'][barcode] : null;
                     const user = codeUsers['garantiServis'] ? codeUsers['garantiServis'][barcode] : 'Bilinmiyor';
-                    
+
                     const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
-                    
+
                     devices.push({
                         barcode: barcode,
                         listName: 'garantiServis',
@@ -11398,18 +11610,18 @@ function showAdminCardDetails(cardType) {
             title = '👥 Toplam Teknisyen Cihazları';
             subtitle = 'Tüm Teknisyenlerdeki Cihazlar';
             color = '#16a085';
-            
+
             const techLists = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet'];
-            
+
             techLists.forEach(listName => {
                 if (userCodes[listName] && userCodes[listName].size > 0) {
                     const codes = Array.from(userCodes[listName]);
                     codes.forEach(barcode => {
                         const timestamp = codeTimestamps[listName] ? codeTimestamps[listName][barcode] : null;
                         const user = codeUsers[listName] ? codeUsers[listName][barcode] : 'Bilinmiyor';
-                        
+
                         const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
-                        
+
                         devices.push({
                             barcode: barcode,
                             listName: listName,
@@ -11426,15 +11638,15 @@ function showAdminCardDetails(cardType) {
             title = '✅ Teslim Edilenler';
             subtitle = 'Teslim Edilen Cihazlar';
             color = '#27ae60';
-            
+
             if (userCodes['teslimEdilenler'] && userCodes['teslimEdilenler'].size > 0) {
                 const codes = Array.from(userCodes['teslimEdilenler']);
                 codes.forEach(barcode => {
                     const timestamp = codeTimestamps['teslimEdilenler'] ? codeTimestamps['teslimEdilenler'][barcode] : null;
                     const user = codeUsers['teslimEdilenler'] ? codeUsers['teslimEdilenler'][barcode] : 'Bilinmiyor';
-                    
+
                     const timestampNum = timestamp ? (typeof timestamp === 'number' ? timestamp : convertToTimestamp(timestamp)) : null;
-                    
+
                     devices.push({
                         barcode: barcode,
                         listName: 'teslimEdilenler',
@@ -11657,17 +11869,17 @@ function searchBarcodeInAdminCardList(event) {
 function clearAdminCardDeviceSearch() {
     const searchInput = document.getElementById('adminCardDeviceSearchInput');
     const resultDiv = document.getElementById('adminCardDeviceSearchResult');
-    
+
     if (searchInput) {
         searchInput.value = '';
         searchInput.focus();
     }
-    
+
     if (resultDiv) {
         resultDiv.innerHTML = '';
         resultDiv.className = 'timeout-device-search-result';
     }
-    
+
     // Highlight'ları temizle
     const allRows = document.querySelectorAll('#adminCardDeviceModalOverlay .timeout-device-table tbody tr');
     allRows.forEach(row => {
@@ -11917,7 +12129,7 @@ function isMobileDevice() {
 function toggleQRScannerVisibility() {
     const qrScannerSection = document.getElementById('qrScannerSection');
     const qrApproveSection = document.getElementById('qrApproveSection');
-    
+
     if (isMobileDevice()) {
         if (qrScannerSection) {
             qrScannerSection.style.display = 'block';
@@ -11945,16 +12157,16 @@ window.addEventListener('resize', toggleQRScannerVisibility);
 function openQRScanner() {
     const modal = document.getElementById('qrScannerModal');
     const messageEl = document.getElementById('qrScannerMessage');
-    
+
     if (!isMobileDevice()) {
         showToast('QR okutma özelliği sadece mobil cihazlarda çalışır', 'warning');
         return;
     }
-    
+
     modal.classList.add('active');
     messageEl.textContent = 'Kamera açılıyor...';
     messageEl.className = 'qr-scanner-message info';
-    
+
     startQRScanner();
 }
 
@@ -11962,7 +12174,7 @@ function openQRScanner() {
 function startQRScanner() {
     const messageEl = document.getElementById('qrScannerMessage');
     const multiModeIndicator = document.getElementById('qrMultiModeIndicator');
-    
+
     // Çoklu mod göstergesini güncelle
     if (qrMultiModeActive && qrMultiModeTargetList) {
         multiModeIndicator.style.display = 'block';
@@ -11971,20 +12183,20 @@ function startQRScanner() {
     } else {
         multiModeIndicator.style.display = 'none';
     }
-    
+
     if (isQRScannerActive) {
         messageEl.textContent = 'QR tarayıcı zaten aktif';
         return;
     }
-    
+
     html5QrCode = new Html5Qrcode("qrReader");
-    
+
     const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0
     };
-    
+
     html5QrCode.start(
         { facingMode: "environment" }, // Arka kamera
         config,
@@ -12000,7 +12212,7 @@ function startQRScanner() {
         messageEl.textContent = 'Kamera erişimi reddedildi veya hata oluştu';
         messageEl.className = 'qr-scanner-message error';
         showToast('Kamera açılamadı: ' + err, 'error');
-        
+
         setTimeout(() => {
             closeQRScanner();
         }, 3000);
@@ -12010,21 +12222,21 @@ function startQRScanner() {
 // QR kod okunduğunda
 async function onQRCodeScanned(decodedText, decodedResult) {
     console.log('🎯 QR Kod okundu:', decodedText);
-    
+
     // 15 haneli IMEI kontrolü
     const imeiMatch = decodedText.match(/\d{15}/);
-    
+
     if (imeiMatch) {
         const imei = imeiMatch[0];
         currentScannedIMEI = imei;
-        
+
         const messageEl = document.getElementById('qrScannerMessage');
         messageEl.textContent = `✅ IMEI okundu: ${imei}`;
         messageEl.className = 'qr-scanner-message success';
-        
+
         // Kamerayı durdur
         stopQRScanner();
-        
+
         // ========================================
         // ÇOKLU MOD KONTROLÜ
         // ========================================
@@ -12032,20 +12244,20 @@ async function onQRCodeScanned(decodedText, decodedResult) {
             // Çoklu mod aktif ve hedef liste seçilmiş
             // Direkt gri listeye ekle, modal açma!
             console.log(`📦 Çoklu Mod: ${imei} → ${qrMultiModeTargetList} (Modal atlandı)`);
-            
+
             const success = await addToGriListeFromQR(imei, qrMultiModeTargetList);
-            
+
             if (success) {
                 qrMultiModeCount++;
-                
+
                 // Kısa bekleme sonrası kamerayı tekrar aç
                 setTimeout(() => {
                     messageEl.textContent = `✅ ${qrMultiModeCount}. QR eklendi - Sonraki QR'ı okutun`;
                     messageEl.className = 'qr-scanner-message success';
-                    
+
                     // Kamerayı tekrar başlat
                     startQRScanner();
-                    
+
                     showToast(`✅ ${qrMultiModeCount}. QR eklendi → ${CACHED_LIST_NAMES[qrMultiModeTargetList] || qrMultiModeTargetList}`, 'success');
                 }, 800);
             } else {
@@ -12064,7 +12276,7 @@ async function onQRCodeScanned(decodedText, decodedResult) {
             }, 1000);
         }
         // ========================================
-        
+
     } else {
         const messageEl = document.getElementById('qrScannerMessage');
         messageEl.textContent = '❌ Geçersiz QR kod! 15 haneli IMEI bulunamadı';
@@ -12095,10 +12307,10 @@ function stopQRScanner() {
 // QR Scanner modal'ını kapat
 function closeQRScanner() {
     stopQRScanner();
-    
+
     const modal = document.getElementById('qrScannerModal');
     modal.classList.remove('active');
-    
+
     // Kısa gecikme ile HTML5QrCode nesnesini temizle
     setTimeout(() => {
         if (html5QrCode) {
@@ -12117,14 +12329,14 @@ function openQRTransferModal(imei) {
     const modal = document.getElementById('qrTransferModal');
     const imeiDisplay = document.getElementById('qrScannedIMEI');
     const listContainer = document.getElementById('qrTransferListContainer');
-    
+
     imeiDisplay.textContent = imei;
     currentScannedIMEI = imei;
-    
+
     // Çoklu mod durumunu göster
     const multiModeToggle = document.getElementById('qrMultiModeToggle');
     const multiModeStatus = document.getElementById('qrMultiModeStatus');
-    
+
     if (qrMultiModeActive) {
         multiModeToggle.checked = true;
         multiModeStatus.style.display = 'block';
@@ -12134,110 +12346,110 @@ function openQRTransferModal(imei) {
         multiModeToggle.checked = false;
         multiModeStatus.style.display = 'none';
     }
-    
+
     // Tüm mevcut listeleri göster
     const allLists = [
-    { name: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', icon: '⚙️' },
-    { name: 'onarim', label: '🔧 Onarım Tamamlandı', icon: '🔧' },
+        { name: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', icon: '⚙️' },
+        { name: 'onarim', label: '🔧 Onarım Tamamlandı', icon: '🔧' },
 
-    { name: 'gokhan', label: '🧑‍🔧 Gökhan\'ın Cihazları', icon: '🧑‍🔧' },
-    { name: 'enes', label: '🧑‍🔧 Enes\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'yusuf', label: '🧑‍🔧 Yusuf\'un Cihazları', icon: '🧑‍🔧' },
-    { name: 'mert', label: '🧑‍🔧 Mert\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'samet', label: '🧑‍🔧 Samet\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'engin', label: '🧑‍🔧 Engin\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'ismail', label: '🧑‍🔧 İsmail\'in Cihazları', icon: '🧑‍🔧' },
-    { name: 'mehmet', label: '🧑‍🔧 Mehmet\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'gokhan', label: '🧑‍🔧 Gökhan\'ın Cihazları', icon: '🧑‍🔧' },
+        { name: 'enes', label: '🧑‍🔧 Enes\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'yusuf', label: '🧑‍🔧 Yusuf\'un Cihazları', icon: '🧑‍🔧' },
+        { name: 'mert', label: '🧑‍🔧 Mert\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'samet', label: '🧑‍🔧 Samet\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'engin', label: '🧑‍🔧 Engin\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'ismail', label: '🧑‍🔧 İsmail\'in Cihazları', icon: '🧑‍🔧' },
+        { name: 'mehmet', label: '🧑‍🔧 Mehmet\'in Cihazları', icon: '🧑‍🔧' },
 
-    { name: 'atanacak', label: '📋 Atanacak', icon: '📋' },
-    { name: 'phonecheck', label: '📱 PhoneCheck', icon: '📱' },
-    { name: 'onCamDisServis', label: '🔨 Ön Cam Dış Servis', icon: '🔨' },
-    { name: 'anakartDisServis', label: '🔨 Anakart Dış Servis', icon: '🔨' },
-    { name: 'satisa', label: '💰 Satışa Gidecek', icon: '💰' },
-    { name: 'SonKullanıcı', label: '👤 Son Kullanıcı', icon: '👤' },
-    { name: 'sahiniden', label: '🏪 Sahibinden', icon: '🏪' },
-    { name: 'mediaMarkt', label: '🛒 Satış Sonrası', icon: '🛒' },
-    { name: 'teslimEdilenler', label: '✅ Teslim Edilenler', icon: '✅' },
+        { name: 'atanacak', label: '📋 Atanacak', icon: '📋' },
+        { name: 'phonecheck', label: '📱 PhoneCheck', icon: '📱' },
+        { name: 'onCamDisServis', label: '🔨 Ön Cam Dış Servis', icon: '🔨' },
+        { name: 'anakartDisServis', label: '🔨 Anakart Dış Servis', icon: '🔨' },
+        { name: 'satisa', label: '💰 Satışa Gidecek', icon: '💰' },
+        { name: 'SonKullanıcı', label: '👤 Son Kullanıcı', icon: '👤' },
+        { name: 'sahiniden', label: '🏪 Sahibinden', icon: '🏪' },
+        { name: 'mediaMarkt', label: '🛒 Satış Sonrası', icon: '🛒' },
+        { name: 'teslimEdilenler', label: '✅ Teslim Edilenler', icon: '✅' },
 
-    // 🔽 Birinci listeden eklenenler
-    { name: 'pil', label: '🔋 Pil', icon: '🔋' },
-    { name: 'kasa', label: '📱 Kasa', icon: '📱' },
-    { name: 'ekran', label: '🖥️ Ekran', icon: '🖥️' },
-    { name: 'onCam', label: '🪟 Ön Cam', icon: '🪟' },
-    { name: 'pilKasa', label: '🔋📱 Pil + Kasa', icon: '🔋📱' },
-    { name: 'pilEkran', label: '🔋🖥️ Pil + Ekran', icon: '🔋🖥️' },
-    { name: 'ekranKasa', label: '🖥️📱 Ekran + Kasa', icon: '🖥️📱' },
-    { name: 'pilEkranKasa', label: '🔋🖥️📱 Pil + Ekran + Kasa', icon: '🔋🖥️📱' },
-    { name: 'demontaj', label: '🔧 Demontaj', icon: '🔧' },
-    { name: 'montaj', label: '⚙️ Montaj', icon: '⚙️' }
-];
+        // 🔽 Birinci listeden eklenenler
+        { name: 'pil', label: '🔋 Pil', icon: '🔋' },
+        { name: 'kasa', label: '📱 Kasa', icon: '📱' },
+        { name: 'ekran', label: '🖥️ Ekran', icon: '🖥️' },
+        { name: 'onCam', label: '🪟 Ön Cam', icon: '🪟' },
+        { name: 'pilKasa', label: '🔋📱 Pil + Kasa', icon: '🔋📱' },
+        { name: 'pilEkran', label: '🔋🖥️ Pil + Ekran', icon: '🔋🖥️' },
+        { name: 'ekranKasa', label: '🖥️📱 Ekran + Kasa', icon: '🖥️📱' },
+        { name: 'pilEkranKasa', label: '🔋🖥️📱 Pil + Ekran + Kasa', icon: '🔋🖥️📱' },
+        { name: 'demontaj', label: '🔧 Demontaj', icon: '🔧' },
+        { name: 'montaj', label: '⚙️ Montaj', icon: '⚙️' }
+    ];
 
-    
+
     listContainer.innerHTML = '';
-    
+
     allLists.forEach(list => {
         const listItem = document.createElement('div');
         listItem.className = 'qr-transfer-list-item';
-        
+
         // Çoklu modda seçili listeyi vurgula
         if (qrMultiModeActive && list.name === qrMultiModeTargetList) {
             listItem.style.background = 'linear-gradient(135deg, #27ae60, #229954)';
             listItem.style.color = 'white';
             listItem.style.border = '2px solid #27ae60';
         }
-        
+
         listItem.innerHTML = `${list.icon}<br>${list.label.replace(list.icon + ' ', '')}`;
         listItem.onclick = () => selectQRTransferList(list.name, imei);
         listContainer.appendChild(listItem);
     });
-    
+
     modal.classList.add('active');
 }
 
 // Transfer listesi seç
 async function selectQRTransferList(listName, imei) {
     console.log(`🔄 Transfer seçildi: ${imei} → ${listName} (Gri Liste üzerinden)`);
-    
+
     // Çoklu mod aktivasyonu kontrolü
     const multiModeToggle = document.getElementById('qrMultiModeToggle');
-    
+
     if (multiModeToggle && multiModeToggle.checked && !qrMultiModeActive) {
         // İlk seçim - Çoklu modu başlat
         qrMultiModeActive = true;
         qrMultiModeTargetList = listName;
         qrMultiModeCount = 0;
-        
+
         showToast(`📦 Çoklu Mod Aktif: ${CACHED_LIST_NAMES[listName] || listName}`, 'info');
         console.log(`📦 Çoklu Mod başlatıldı: Hedef → ${listName}`);
     }
-    
+
     // Gri listeye ekle (async işlem)
     const success = await addToGriListeFromQR(imei, listName);
-    
+
     if (success) {
         if (qrMultiModeActive) {
             // Çoklu Mod - Modal açık kalır, kamera tekrar başlar
             qrMultiModeCount++;
-            
+
             // Modal'ı kapat
             closeQRTransferModal();
-            
+
             // Kısa bekleme sonrası kamerayı yeniden aç
             setTimeout(() => {
                 openQRScanner();
                 showToast(`✅ ${qrMultiModeCount}. QR eklendi - Sonraki QR'ı okutun`, 'success');
             }, 500);
-            
+
         } else {
             // Normal Mod - Modal kapan
             closeQRTransferModal();
-            
+
             // Status güncelle
             const statusEl = document.getElementById('qrScannerStatus');
             if (statusEl) {
                 statusEl.textContent = `Son işlem: ${imei} → Onay bekliyor (${CACHED_LIST_NAMES[listName] || listName})`;
                 statusEl.className = 'qr-scanner-status success';
-                
+
                 setTimeout(() => {
                     statusEl.textContent = '';
                     statusEl.className = 'qr-scanner-status';
@@ -12255,7 +12467,7 @@ async function selectQRTransferList(listName, imei) {
 function toggleQRMultiMode() {
     const toggle = document.getElementById('qrMultiModeToggle');
     const status = document.getElementById('qrMultiModeStatus');
-    
+
     if (toggle.checked) {
         status.style.display = 'block';
         status.textContent = 'Çoklu mod: İlk hedef listeyi seçin';
@@ -12279,18 +12491,18 @@ function endQRMultiMode() {
     if (qrMultiModeActive) {
         showToast(`🛑 Çoklu Mod Sonlandı: ${qrMultiModeCount} adet QR okutuldu`, 'success');
         console.log(`🛑 Çoklu Mod sonlandırıldı: ${qrMultiModeCount} adet`);
-        
+
         // Değişkenleri sıfırla
         qrMultiModeActive = false;
         qrMultiModeTargetList = null;
         qrMultiModeCount = 0;
-        
+
         // Göstergeyi gizle
         const multiModeIndicator = document.getElementById('qrMultiModeIndicator');
         if (multiModeIndicator) {
             multiModeIndicator.style.display = 'none';
         }
-        
+
         // Kamerayı kapat ve modal'ı kapat
         closeQRScanner();
     }
@@ -12298,12 +12510,12 @@ function endQRMultiMode() {
 
 function closeQRTransferModal() {
     const modal = document.getElementById('qrTransferModal');
-    
+
     // Çoklu mod aktif değilse normal kapanış
     if (!qrMultiModeActive) {
         modal.classList.remove('active');
         currentScannedIMEI = null;
-        
+
         // Checkbox'ı sıfırla
         const toggle = document.getElementById('qrMultiModeToggle');
         if (toggle) toggle.checked = false;
@@ -12328,23 +12540,23 @@ async function addToGriListeFromQR(imei, targetList) {
         showToast('Geçersiz IMEI veya liste', 'error');
         return false;
     }
-    
+
     const userName = currentUserName || (currentUserEmail ? currentUserEmail.split('@')[0] : 'QR Kullanıcı');
-    
+
     // ⭐ DÜZELTME: 'YENİ' yerine null gönder
     // addToGriListe otomatik olarak kaynak listeyi bulacak ve silecek
     // Eğer hiçbir listede yoksa zaten 'YENİ' olarak işaretleyecek
     const success = await addToGriListe(imei, null, targetList, userName);
-    
+
     if (success) {
         console.log('✅ QR ile gri listeye eklendi:', imei, '→', targetList);
         showToast(`✅ ${imei} onay bekleyen transferlere eklendi`, 'success');
-        
+
         // Log kaydet
         if (typeof logAction === 'function') {
             logAction(`QR ile gri listeye eklendi: ${imei} → ${targetList}`, 'qr_transfer');
         }
-        
+
         return true;
     } else {
         console.error('❌ Gri listeye eklenemedi');
@@ -12367,15 +12579,15 @@ let isQRApproveScanning = false;
  */
 function openQRApproveScanner() {
     console.log('📷 QR Onay Scanner açılıyor...');
-    
+
     const modal = document.getElementById('qrApproveModal');
     if (!modal) {
         console.error('❌ QR Onay Modal bulunamadı!');
         return;
     }
-    
+
     modal.style.display = 'flex';
-    
+
     // Kısa bir gecikme ile modal animasyonu için
     setTimeout(() => {
         modal.classList.add('active');
@@ -12391,19 +12603,19 @@ function startQRApproveScanner() {
         console.log('⚠️ QR Onay Scanner zaten çalışıyor');
         return;
     }
-    
+
     const config = {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
         disableFlip: false
     };
-    
+
     try {
         if (!qrApproveScanner) {
             qrApproveScanner = new Html5Qrcode("qrApproveReader");
         }
-        
+
         qrApproveScanner.start(
             { facingMode: "environment" },
             config,
@@ -12418,7 +12630,7 @@ function startQRApproveScanner() {
             updateQRApproveMessage('Kamera başlatılamadı!', 'error');
             isQRApproveScanning = false;
         });
-        
+
     } catch (error) {
         console.error('❌ QR Onay Scanner hatası:', error);
         updateQRApproveMessage('Hata oluştu!', 'error');
@@ -12431,12 +12643,12 @@ function startQRApproveScanner() {
  */
 async function onQRApproveScanned(decodedText, decodedResult) {
     if (!isQRApproveScanning) return;
-    
+
     console.log('📷 QR Onay - Kod okundu:', decodedText);
-    
+
     // Scanner'ı geçici olarak durdur (çift okuma önleme)
     isQRApproveScanning = false;
-    
+
     // 15 haneli IMEI kontrolü
     const imei = decodedText.trim();
     if (imei.length < 15) {
@@ -12446,7 +12658,7 @@ async function onQRApproveScanned(decodedText, decodedResult) {
         }, 2000);
         return;
     }
-    
+
     // Gri listede var mı kontrol et
     if (!griListeData || !griListeData[imei]) {
         updateQRApproveMessage(`⚠️ ${imei} gri listede bulunamadı!`, 'warning');
@@ -12456,37 +12668,37 @@ async function onQRApproveScanned(decodedText, decodedResult) {
         }, 2000);
         return;
     }
-    
+
     // ⭐ GRİ LİSTE BİLGİSİNİ ÖNCE KAYDET (approveFromGriListe silmeden önce!)
     const griItem = griListeData[imei];
     const toList = griItem.toList || 'hedef liste';
     const toListName = CACHED_LIST_NAMES[toList] || toList;
-    
+
     // Gri listeden onaylayıp hedef listeye transfer et
     updateQRApproveMessage(`⏳ ${imei} transfer ediliyor...`, 'info');
-    
+
     const success = await approveFromGriListe(imei);
-    
+
     if (success) {
         updateQRApproveMessage(`✅ ${imei} transfer edildi!`, 'success');
-        
+
         // Status güncelle
         const statusEl = document.getElementById('qrApproveStatus');
         if (statusEl) {
             statusEl.textContent = `Son işlem: ${imei} → ${toListName}`;
             statusEl.className = 'qr-approve-status success';
-            
+
             setTimeout(() => {
                 statusEl.textContent = '';
                 statusEl.className = 'qr-approve-status';
             }, 8000);
         }
-        
+
         // 2 saniye sonra tekrar taramaya başla
         setTimeout(() => {
             isQRApproveScanning = true;
         }, 2000);
-        
+
     } else {
         updateQRApproveMessage(`❌ ${imei} transfer edilemedi!`, 'error');
         setTimeout(() => {
@@ -12538,7 +12750,7 @@ function stopQRApproveScanner() {
  */
 function closeQRApproveScanner() {
     stopQRApproveScanner();
-    
+
     const modal = document.getElementById('qrApproveModal');
     if (modal) {
         modal.classList.remove('active');
@@ -12546,7 +12758,7 @@ function closeQRApproveScanner() {
             modal.style.display = 'none';
         }, 300);
     }
-    
+
     updateQRApproveMessage('', 'info');
     console.log('📷 QR Onay Scanner kapatıldı');
 }
@@ -12581,9 +12793,9 @@ async function toggleMaintenanceMode() {
 
         const statusText = newStatus ? 'AKTİF' : 'PASİF';
         const icon = newStatus ? '🔴' : '🟢';
-        
+
         showToast(`${icon} Bakım Modu ${statusText} Edildi!`, newStatus ? 'warning' : 'success');
-        
+
         console.log(`🔧 Bakım Modu ${statusText}:`, newStatus);
 
         // Buton durumunu güncelle
@@ -12596,38 +12808,10 @@ async function toggleMaintenanceMode() {
 }
 
 // ========================================
-// SAYIM MODU SİSTEMİ
+// SAYIM MODU SİSTEMİ - MOVED TO TOP OF FILE (LINE ~166)
 // ========================================
-
-/**
- * Sayım Modunu açıp kapatır
- */
-function toggleSayimModu() {
-    if (currentUserRole !== 'admin') {
-        showToast('❌ Bu işlem için yetkiniz yok!', 'error');
-        return;
-    }
-
-    sayimModuActive = !sayimModuActive;
-    
-    const btn = document.getElementById('sayimModuBtn');
-    const icon = document.getElementById('sayimModuIcon');
-    const text = document.getElementById('sayimModuText');
-    
-    if (sayimModuActive) {
-        btn.classList.add('active');
-        icon.textContent = '✅';
-        text.textContent = 'Sayım Modu: AÇIK';
-        showToast('📊 Sayım Modu AÇILDI! TÜM listelerde eşleşmeyen IMEI\'ler gri listeye eklenecek.', 'success');
-        console.log('📊 Sayım Modu AÇIK - TÜM listelerde eşleşmeyen IMEI\'ler gri listeye eklenecek');
-    } else {
-        btn.classList.remove('active');
-        icon.textContent = '📊';
-        text.textContent = 'Sayım Modu: KAPALI';
-        showToast('📊 Sayım Modu KAPATILDI! Sistem normal modda çalışıyor.', 'info');
-        console.log('📊 Sayım Modu KAPALI - Normal mod');
-    }
-}
+// toggleSayimModu() fonksiyonu yukarıda tanımlı (satır ~166)
+// Bu eski versiyon silindi çünkü processSayimModuDeactivation() çağırmıyordu
 
 /**
  * Sayım Modunda IMEI kontrolü yapar
@@ -12638,13 +12822,13 @@ function toggleSayimModu() {
 function checkIMEIInSayimModu(imei, currentList) {
     // Eğer sayım modu kapalıysa, normal akış devam etsin
     if (!sayimModuActive) return null;
-    
+
     // IMEI'nin mevcut listede olup olmadığını kontrol et
     if (userCodes[currentList] && userCodes[currentList].has(imei)) {
         console.log(`✅ Sayım Modu: ${imei} listede mevcut - İşlem yapılmadı`);
         return true; // Listede var, gri listeye ekleme
     }
-    
+
     console.log(`❌ Sayım Modu: ${imei} listede YOK - Gri listeye eklenecek`);
     return false; // Listede yok, gri listeye ekle
 }
@@ -12656,7 +12840,7 @@ function updateMaintenanceButton(isActive) {
     const btn = document.getElementById('maintenanceBtn');
     const icon = document.getElementById('maintenanceBtnIcon');
     const text = document.getElementById('maintenanceBtnText');
-    
+
     if (!btn || !icon || !text) return;
 
     if (isActive) {
@@ -12726,7 +12910,7 @@ function startMaintenanceModeListener() {
     }
 
     const maintenanceRef = db.ref('systemSettings/maintenanceMode');
-    
+
     maintenanceModeListener = maintenanceRef.on('value', (snapshot) => {
         const isActive = snapshot.val() || false;
         isMaintenanceMode = isActive;
@@ -12767,13 +12951,13 @@ function stopMaintenanceModeListener() {
  */
 async function initMaintenanceMode() {
     console.log('🔧 Bakım modu sistemi başlatılıyor...');
-    
+
     // İlk kontrol
     await checkMaintenanceMode();
-    
+
     // Gerçek zamanlı dinleyiciyi başlat
     startMaintenanceModeListener();
-    
+
     console.log('✅ Bakım modu sistemi başlatıldı');
 }
 
@@ -12796,7 +12980,7 @@ async function clearDashboardCounts() {
 
     // Şifre kontrolü
     const password = prompt('🔐 Dashboard sıfırlama şifresi:');
-    
+
     if (password !== '6262') {
         showToast('❌ Hatalı şifre! İşlem iptal edildi.', 'error');
         console.warn('🚫 Dashboard sıfırlama: Hatalı şifre girişi');
@@ -12837,7 +13021,7 @@ async function clearDashboardCounts() {
 
         // Önce mevcut durumu yedekle
         const listsToBackup = [
-            'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa', 
+            'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa',
             'sahiniden', 'pil', 'mediaMarkt', 'kasa', 'ekran', 'onCam',
             'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj'
         ];
@@ -12854,13 +13038,13 @@ async function clearDashboardCounts() {
         for (const listName of listsToBackup) {
             // Firebase path'i - onarim için onarimTamamlandi kullan
             const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
-            
+
             const snapshot = await db.ref(`servis/${dbPath}`).once('value');
-            
+
             backup.data[listName] = {
                 firebaseData: snapshot.val() || {}
             };
-            
+
             console.log(`✅ ${listName} yedeklendi (${Object.keys(backup.data[listName].firebaseData).length} kayıt)`);
         }
 
@@ -12870,29 +13054,29 @@ async function clearDashboardCounts() {
 
         // Şimdi listeleri sıfırla - .remove() metodu ile
         showToast('🗑️ Veriler siliniyor...', 'info');
-        
+
         for (const listName of listsToBackup) {
             // Firebase path'i - onarim için onarimTamamlandi kullan
             const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
-            
+
             // Firebase'den sil
             await db.ref(`servis/${dbPath}`).remove();
             console.log(`🗑️ Firebase: servis/${dbPath} silindi`);
-            
+
             // Local cache'i temizle
             if (userCodes[listName]) {
                 userCodes[listName].clear();
                 console.log(`✅ ${listName} local cache temizlendi`);
             }
-            
+
             if (codeTimestamps[listName]) {
                 codeTimestamps[listName] = {};
             }
-            
+
             if (codeUsers[listName]) {
                 codeUsers[listName] = {};
             }
-            
+
             // Render cache'i temizle
             RenderCache.invalidate(listName);
             DirtyLists.mark(listName);
@@ -12900,7 +13084,7 @@ async function clearDashboardCounts() {
 
         // Tüm cache'i temizle
         RenderCache.invalidateAll();
-        
+
         console.log('✅ Tüm listeler Firebase ve local cache\'den silindi');
 
         // Log kaydı oluştur
@@ -12943,7 +13127,7 @@ async function restoreDashboardCounts() {
 
     // Şifre kontrolü
     const password = prompt('🔐 Dashboard geri yükleme şifresi:');
-    
+
     if (password !== '6262') {
         showToast('❌ Hatalı şifre! İşlem iptal edildi.', 'error');
         console.warn('🚫 Dashboard geri yükleme: Hatalı şifre girişi');
@@ -12990,26 +13174,26 @@ async function restoreDashboardCounts() {
         // Yedeği geri yükle - set() metodu ile
         for (const listName in lastBackup.data) {
             const listData = lastBackup.data[listName];
-            
+
             // Firebase path'i - onarim için onarimTamamlandi kullan
             const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
-            
+
             if (listData.firebaseData) {
                 await db.ref(`servis/${dbPath}`).set(listData.firebaseData);
                 console.log(`✅ Firebase: servis/${dbPath} geri yüklendi`);
             }
-            
+
             // Local cache'i güncelle
             if (userCodes[listName]) {
                 userCodes[listName].clear();
-                
+
                 const fbData = listData.firebaseData;
                 if (fbData) {
                     // Firebase'deki tüm 15 haneli kodları Set'e ekle
                     Object.keys(fbData).forEach(code => {
                         if (/^\d{15}$/.test(code)) {
                             userCodes[listName].add(code);
-                            
+
                             // Timestamps ve users'ı da güncelle
                             if (typeof fbData[code] === 'object') {
                                 codeTimestamps[listName][code] = fbData[code].ts || '';
@@ -13020,11 +13204,11 @@ async function restoreDashboardCounts() {
                             }
                         }
                     });
-                    
+
                     console.log(`✅ ${listName} local cache güncellendi (${userCodes[listName].size} cihaz)`);
                 }
             }
-            
+
             // Render cache'i temizle
             RenderCache.invalidate(listName);
             DirtyLists.mark(listName);
@@ -13032,7 +13216,7 @@ async function restoreDashboardCounts() {
 
         // Tüm cache'i temizle
         RenderCache.invalidateAll();
-        
+
         console.log('✅ Dashboard geri yüklendi ve cache güncellendi');
 
         // Log kaydı oluştur
@@ -13067,7 +13251,7 @@ async function restoreDashboardCounts() {
  */
 function updateAdminDashboardControls() {
     const controlsDiv = document.getElementById('adminDashboardControls');
-    
+
     if (controlsDiv) {
         if (currentUserRole === 'admin') {
             controlsDiv.style.display = 'flex';
