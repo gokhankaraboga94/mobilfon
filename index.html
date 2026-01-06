@@ -962,6 +962,13 @@
                 <div class="qr-scanner-info">
                     <p>📌 QR kodu kamera önüne tutun</p>
                     <p id="qrScannerMessage" class="qr-scanner-message"></p>
+                    
+                    <!-- ÇOKLU MOD DURUM GÖSTERGESİ -->
+                    <div id="qrMultiModeIndicator" style="display: none; margin-top: 15px; padding: 12px; background: linear-gradient(135deg, #27ae60, #229954); border-radius: 8px; text-align: center; color: white;">
+                        <p style="margin: 0 0 8px 0; font-weight: 600; font-size: 14px;">📦 Çoklu Mod Aktif</p>
+                        <p id="qrMultiModeInfo" style="margin: 0 0 10px 0; font-size: 13px;">0 adet okutuldu → -</p>
+                        <button onclick="endQRMultiMode()" style="background: white; color: #27ae60; border: none; padding: 8px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">🛑 Çoklu Modu Bitir</button>
+                    </div>
                 </div>
             </div>
         </div>
