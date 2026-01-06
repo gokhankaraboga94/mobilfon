@@ -357,7 +357,7 @@ function openSectionInDashboard(sectionName, event) {
                         } else if (addedCount > 0) {
                             showToast(`⏳ Sayım: ${addedCount} adet gri listeye eklendi (Listede YOK)`, 'warning');
                         } else if (skippedCount > 0) {
-                            showToast(`❌ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
+                            showToast(`✅ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
                         }
                     } else {
                         // Normal mod mesajları
@@ -513,9 +513,9 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         
         if (existsInCurrentList) {
             // IMEI listede mevcut - Hiçbir işlem yapma
-            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
+            console.log(`✅ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
             if (!isMultiple) {
-                showToast(`❌ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
+                showToast(`✅ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
             }
             return; // Fonksiyondan çık, gri listeye ekleme
         } else {
@@ -11912,6 +11912,16 @@ function openQRScanner() {
 // QR Scanner'ı başlat
 function startQRScanner() {
     const messageEl = document.getElementById('qrScannerMessage');
+    const multiModeIndicator = document.getElementById('qrMultiModeIndicator');
+    
+    // Çoklu mod göstergesini güncelle
+    if (qrMultiModeActive && qrMultiModeTargetList) {
+        multiModeIndicator.style.display = 'block';
+        const multiModeInfo = document.getElementById('qrMultiModeInfo');
+        multiModeInfo.textContent = `${qrMultiModeCount} adet okutuldu → ${CACHED_LIST_NAMES[qrMultiModeTargetList] || qrMultiModeTargetList}`;
+    } else {
+        multiModeIndicator.style.display = 'none';
+    }
     
     if (isQRScannerActive) {
         messageEl.textContent = 'QR tarayıcı zaten aktif';
@@ -11949,7 +11959,7 @@ function startQRScanner() {
 }
 
 // QR kod okunduğunda
-function onQRCodeScanned(decodedText, decodedResult) {
+async function onQRCodeScanned(decodedText, decodedResult) {
     console.log('🎯 QR Kod okundu:', decodedText);
     
     // 15 haneli IMEI kontrolü
@@ -11966,11 +11976,45 @@ function onQRCodeScanned(decodedText, decodedResult) {
         // Kamerayı durdur
         stopQRScanner();
         
-        // Kısa bir bekleme sonrası transfer modal'ını aç
-        setTimeout(() => {
-            closeQRScanner();
-            openQRTransferModal(imei);
-        }, 1000);
+        // ========================================
+        // ÇOKLU MOD KONTROLÜ
+        // ========================================
+        if (qrMultiModeActive && qrMultiModeTargetList) {
+            // Çoklu mod aktif ve hedef liste seçilmiş
+            // Direkt gri listeye ekle, modal açma!
+            console.log(`📦 Çoklu Mod: ${imei} → ${qrMultiModeTargetList} (Modal atlandı)`);
+            
+            const success = await addToGriListeFromQR(imei, qrMultiModeTargetList);
+            
+            if (success) {
+                qrMultiModeCount++;
+                
+                // Kısa bekleme sonrası kamerayı tekrar aç
+                setTimeout(() => {
+                    messageEl.textContent = `✅ ${qrMultiModeCount}. QR eklendi - Sonraki QR'ı okutun`;
+                    messageEl.className = 'qr-scanner-message success';
+                    
+                    // Kamerayı tekrar başlat
+                    startQRScanner();
+                    
+                    showToast(`✅ ${qrMultiModeCount}. QR eklendi → ${CACHED_LIST_NAMES[qrMultiModeTargetList] || qrMultiModeTargetList}`, 'success');
+                }, 800);
+            } else {
+                // Hata durumunda kamerayı tekrar aç
+                setTimeout(() => {
+                    startQRScanner();
+                    showToast('❌ Transfer başarısız, tekrar deneyin', 'error');
+                }, 1000);
+            }
+        } else {
+            // Normal mod veya çoklu modda ilk QR
+            // Transfer modal'ını aç
+            setTimeout(() => {
+                closeQRScanner();
+                openQRTransferModal(imei);
+            }, 1000);
+        }
+        // ========================================
         
     } else {
         const messageEl = document.getElementById('qrScannerMessage');
@@ -11978,6 +12022,7 @@ function onQRCodeScanned(decodedText, decodedResult) {
         messageEl.className = 'qr-scanner-message error';
         console.warn('⚠️ Geçersiz QR içeriği:', decodedText);
     }
+}
 }
 
 // QR scan hatası
@@ -12177,6 +12222,28 @@ function toggleQRMultiMode() {
         qrMultiModeTargetList = null;
         qrMultiModeCount = 0;
         status.style.display = 'none';
+    }
+}
+
+// Çoklu modu bitir
+function endQRMultiMode() {
+    if (qrMultiModeActive) {
+        showToast(`🛑 Çoklu Mod Sonlandı: ${qrMultiModeCount} adet QR okutuldu`, 'success');
+        console.log(`🛑 Çoklu Mod sonlandırıldı: ${qrMultiModeCount} adet`);
+        
+        // Değişkenleri sıfırla
+        qrMultiModeActive = false;
+        qrMultiModeTargetList = null;
+        qrMultiModeCount = 0;
+        
+        // Göstergeyi gizle
+        const multiModeIndicator = document.getElementById('qrMultiModeIndicator');
+        if (multiModeIndicator) {
+            multiModeIndicator.style.display = 'none';
+        }
+        
+        // Kamerayı kapat ve modal'ı kapat
+        closeQRScanner();
     }
 }
 
