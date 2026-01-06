@@ -357,7 +357,7 @@ function openSectionInDashboard(sectionName, event) {
                         } else if (addedCount > 0) {
                             showToast(`⏳ Sayım: ${addedCount} adet gri listeye eklendi (Listede YOK)`, 'warning');
                         } else if (skippedCount > 0) {
-                            showToast(`✅ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
+                            showToast(`❌ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
                         }
                     } else {
                         // Normal mod mesajları
