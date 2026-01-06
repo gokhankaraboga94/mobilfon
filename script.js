@@ -513,9 +513,9 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         
         if (existsInCurrentList) {
             // IMEI listede mevcut - Hiçbir işlem yapma
-            console.log(`✅ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
+            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
             if (!isMultiple) {
-                showToast(`✅ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
+                showToast(`❌ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
             }
             return; // Fonksiyondan çık, gri listeye ekleme
         } else {
