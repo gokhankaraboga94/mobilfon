@@ -12932,12 +12932,21 @@ async function clearDashboardCounts() {
 
 /**
  * Dashboard sayaçlarını son yedekten geri yükleme fonksiyonu
- * Sadece admin kullanıcılar için
+ * Sadece admin kullanıcılar için - 6262 şifresi ile korunur
  */
 async function restoreDashboardCounts() {
     // Admin kontrolü
     if (currentUserRole !== 'admin') {
         showToast('❌ Bu işlem için admin yetkisi gereklidir!', 'error');
+        return;
+    }
+
+    // Şifre kontrolü
+    const password = prompt('🔐 Dashboard geri yükleme şifresi:');
+    
+    if (password !== '6262') {
+        showToast('❌ Hatalı şifre! İşlem iptal edildi.', 'error');
+        console.warn('🚫 Dashboard geri yükleme: Hatalı şifre girişi');
         return;
     }
 
@@ -13070,4 +13079,3 @@ function updateAdminDashboardControls() {
 }
 
 console.log('✅ Admin Dashboard Control fonksiyonları yüklendi');
-
