@@ -149,6 +149,7 @@ function applyTheme() {
 // Sayfa yüklendiğinde temayı uygula
 document.addEventListener('DOMContentLoaded', function () {
     applyTheme();
+    initAdminNavState(); // Initialize admin nav collapsed state for mobile
     // initPartsDashboardClickHandlers() artık gerekli değil, onclick HTML'de tanımlı
 });
 
@@ -357,7 +358,7 @@ function openSectionInDashboard(sectionName, event) {
                         } else if (addedCount > 0) {
                             showToast(`⏳ Sayım: ${addedCount} adet gri listeye eklendi (Listede YOK)`, 'warning');
                         } else if (skippedCount > 0) {
-                            showToast(`❌ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
+                            showToast(`✅ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
                         }
                     } else {
                         // Normal mod mesajları
@@ -513,9 +514,9 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         
         if (existsInCurrentList) {
             // IMEI listede mevcut - Hiçbir işlem yapma
-            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
+            console.log(`✅ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı`);
             if (!isMultiple) {
-                showToast(`❌ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
+                showToast(`✅ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
             }
             return; // Fonksiyondan çık, gri listeye ekleme
         } else {
@@ -660,6 +661,48 @@ document.addEventListener('click', function(e) {
 // ========================================
 // NAVIGATION FUNCTIONS
 // ========================================
+
+// ========================================
+// ADMIN NAV TOGGLE FOR MOBILE
+// ========================================
+function toggleAdminNav() {
+    const adminNav = document.getElementById('adminNav');
+    const toggleBtn = document.getElementById('adminNavToggle');
+    
+    if (!adminNav || !toggleBtn) return;
+    
+    // Toggle collapsed class
+    adminNav.classList.toggle('collapsed');
+    
+    // Rotate icon
+    toggleBtn.classList.toggle('rotated');
+    
+    // Save state to localStorage
+    const isCollapsed = adminNav.classList.contains('collapsed');
+    localStorage.setItem('adminNavCollapsed', isCollapsed);
+}
+
+// Initialize admin nav state on page load
+function initAdminNavState() {
+    const adminNav = document.getElementById('adminNav');
+    const toggleBtn = document.getElementById('adminNavToggle');
+    
+    if (!adminNav || !toggleBtn) return;
+    
+    // Check saved state
+    const savedState = localStorage.getItem('adminNavCollapsed');
+    
+    // On mobile, default to collapsed
+    const isMobile = window.innerWidth <= 768;
+    const shouldCollapse = isMobile && (savedState === null || savedState === 'true');
+    
+    if (shouldCollapse) {
+        adminNav.classList.add('collapsed');
+    } else {
+        adminNav.classList.remove('collapsed');
+        toggleBtn.classList.add('rotated');
+    }
+}
 
 // ========================================
 // ADMIN PANEL DASHBOARD ITEMS GİZLEME
