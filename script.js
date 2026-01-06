@@ -12023,7 +12023,7 @@ async function onQRCodeScanned(decodedText, decodedResult) {
         console.warn('⚠️ Geçersiz QR içeriği:', decodedText);
     }
 }
-}
+
 
 // QR scan hatası
 function onQRScanError(errorMessage) {
