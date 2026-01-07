@@ -8862,12 +8862,12 @@ function startConflictMonitoring() {
     // İlk kontrol - 30 DAKIKA SONRA (1800000 ms)
     setTimeout(() => {
         checkAndNotifyConflicts();
-    }, 30 * 60 * 1000); // 30 dakika = 1800000 ms
+    }, 25 * 60 * 1000); // 30 dakika = 1800000 ms
 
     // Her 60 dakikada bir kontrol et
     conflictCheckInterval = setInterval(() => {
         checkAndNotifyConflicts();
-    }, 60 * 60 * 1000);
+    }, 45 * 60 * 1000);
 }
 
 // Çakışma kontrolünü durdur
