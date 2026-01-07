@@ -159,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
 let sayimModuActive = false; // Sayım modu aktif mi?
 let sayimModuCache = new Set(); // Dashboard listelerindeki tüm barkodlar
 let sayimModuScannedBarcodes = new Set(); // Sayım sırasında okutulan barkodlar
+let sayimModuSelectedLists = []; // Sayım için seçili alanlar
 
 /**
  * Sayım Modunu aç/kapat
@@ -172,34 +173,7 @@ function toggleSayimModu() {
         return;
     }
 
-    sayimModuActive = !sayimModuActive;
-
-    console.log(`🔘 Yeni durum: ${sayimModuActive ? 'AÇIK' : 'KAPALI'}`);
-
-    const btn = document.getElementById('sayimModuBtn');
-    const btnText = document.getElementById('sayimModuText');
-    const btnIcon = document.getElementById('sayimModuIcon');
-
     if (sayimModuActive) {
-        // SAYIM MODU AÇILIYOR
-        console.log('📊 Sayım Modu AÇILIYOR...');
-
-        // Cache'i başlat - Sadece Parça/İşlem Türleri listelerini cache'e al
-        initializeSayimModuCache();
-
-        // Okutulan barkodları temizle
-        sayimModuScannedBarcodes.clear();
-
-        // UI güncelle
-        if (btn) btn.classList.add('active');
-        if (btnText) btnText.textContent = 'Sayım Modu: AÇIK';
-        if (btnIcon) btnIcon.textContent = '✅';
-
-        showToast(`📊 Sayım Modu AÇILDI! ${sayimModuCache.size} cihaz cache'e alındı`, 'success');
-        console.log(`✅ Sayım Modu aktif - ${sayimModuCache.size} cihaz cache'lendi`);
-        console.log(`📋 Cache'deki ilk 10 barkod:`, Array.from(sayimModuCache).slice(0, 10));
-
-    } else {
         // SAYIM MODU KAPATILIYOR
         console.log('📊 Sayım Modu KAPATILIYOR...');
 
@@ -215,31 +189,40 @@ function toggleSayimModu() {
             await processSayimModuDeactivation();
 
             // UI güncelle
+            const btn = document.getElementById('sayimModuBtn');
+            const btnText = document.getElementById('sayimModuText');
+            const btnIcon = document.getElementById('sayimModuIcon');
+            
+            sayimModuActive = false;
             if (btn) btn.classList.remove('active');
             if (btnText) btnText.textContent = 'Sayım Modu: KAPALI';
             if (btnIcon) btnIcon.textContent = '📊';
+            
+            // Seçili listeleri temizle
+            sayimModuSelectedLists = [];
         }, 100);
+    } else {
+        // SAYIM MODU AÇILIYOR - Önce alan seçim modalini aç
+        openSayimModuListSelection();
     }
 }
 
 /**
  * Sayım Modu için cache'i başlat
- * Sadece Parça/İşlem Türleri listelerini cache'e alır
+ * Sadece seçili alanların barkodlarını cache'e alır
  */
 function initializeSayimModuCache() {
     sayimModuCache.clear();
 
-    // Parça/İşlem Türleri listeleri
-    const partOperationLists = [
-        'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa', 'sahiniden',
-        'pil', 'mediaMarkt', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran',
-        'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj'
-    ];
+    if (sayimModuSelectedLists.length === 0) {
+        console.warn('⚠️ Hiç alan seçilmedi!');
+        return;
+    }
 
     let totalCached = 0;
 
-    // Her listeden barkodları cache'e ekle
-    partOperationLists.forEach(listName => {
+    // Sadece seçili listelerden barkodları cache'e ekle
+    sayimModuSelectedLists.forEach(listName => {
         if (userCodes[listName] && userCodes[listName].size > 0) {
             userCodes[listName].forEach(barcode => {
                 sayimModuCache.add(barcode);
@@ -250,6 +233,7 @@ function initializeSayimModuCache() {
     });
 
     console.log(`📦 Toplam ${totalCached} cihaz cache'e alındı (${sayimModuCache.size} benzersiz barkod)`);
+    console.log(`📋 Seçili alanlar:`, sayimModuSelectedLists);
 }
 
 /**
@@ -257,6 +241,7 @@ function initializeSayimModuCache() {
  */
 async function processSayimModuDeactivation() {
     console.log(`🔍 ========== SAYIM MODU KAPATILIYOR ==========`);
+    console.log(`📋 Seçili alanlar:`, sayimModuSelectedLists);
     console.log(`📦 Cache içeriği (${sayimModuCache.size} adet):`, Array.from(sayimModuCache));
     console.log(`✅ Okutulan barkodlar (${sayimModuScannedBarcodes.size} adet):`, Array.from(sayimModuScannedBarcodes));
 
@@ -285,10 +270,10 @@ async function processSayimModuDeactivation() {
         // Her bir okutulmayan 15 haneli barkodu gri listeye ekle
         for (const barcode of unscanned15Digit) {
             try {
-                // Barkodun hangi listede olduğunu bul
+                // Barkodun hangi listede olduğunu bul - SADECE SEÇİLİ LİSTELERDE ARA
                 let sourceList = null;
-                for (const [listName, codeSet] of Object.entries(userCodes)) {
-                    if (codeSet.has(barcode)) {
+                for (const listName of sayimModuSelectedLists) {
+                    if (userCodes[listName] && userCodes[listName].has(barcode)) {
                         sourceList = listName;
                         break;
                     }
@@ -307,7 +292,7 @@ async function processSayimModuDeactivation() {
                         console.error(`❌ Transfer başarısız: ${barcode}`);
                     }
                 } else {
-                    console.warn(`⚠️ ${barcode} için kaynak liste bulunamadı`);
+                    console.warn(`⚠️ ${barcode} için seçili listeler arasında kaynak liste bulunamadı`);
                     failCount++;
                 }
 
@@ -343,6 +328,161 @@ async function processSayimModuDeactivation() {
  */
 function isBarcodeInCache(barcode) {
     return sayimModuCache.has(barcode);
+}
+
+/**
+ * Sayım Modu için alan seçim modalini aç
+ */
+function openSayimModuListSelection() {
+    console.log('📋 Sayım Modu Alan Seçim Modalı açılıyor...');
+    
+    // Mevcut Parça/İşlem Türleri listeleri
+    const partOperationLists = [
+        { id: 'demontaj', label: '🔧 Demontaj', emoji: '🔧' },
+        { id: 'montaj', label: '🔨 Montaj', emoji: '🔨' },
+        { id: 'pil', label: '🔋 Pil', emoji: '🔋' },
+        { id: 'parcaBekliyor', label: '⚙️ Parça Bekliyor', emoji: '⚙️' },
+        { id: 'ekran', label: '📱 Ekran', emoji: '📱' },
+        { id: 'kasa', label: '📦 Kasa', emoji: '📦' },
+        { id: 'onCam', label: '📷 Ön Cam', emoji: '📷' },
+        { id: 'pilKasa', label: '🔋📦 Pil + Kasa', emoji: '🔋📦' },
+        { id: 'pilEkran', label: '🔋📱 Pil + Ekran', emoji: '🔋📱' },
+        { id: 'ekranKasa', label: '📱📦 Ekran + Kasa', emoji: '📱📦' },
+        { id: 'pilEkranKasa', label: '🔋📱📦 Pil + Ekran + Kasa', emoji: '🔋📱📦' },
+        { id: 'phonecheck', label: '📱 PhoneCheck', emoji: '📱' },
+        { id: 'onarim', label: '🔧 Onarım', emoji: '🔧' },
+        { id: 'atanacak', label: '📋 Atanacak', emoji: '📋' },
+        { id: 'satisa', label: '💰 Satışa Gidecek', emoji: '💰' },
+        { id: 'sahiniden', label: '🏪 Sahibinden', emoji: '🏪' },
+        { id: 'mediaMarkt', label: '🛒 Satış Sonrası', emoji: '🛒' }
+    ];
+    
+    // Modal HTML'i oluştur
+    let modalHTML = `
+        <div class="modal-overlay active" id="sayimModuListSelectionModal">
+            <div class="modal" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h2>📊 Sayım Modu - Alan Seçimi</h2>
+                    <button class="close-modal-btn" onclick="closeSayimModuListSelection()">✕</button>
+                </div>
+                <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                    <p style="margin-bottom: 20px; color: rgba(255,255,255,0.8); font-size: 14px;">
+                        Sayım yapmak istediğiniz alanları seçin. Sayım modu kapatıldığında <strong>sadece seçili alanlarda</strong> okutulmayan cihazlar Gri Liste'ye gönderilecektir.
+                    </p>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <button onclick="selectAllSayimLists()" class="modal-button" style="background: #3498db; margin-right: 10px;">
+                            ✅ Tümünü Seç
+                        </button>
+                        <button onclick="deselectAllSayimLists()" class="modal-button secondary">
+                            ❌ Tümünü Kaldır
+                        </button>
+                    </div>
+                    
+                    <div class="sayim-list-selection" id="sayimListSelection">
+    `;
+    
+    // Her alan için checkbox ekle
+    partOperationLists.forEach(list => {
+        const count = userCodes[list.id] ? userCodes[list.id].size : 0;
+        modalHTML += `
+            <div class="sayim-list-item">
+                <label>
+                    <input type="checkbox" class="sayim-list-checkbox" value="${list.id}" ${count > 0 ? '' : 'disabled'}>
+                    <span class="sayim-list-label">
+                        <span class="sayim-list-emoji">${list.emoji}</span>
+                        <span class="sayim-list-name">${list.label}</span>
+                        <span class="sayim-list-count">${count} cihaz</span>
+                    </span>
+                </label>
+            </div>
+        `;
+    });
+    
+    modalHTML += `
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button class="modal-button secondary" onclick="closeSayimModuListSelection()">İptal</button>
+                    <button class="modal-button primary" onclick="startSayimModuWithSelectedLists()" style="background: #27ae60;">
+                        ✅ Sayım Modunu Başlat
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Modalı ekle
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+/**
+ * Sayım Modu alan seçim modalini kapat
+ */
+function closeSayimModuListSelection() {
+    const modal = document.getElementById('sayimModuListSelectionModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+/**
+ * Tüm sayım listelerini seç
+ */
+function selectAllSayimLists() {
+    const checkboxes = document.querySelectorAll('.sayim-list-checkbox:not(:disabled)');
+    checkboxes.forEach(cb => cb.checked = true);
+}
+
+/**
+ * Tüm sayım listelerini kaldır
+ */
+function deselectAllSayimLists() {
+    const checkboxes = document.querySelectorAll('.sayim-list-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+}
+
+/**
+ * Seçili alanlarla sayım modunu başlat
+ */
+function startSayimModuWithSelectedLists() {
+    // Seçili listeleri al
+    const checkboxes = document.querySelectorAll('.sayim-list-checkbox:checked');
+    sayimModuSelectedLists = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (sayimModuSelectedLists.length === 0) {
+        showToast('❌ Lütfen en az bir alan seçin!', 'error');
+        return;
+    }
+    
+    // Modalı kapat
+    closeSayimModuListSelection();
+    
+    // Sayım modunu başlat
+    console.log('📊 Sayım Modu AÇILIYOR...');
+    console.log('📋 Seçili alanlar:', sayimModuSelectedLists);
+    
+    // Cache'i başlat - Sadece seçili alanları cache'e al
+    initializeSayimModuCache();
+    
+    // Okutulan barkodları temizle
+    sayimModuScannedBarcodes.clear();
+    
+    // Sayım modunu aktif et
+    sayimModuActive = true;
+    
+    // UI güncelle
+    const btn = document.getElementById('sayimModuBtn');
+    const btnText = document.getElementById('sayimModuText');
+    const btnIcon = document.getElementById('sayimModuIcon');
+    
+    if (btn) btn.classList.add('active');
+    if (btnText) btnText.textContent = `Sayım Modu: AÇIK (${sayimModuSelectedLists.length} alan)`;
+    if (btnIcon) btnIcon.textContent = '✅';
+    
+    showToast(`📊 Sayım Modu AÇILDI! ${sayimModuCache.size} cihaz cache'e alındı`, 'success');
+    console.log(`✅ Sayım Modu aktif - ${sayimModuCache.size} cihaz cache'lendi`);
+    console.log(`📋 Cache'deki ilk 10 barkod:`, Array.from(sayimModuCache).slice(0, 10));
 }
 
 // ========================================
@@ -12387,7 +12527,21 @@ function openQRTransferModal(imei) {
 
     listContainer.innerHTML = '';
 
+    // Teknisyen listesi
+    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+    const currentUserIsTechnician = technicianLists.includes(currentUserName);
+
     allLists.forEach(list => {
+        // ========================================
+        // TEKNİSYEN KONTROLÜ: Kendi listesine atama engeli
+        // ========================================
+        const isOwnList = currentUserIsTechnician && list.name === currentUserName;
+        
+        if (isOwnList) {
+            // Teknisyen kendi listesini görmesin (skip)
+            return;
+        }
+
         const listItem = document.createElement('div');
         listItem.className = 'qr-transfer-list-item';
 
@@ -12409,6 +12563,19 @@ function openQRTransferModal(imei) {
 // Transfer listesi seç
 async function selectQRTransferList(listName, imei) {
     console.log(`🔄 Transfer seçildi: ${imei} → ${listName} (Gri Liste üzerinden)`);
+
+    // ========================================
+    // TEKNİSYEN GÜVENLİK KONTROLÜ
+    // Teknisyenler kendi listelerine cihaz atayamaz
+    // ========================================
+    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+    const currentUserIsTechnician = technicianLists.includes(currentUserName);
+    
+    if (currentUserIsTechnician && listName === currentUserName) {
+        showToast('❌ Kendi listenize cihaz atama yetkiniz yok!', 'error');
+        console.warn(`⚠️ Teknisyen ${currentUserName} kendi listesine atmaya çalıştı - engellendi`);
+        return;
+    }
 
     // Çoklu mod aktivasyonu kontrolü
     const multiModeToggle = document.getElementById('qrMultiModeToggle');
@@ -12542,6 +12709,19 @@ async function addToGriListeFromQR(imei, targetList) {
     }
 
     const userName = currentUserName || (currentUserEmail ? currentUserEmail.split('@')[0] : 'QR Kullanıcı');
+
+    // ========================================
+    // TEKNİSYEN GÜVENLİK KONTROLÜ (3. KATMAN)
+    // Teknisyenler kendi listelerine cihaz atayamaz
+    // ========================================
+    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+    const currentUserIsTechnician = technicianLists.includes(userName);
+    
+    if (currentUserIsTechnician && targetList === userName) {
+        console.error(`❌ Teknisyen ${userName} kendi listesine (${targetList}) QR ile ekleme girişiminde bulundu - ENGELLENDİ`);
+        showToast('❌ Kendi listenize cihaz atama yetkiniz yok!', 'error');
+        return false;
+    }
 
     // ⭐ DÜZELTME: 'YENİ' yerine null gönder
     // addToGriListe otomatik olarak kaynak listeyi bulacak ve silecek
