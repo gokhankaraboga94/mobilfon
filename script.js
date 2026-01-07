@@ -7,6 +7,13 @@ const warn = PRODUCTION_MODE ? () => { } : console.warn.bind(console);
 const error = console.error.bind(console); // Always log errors
 
 // ========================================
+// GLOBAL CONSTANTS - Sistem Sabitleri
+// ========================================
+// Teknisyen listesi - Kendi listelerine cihaz atayamayan kullanıcılar
+const TECHNICIAN_LISTS = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes', 'mert'];
+
+
+// ========================================
 // RENDER CACHE SYSTEM - CPU Optimizasyonu
 // ========================================
 const RenderCache = {
@@ -12527,9 +12534,8 @@ function openQRTransferModal(imei) {
 
     listContainer.innerHTML = '';
 
-    // Teknisyen listesi
-    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
-    const currentUserIsTechnician = technicianLists.includes(currentUserName);
+    // Teknisyen listesi - Global sabitten al
+    const currentUserIsTechnician = TECHNICIAN_LISTS.includes(currentUserName);
 
     allLists.forEach(list => {
         // ========================================
@@ -12568,8 +12574,7 @@ async function selectQRTransferList(listName, imei) {
     // TEKNİSYEN GÜVENLİK KONTROLÜ
     // Teknisyenler kendi listelerine cihaz atayamaz
     // ========================================
-    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
-    const currentUserIsTechnician = technicianLists.includes(currentUserName);
+    const currentUserIsTechnician = TECHNICIAN_LISTS.includes(currentUserName);
     
     if (currentUserIsTechnician && listName === currentUserName) {
         showToast('❌ Kendi listenize cihaz atama yetkiniz yok!', 'error');
@@ -12714,8 +12719,7 @@ async function addToGriListeFromQR(imei, targetList) {
     // TEKNİSYEN GÜVENLİK KONTROLÜ (3. KATMAN)
     // Teknisyenler kendi listelerine cihaz atayamaz
     // ========================================
-    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
-    const currentUserIsTechnician = technicianLists.includes(userName);
+    const currentUserIsTechnician = TECHNICIAN_LISTS.includes(userName);
     
     if (currentUserIsTechnician && targetList === userName) {
         console.error(`❌ Teknisyen ${userName} kendi listesine (${targetList}) QR ile ekleme girişiminde bulundu - ENGELLENDİ`);
