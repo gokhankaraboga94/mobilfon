@@ -711,7 +711,7 @@ function openSectionInDashboard(sectionName, event) {
                     } else {
                         // Normal mod mesajları
                         if (newIMEIs.length === 1) {
-                            showToast(` ${newIMEIs[0]} !`, 'success');
+                            showToast(` ${newIMEIs[0]} ✅`, 'success');
                         } else {
                             showToast(`✅ ${newIMEIs.length} adet barkod gri listeye eklendi!`, 'success');
                         }
