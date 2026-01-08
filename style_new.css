@@ -1939,16 +1939,16 @@ body::before {
 .mini-item {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 16px 20px;
+    gap: 4px;
+    padding: 10px 14px;
     background: rgba(255, 255, 255, 0.18);
     backdrop-filter: blur(12px);
     border-radius: var(--radius-md);
     border: 2px solid rgba(255, 255, 255, 0.3);
     transition: all 0.3s ease;
-    font-size: 14px;
+    font-size: 13px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .mini-item:hover {
@@ -2052,23 +2052,23 @@ body::before {
 .mini-item-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     font-weight: 600;
-    font-size: 15px;
+    font-size: 13px;
     color: #ffffff;
 }
 
 .mini-item-time {
-    font-size: 12px;
+    font-size: 10px;
     color: rgba(255, 255, 255, 0.75);
-    margin-top: 5px;
+    margin-top: 2px;
     font-weight: 500;
 }
 
 .mini-item-actions {
     display: flex;
-    gap: 8px;
-    margin-top: 10px;
+    gap: 6px;
+    margin-top: 6px;
 }
 
 .item-action-btn {
