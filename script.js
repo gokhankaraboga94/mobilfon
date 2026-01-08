@@ -1633,6 +1633,7 @@ async function generateReport() {
                                 engin: '🧑‍🔧 Engin',
                                 ismail: '🧑‍🔧 İsmail',
                                 mehmet: '🧑‍🔧 Mehmet',
+                                mert: '🧑‍🔧 Mert',
                                 onarim: '🔧 Onarım Tamamlandı',
                                 onCamDisServis: '🔨 Ön Cam Dış Servis',
                                 anakartDisServis: '🔨 Anakart Dış Servis',
@@ -1640,7 +1641,16 @@ async function generateReport() {
                                 sahiniden: '🏪 Sahibinden',
                                 mediaMarkt: '🛒 Satış Sonrası',
                                 SonKullanıcı: '👤 Son Kullanıcı',
-                                teslimEdilenler: '✅ Teslim Edilenler'
+                                teslimEdilenler: '✅ Teslim Edilenler',
+                                pil: '🔋 Pil',
+                                ekran: '📱 Ekran',
+                                kasa: '📦 Kasa',
+                                pilKasa: '🔋📦 Pil + Kasa',
+                                pilEkran: '🔋📱 Pil + Ekran',
+                                ekranKasa: '📱📦 Ekran + Kasa',
+                                pilEkranKasa: '🔋📱📦 Pil + Ekran + Kasa',
+                                demontaj: '🔧 Demontaj',
+                                montaj: '🔨 Montaj'
                             };
                             currentStatus = `⏭️ Taşındı: ${listNames[otherListName] || otherListName}`;
                             statusColor = '#95a5a6';
@@ -1666,6 +1676,7 @@ async function generateReport() {
                     engin: '🧑‍🔧 Engin',
                     ismail: '🧑‍🔧 İsmail',
                     mehmet: '🧑‍🔧 Mehmet',
+                    mert: '🧑‍🔧 Mert',
                     onarim: '🔧 Onarım Tamamlandı',
                     onCamDisServis: '🔨 Ön Cam Dış Servis',
                     anakartDisServis: '🔨 Anakart Dış Servis',
@@ -1673,7 +1684,16 @@ async function generateReport() {
                     sahiniden: '🏪 Sahibinden',
                     mediaMarkt: '🛒 Satış Sonrası',
                     SonKullanıcı: '👤 Son Kullanıcı',
-                    teslimEdilenler: '✅ Teslim Edilenler'
+                    teslimEdilenler: '✅ Teslim Edilenler',
+                    pil: '🔋 Pil',
+                    ekran: '📱 Ekran',
+                    kasa: '📦 Kasa',
+                    pilKasa: '🔋📦 Pil + Kasa',
+                    pilEkran: '🔋📱 Pil + Ekran',
+                    ekranKasa: '📱📦 Ekran + Kasa',
+                    pilEkranKasa: '🔋📱📦 Pil + Ekran + Kasa',
+                    demontaj: '🔧 Demontaj',
+                    montaj: '🔨 Montaj'
                 };
 
                 const fromName = listNames[entryToList.from] || entryToList.from;
