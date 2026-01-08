@@ -711,7 +711,7 @@ function openSectionInDashboard(sectionName, event) {
                     } else {
                         // Normal mod mesajları
                         if (newIMEIs.length === 1) {
-                            showToast(` ${newIMEIs[0]} ✅`, 'success');
+                            showToast(` ${newIMEIs[0]} !`, 'success');
                         } else {
                             showToast(`✅ ${newIMEIs.length} adet barkod gri listeye eklendi!`, 'success');
                         }
@@ -7582,6 +7582,11 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
 
         if (query.length === 0) {
             searchResult.style.display = "none";
+            // Wrapper div'i gizle - doğru wrapper'ı seç
+            const wrapperParent = partInfo ? partInfo.parentElement : historyLog.parentElement;
+            if (wrapperParent && wrapperParent.classList.contains('info-history-wrapper')) {
+                wrapperParent.style.display = "none";
+            }
             historyLog.style.display = "none";
             if (partInfo) partInfo.style.display = "none";
             return;
@@ -7656,6 +7661,13 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
             }
 
             searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}${timeoutCategoryHTML}`;
+            
+            // Wrapper div'i göster - doğru wrapper'ı seç
+            const wrapperParent = partInfo ? partInfo.parentElement : historyLog.parentElement;
+            if (wrapperParent && wrapperParent.classList.contains('info-history-wrapper')) {
+                wrapperParent.style.display = "flex";
+            }
+            
             loadAndDisplayHistoryToElement(query, historyElementId);
 
             // ✅ PARÇA BİLGİLERİNİ GÖSTER - BU KISIM ÖNEMLİ
@@ -7664,6 +7676,11 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
             }
         } else {
             searchResult.innerHTML = `<div style="color: #e74c3c;">❌ Barkod bulunamadı</div>`;
+            // Wrapper div'i gizle - doğru wrapper'ı seç
+            const wrapperParent = partInfo ? partInfo.parentElement : historyLog.parentElement;
+            if (wrapperParent && wrapperParent.classList.contains('info-history-wrapper')) {
+                wrapperParent.style.display = "none";
+            }
             historyLog.style.display = "none";
             if (partInfo) partInfo.style.display = "none";
         }
