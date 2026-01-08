@@ -1480,6 +1480,31 @@ body::before {
     display: none;
 }
 
+/* Parça Bilgileri ve Geçmiş Hareketler Yan Yana Yerleşim */
+.info-history-wrapper {
+    display: flex !important;
+    gap: 15px;
+    margin-top: 15px;
+    width: 100%;
+    align-items: flex-start;
+}
+
+.part-info-box {
+    flex: 1;
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.history-log-box {
+    flex: 1;
+    min-width: 0;
+    margin-top: 0 !important;
+}
+
 .history-log {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
@@ -1487,6 +1512,13 @@ body::before {
     padding: 20px;
     margin-top: 15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Mobil cihazlarda alt alta yerleşim */
+@media screen and (max-width: 768px) {
+    .info-history-wrapper {
+        flex-direction: column;
+    }
 }
 
 .history-header {
