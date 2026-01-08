@@ -903,7 +903,7 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
                 if (sayimModuActive) {
                     showToast(`⏳ Sayım: ${barcode} gri listeye eklendi (Listede YOK)`, 'warning');
                 } else {
-                    showToast(`✅ ${barcode} gri listeye eklendi! (Hedef: ${getListDisplayName(targetList)})`, 'success');
+                    showToast(`✅ ${barcode} gri listeye ! (Hedef: ${getListDisplayName(targetList)})`, 'success');
                 }
             }
             console.log('✅ Gri listeye eklendi:', barcode);
