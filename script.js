@@ -13651,6 +13651,26 @@ let chatWindowOpen = false;
 let unreadMessageCount = 0;
 let chatMessagesRef = null;
 let chatListener = null;
+let backgroundChatListener = null; // Chat kapalıyken mesajları dinlemek için
+
+/**
+ * Kullanıcı adından tutarlı bir renk üret
+ */
+function getUserColor(username) {
+    // Kullanıcı adından hash oluştur
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+        hash = hash & hash; // 32-bit integer'a dönüştür
+    }
+    
+    // Hash'ten HSL renk değerleri üret
+    const hue = Math.abs(hash % 360); // 0-360 arası hue
+    const saturation = 65 + (Math.abs(hash) % 20); // 65-85 arası saturation
+    const lightness = 55 + (Math.abs(hash) % 15); // 55-70 arası lightness
+    
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
 
 /**
  * Chat penceresini aç/kapat
@@ -13687,6 +13707,12 @@ function loadChatMessages() {
     if (!db) {
         console.error('❌ Firebase database başlatılmamış!');
         return;
+    }
+
+    // Önceki listener varsa kaldır
+    if (chatListener && chatMessagesRef) {
+        chatMessagesRef.off('child_added', chatListener);
+        chatListener = null;
     }
 
     // Chat mesajları referansı
@@ -13762,6 +13788,9 @@ function displayChatMessage(message, messageId, isNew) {
     const senderSpan = document.createElement('div');
     senderSpan.className = 'chat-message-sender';
     senderSpan.textContent = message.sender;
+    // Kullanıcıya özel renk ata
+    senderSpan.style.color = getUserColor(message.sender);
+    senderSpan.style.fontWeight = '600';
     
     const bubbleDiv = document.createElement('div');
     bubbleDiv.className = 'chat-message-bubble';
@@ -13914,6 +13943,38 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Arkaplan mesaj dinleyicisini başlat
+    startBackgroundChatListener();
 });
+
+/**
+ * Arkaplan mesaj dinleyicisi - Chat kapalıyken bile yeni mesajları dinler
+ */
+function startBackgroundChatListener() {
+    if (!db) {
+        console.error('❌ Firebase database başlatılmamış!');
+        return;
+    }
+    
+    chatMessagesRef = db.ref('chat/messages');
+    
+    // Son mesajın timestamp'ini kaydet
+    let lastMessageTimestamp = Date.now();
+    
+    // Son 1 mesajı dinle (sadece yeni gelen mesajlar için)
+    backgroundChatListener = chatMessagesRef.limitToLast(1).on('child_added', (snapshot) => {
+        const message = snapshot.val();
+        
+        // Mesaj timestamp'i son kayıttan yeniyse ve chat kapalıysa ve başka birinden geldiyse
+        if (message.timestamp > lastMessageTimestamp && 
+            !chatWindowOpen && 
+            message.sender !== currentUserName) {
+            incrementChatBadge();
+        }
+        
+        lastMessageTimestamp = message.timestamp;
+    });
+}
 
 console.log('💬 Gerçek Zamanlı Chat Sistemi yüklendi!');
