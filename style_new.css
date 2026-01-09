@@ -5464,6 +5464,35 @@ button[id*="Btn"] {
     text-overflow: ellipsis;
 }
 
+.dashboard-section-overlay-buttons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.dashboard-section-overlay-expand {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+    border: 1px solid rgba(52, 152, 219, 0.3);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.dashboard-section-overlay-expand:hover {
+    background: rgba(52, 152, 219, 0.4);
+    transform: scale(1.1);
+}
+
 .dashboard-section-overlay-close {
     background: rgba(231, 76, 60, 0.2);
     color: #e74c3c;
@@ -7619,3 +7648,357 @@ body.light-mode .sayim-list-item:has(input:checked) .sayim-list-count {
         padding: 3px 8px;
     }
 }
+
+/* ============================================================================
+   DASHBOARD GENİŞLETİLMİŞ MODAL STİLLERİ
+   ============================================================================ */
+
+.dashboard-expanded-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+.dashboard-expanded-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.dashboard-expanded-content {
+    background: linear-gradient(135deg, #1e3a5f, #2c5282);
+    border: 2px solid rgba(74, 172, 254, 0.3);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 1200px;
+    height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.dashboard-expanded-modal.active .dashboard-expanded-content {
+    transform: scale(1);
+}
+
+.dashboard-expanded-header {
+    background: linear-gradient(135deg, rgba(74, 172, 254, 0.3), rgba(0, 242, 254, 0.3));
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px 18px 0 0;
+}
+
+.dashboard-expanded-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-expanded-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.dashboard-expanded-minimize,
+.dashboard-expanded-close {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 2px solid rgba(231, 76, 60, 0.4);
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.dashboard-expanded-minimize {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+    border-color: rgba(52, 152, 219, 0.4);
+}
+
+.dashboard-expanded-minimize:hover {
+    background: rgba(52, 152, 219, 0.4);
+    transform: scale(1.1);
+}
+
+.dashboard-expanded-close:hover {
+    background: rgba(231, 76, 60, 0.4);
+    transform: rotate(90deg);
+}
+
+.dashboard-expanded-body {
+    flex: 1;
+    overflow: hidden; /* Body'de scroll olmasın */
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0; /* Gap'i kaldır, liste zaten padding'e sahip */
+}
+
+.dashboard-expanded-body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.dashboard-expanded-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+.dashboard-expanded-body::-webkit-scrollbar-thumb {
+    background: rgba(74, 172, 254, 0.5);
+    border-radius: 5px;
+}
+
+.dashboard-expanded-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 172, 254, 0.7);
+}
+
+/* Genişletilmiş modalda liste stil optimizasyonu */
+.dashboard-expanded-body .mini-list,
+.dashboard-expanded-body ul {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px;
+    flex: 1 !important; /* Tüm alanı kaplasın */
+    height: 100% !important; /* Tam yükseklik */
+    max-height: none !important; /* Max height kısıtlamasını kaldır */
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(74, 172, 254, 0.2);
+    margin: 0 !important;
+    overflow-y: auto !important; /* Scroll içeride olsun */
+}
+
+.dashboard-expanded-body .mini-item,
+.dashboard-expanded-body .list-item-mini,
+.dashboard-expanded-body li {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.05));
+    padding: 15px 20px;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    list-style: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    flex-shrink: 0; /* Öğeler küçülmesin */
+}
+
+.dashboard-expanded-body .mini-item:hover,
+.dashboard-expanded-body .list-item-mini:hover,
+.dashboard-expanded-body li:hover {
+    background: linear-gradient(135deg, rgba(74, 172, 254, 0.25), rgba(0, 242, 254, 0.25));
+    border-color: rgba(74, 172, 254, 0.5);
+    transform: translateX(8px);
+    box-shadow: 0 4px 15px rgba(74, 172, 254, 0.3);
+}
+
+/* Mini item içeriği stilleri */
+.dashboard-expanded-body .mini-item .mini-item-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.dashboard-expanded-body .mini-item .mini-item-time {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+}
+
+.dashboard-expanded-body .mini-item .mini-item-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.dashboard-expanded-body .mini-item .item-action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.dashboard-expanded-body .mini-item .item-action-btn.edit {
+    background: rgba(52, 152, 219, 0.3);
+    color: #3498db;
+}
+
+.dashboard-expanded-body .mini-item .item-action-btn.delete {
+    background: rgba(231, 76, 60, 0.3);
+    color: #e74c3c;
+}
+
+.dashboard-expanded-body .mini-item .item-action-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Scrollbar stilleri */
+.dashboard-expanded-body .mini-list::-webkit-scrollbar,
+.dashboard-expanded-body ul::-webkit-scrollbar {
+    width: 12px;
+}
+
+.dashboard-expanded-body .mini-list::-webkit-scrollbar-track,
+.dashboard-expanded-body ul::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+}
+
+.dashboard-expanded-body .mini-list::-webkit-scrollbar-thumb,
+.dashboard-expanded-body ul::-webkit-scrollbar-thumb {
+    background: rgba(74, 172, 254, 0.5);
+    border-radius: 6px;
+}
+
+.dashboard-expanded-body .mini-list::-webkit-scrollbar-thumb:hover,
+.dashboard-expanded-body ul::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 172, 254, 0.7);
+}
+
+/* Boş liste mesajı */
+.dashboard-expanded-body .mini-list:empty::before,
+.dashboard-expanded-body ul:empty::before {
+    content: '📭 Liste boş';
+    display: block;
+    text-align: center;
+    padding: 40px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 18px;
+}
+
+/* Light Mode için Genişletilmiş Modal */
+body.light-mode .dashboard-expanded-content {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .dashboard-expanded-header {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .dashboard-expanded-header h2 {
+    color: rgba(0, 0, 0, 0.85);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .dashboard-expanded-body .mini-list,
+body.light-mode .dashboard-expanded-body ul {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .dashboard-expanded-body .mini-list::-webkit-scrollbar,
+body.light-mode .dashboard-expanded-body ul::-webkit-scrollbar {
+    width: 12px;
+}
+
+body.light-mode .dashboard-expanded-body .mini-list::-webkit-scrollbar-track,
+body.light-mode .dashboard-expanded-body ul::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .dashboard-expanded-body .mini-list::-webkit-scrollbar-thumb,
+body.light-mode .dashboard-expanded-body ul::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.4);
+}
+
+body.light-mode .dashboard-expanded-body .mini-list::-webkit-scrollbar-thumb:hover,
+body.light-mode .dashboard-expanded-body ul::-webkit-scrollbar-thumb:hover {
+    background: rgba(102, 126, 234, 0.6);
+}
+
+body.light-mode .dashboard-expanded-body .mini-item,
+body.light-mode .dashboard-expanded-body .list-item-mini,
+body.light-mode .dashboard-expanded-body li {
+    background: rgba(255, 255, 255, 0.9);
+    color: rgba(0, 0, 0, 0.85);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .dashboard-expanded-body .mini-item:hover,
+body.light-mode .dashboard-expanded-body .list-item-mini:hover,
+body.light-mode .dashboard-expanded-body li:hover {
+    background: rgba(102, 126, 234, 0.15);
+    border-color: rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+body.light-mode .dashboard-expanded-body .mini-item .mini-item-time {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+body.light-mode .dashboard-expanded-body .mini-list:empty::before,
+body.light-mode .dashboard-expanded-body ul:empty::before {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-expanded-content {
+        width: 95%;
+        height: 90vh;
+    }
+    
+    .dashboard-expanded-header h2 {
+        font-size: 18px;
+    }
+    
+    .dashboard-expanded-buttons {
+        gap: 5px;
+    }
+    
+    .dashboard-expanded-minimize,
+    .dashboard-expanded-close {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+    
+    .dashboard-expanded-body {
+        padding: 10px;
+    }
+    
+    .dashboard-expanded-body .mini-list,
+    .dashboard-expanded-body ul {
+        padding: 15px;
+    }
+    
+    .dashboard-expanded-body .mini-item,
+    .dashboard-expanded-body .list-item-mini,
+    .dashboard-expanded-body li {
+        font-size: 14px;
+        padding: 12px 15px;
+    }
+}
+
