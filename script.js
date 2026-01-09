@@ -561,7 +561,10 @@ function openSectionInDashboard(sectionName, event) {
     overlay.innerHTML = `
         <div class="dashboard-section-overlay-header">
             <h3>${sectionInfo.label}</h3>
-            <button class="dashboard-section-overlay-close" onclick="closeCardOverlay(this, event)">✕</button>
+            <div class="dashboard-section-overlay-buttons">
+                <button class="dashboard-section-overlay-expand" onclick="expandCardOverlay(this, event, '${sectionName}', '${inputId}', '${listId}')">⛶</button>
+                <button class="dashboard-section-overlay-close" onclick="closeCardOverlay(this, event)">✕</button>
+            </div>
         </div>
         <div class="dashboard-section-overlay-body" id="overlay_body_${sectionName}">
             <!-- İçerik buraya eklenecek -->
@@ -13484,3 +13487,158 @@ function updateAdminDashboardControls() {
 }
 
 console.log('✅ Admin Dashboard Control fonksiyonları yüklendi');
+
+// ============================================================================
+// CARD OVERLAY GENİŞLETME FONKSİYONLARI
+// ============================================================================
+
+/**
+ * Card overlay'i genişletilmiş modda aç
+ */
+function expandCardOverlay(button, event, sectionName, inputId, listId) {
+    event.stopPropagation();
+    
+    // Overlay elementini bul
+    const overlay = button.closest('.dashboard-section-overlay');
+    if (!overlay) {
+        console.error('❌ Overlay bulunamadı!');
+        return;
+    }
+    
+    // Section bilgilerini al
+    const sectionInfo = getSectionInfo(sectionName);
+    if (!sectionInfo) {
+        console.error('❌ Section bilgisi bulunamadı:', sectionName);
+        return;
+    }
+    
+    // OVERLAY İÇİNDEKİ listeyi bul (orijinal gizli liste değil!)
+    const overlayListId = listId + '_overlay';
+    const overlayList = document.getElementById(overlayListId);
+    
+    if (!overlayList) {
+        console.error('❌ Overlay içindeki liste bulunamadı:', overlayListId);
+        return;
+    }
+    
+    console.log('🔍 DEBUG - Overlay list ID:', overlayListId);
+    console.log('🔍 DEBUG - Overlay list:', overlayList);
+    console.log('🔍 DEBUG - Overlay list children:', overlayList.children.length);
+    
+    // Genişletilmiş modal oluştur
+    const expandedModal = document.createElement('div');
+    expandedModal.className = 'dashboard-expanded-modal';
+    expandedModal.innerHTML = `
+        <div class="dashboard-expanded-content">
+            <div class="dashboard-expanded-header">
+                <h2>${sectionInfo.label}</h2>
+                <div class="dashboard-expanded-buttons">
+                    <button class="dashboard-expanded-minimize" onclick="closeExpandedModal()" title="Küçült">⊟</button>
+                    <button class="dashboard-expanded-close" onclick="closeExpandedModal()">✕</button>
+                </div>
+            </div>
+            <div class="dashboard-expanded-body" id="expanded_body_${sectionName}">
+                <!-- İçerik buraya eklenecek -->
+            </div>
+        </div>
+    `;
+    
+    // Modal'ı body'e ekle
+    document.body.appendChild(expandedModal);
+    
+    // Body elementini bul
+    const expandedBody = expandedModal.querySelector('.dashboard-expanded-body');
+    
+    // Eğer overlay listesi boşsa bilgi ver
+    if (overlayList.children.length === 0) {
+        console.warn('⚠️ Overlay listesi boş! Veri yok.');
+        expandedBody.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6); font-size: 18px;">📭 Liste boş - henüz veri eklenmemiş</div>';
+    } else {
+        // OVERLAY LİSTESİNİN DEEP CLONE'unu oluştur
+        let clonedList = overlayList.cloneNode(true);
+        clonedList.id = listId + '_expanded';
+        
+        console.log('✅ Overlay listesi klonlandı. Öğe sayısı:', clonedList.children.length);
+        
+        // Sadece listeyi ekle
+        expandedBody.appendChild(clonedList);
+        
+        // Son öğe sayısını sakla (değişiklik kontrolü için)
+        let lastChildCount = overlayList.children.length;
+        
+        // Listeyi düzenli aralıklarla güncelle (SADECE DEĞİŞİKLİK VARSA)
+        const updateInterval = setInterval(() => {
+            if (document.contains(expandedModal) && document.contains(overlayList)) {
+                // Öğe sayısı değişti mi kontrol et
+                const currentChildCount = overlayList.children.length;
+                
+                // Eğer overlay listesi boşsa
+                if (currentChildCount === 0) {
+                    expandedBody.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6); font-size: 18px;">📭 Liste boş - henüz veri eklenmemiş</div>';
+                    lastChildCount = 0;
+                } else if (currentChildCount !== lastChildCount) {
+                    // SADECE ÖĞESAYISI DEĞİŞTİYSE GÜNCELLE
+                    console.log('🔄 Liste değişti! Eski:', lastChildCount, 'Yeni:', currentChildCount);
+                    
+                    // Scroll pozisyonunu kaydet
+                    const scrollPos = clonedList.scrollTop;
+                    
+                    // Overlay listesinden güncelle
+                    const updatedClone = overlayList.cloneNode(true);
+                    updatedClone.id = listId + '_expanded';
+                    
+                    // Eski listeyi kaldır ve yenisini ekle
+                    if (clonedList && clonedList.parentNode) {
+                        clonedList.parentNode.replaceChild(updatedClone, clonedList);
+                        clonedList = updatedClone;
+                    } else {
+                        expandedBody.innerHTML = '';
+                        expandedBody.appendChild(updatedClone);
+                        clonedList = updatedClone;
+                    }
+                    
+                    // Scroll pozisyonunu geri yükle
+                    setTimeout(() => {
+                        clonedList.scrollTop = scrollPos;
+                    }, 0);
+                    
+                    lastChildCount = currentChildCount;
+                    console.log('✅ Liste güncellendi. Öğe sayısı:', currentChildCount);
+                }
+            } else {
+                clearInterval(updateInterval);
+            }
+        }, 1000);
+    }
+    
+    // Modal animasyonunu başlat
+    setTimeout(() => {
+        expandedModal.classList.add('active');
+    }, 10);
+    
+    // Modal dışına tıklanınca kapatma
+    expandedModal.addEventListener('click', function(e) {
+        if (e.target === expandedModal) {
+            closeExpandedModal();
+        }
+    });
+    
+    console.log('✅ Genişletilmiş modal açıldı:', sectionName);
+}
+
+/**
+ * Genişletilmiş modal'ı kapat
+ */
+function closeExpandedModal() {
+    const modal = document.querySelector('.dashboard-expanded-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+        console.log('✅ Genişletilmiş modal kapatıldı');
+    }
+}
+
+console.log('✅ Card Overlay Genişletme fonksiyonları yüklendi');
+
