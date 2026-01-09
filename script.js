@@ -13642,3 +13642,278 @@ function closeExpandedModal() {
 
 console.log('✅ Card Overlay Genişletme fonksiyonları yüklendi');
 
+
+// ========================================
+// GERÇEK ZAMANLI CHAT SİSTEMİ
+// ========================================
+
+let chatWindowOpen = false;
+let unreadMessageCount = 0;
+let chatMessagesRef = null;
+let chatListener = null;
+
+/**
+ * Chat penceresini aç/kapat
+ */
+function toggleChatWindow() {
+    const chatWindow = document.getElementById('chatWindow');
+    
+    if (!chatWindow) return;
+
+    chatWindowOpen = !chatWindowOpen;
+    
+    if (chatWindowOpen) {
+        chatWindow.style.display = 'flex';
+        // Chat açıldığında badge'i sıfırla
+        resetChatBadge();
+        // Mesajları yükle
+        loadChatMessages();
+        // En alta scroll yap
+        setTimeout(() => scrollChatToBottom(), 100);
+    } else {
+        chatWindow.style.display = 'none';
+        // Listener'ı kaldır
+        if (chatListener) {
+            chatMessagesRef.off('child_added', chatListener);
+            chatListener = null;
+        }
+    }
+}
+
+/**
+ * Chat mesajlarını Firebase'den yükle
+ */
+function loadChatMessages() {
+    if (!db) {
+        console.error('❌ Firebase database başlatılmamış!');
+        return;
+    }
+
+    // Chat mesajları referansı
+    chatMessagesRef = db.ref('chat/messages');
+    
+    // Önce mevcut mesajları temizle
+    const chatMessagesDiv = document.getElementById('chatMessages');
+    if (chatMessagesDiv) {
+        chatMessagesDiv.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">Mesajlar yükleniyor...</div>';
+    }
+
+    // Mevcut mesajları takip etmek için set
+    const loadedMessageIds = new Set();
+
+    // Son 50 mesajı getir
+    chatMessagesRef.limitToLast(50).once('value', (snapshot) => {
+        if (chatMessagesDiv) {
+            chatMessagesDiv.innerHTML = '';
+        }
+        
+        if (!snapshot.exists()) {
+            if (chatMessagesDiv) {
+                chatMessagesDiv.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">Henüz mesaj yok. İlk mesajı siz gönderin! 💬</div>';
+            }
+            return;
+        }
+
+        snapshot.forEach((childSnapshot) => {
+            const message = childSnapshot.val();
+            const messageId = childSnapshot.key;
+            loadedMessageIds.add(messageId);
+            displayChatMessage(message, messageId, false);
+        });
+
+        scrollChatToBottom();
+    });
+
+    // Yeni mesajları dinle - sadece yeni eklenenler için
+    chatListener = chatMessagesRef.on('child_added', (snapshot) => {
+        const message = snapshot.val();
+        const messageId = snapshot.key;
+        
+        // Eğer mesaj daha önce yüklenmediyse ekle
+        if (!loadedMessageIds.has(messageId)) {
+            loadedMessageIds.add(messageId);
+            displayChatMessage(message, messageId, true);
+            scrollChatToBottom();
+            
+            // Eğer chat penceresi kapalıysa ve mesaj başka birinden geldiyse badge'i artır
+            if (!chatWindowOpen && message.sender !== currentUserName) {
+                incrementChatBadge();
+            }
+        }
+    });
+}
+
+/**
+ * Mesajı ekranda göster
+ */
+function displayChatMessage(message, messageId, isNew) {
+    const chatMessagesDiv = document.getElementById('chatMessages');
+    if (!chatMessagesDiv) return;
+
+    // İlk yüklemede "Henüz mesaj yok" yazısını kaldır
+    if (chatMessagesDiv.children.length === 1 && chatMessagesDiv.children[0].textContent.includes('Henüz mesaj yok')) {
+        chatMessagesDiv.innerHTML = '';
+    }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message ' + (message.sender === currentUserName ? 'own' : 'other');
+    messageDiv.setAttribute('data-message-id', messageId);
+    
+    const senderSpan = document.createElement('div');
+    senderSpan.className = 'chat-message-sender';
+    senderSpan.textContent = message.sender;
+    
+    const bubbleDiv = document.createElement('div');
+    bubbleDiv.className = 'chat-message-bubble';
+    
+    const textP = document.createElement('p');
+    textP.className = 'chat-message-text';
+    textP.textContent = message.text;
+    
+    const timeSpan = document.createElement('div');
+    timeSpan.className = 'chat-message-time';
+    timeSpan.textContent = formatChatTime(message.timestamp);
+    
+    bubbleDiv.appendChild(textP);
+    bubbleDiv.appendChild(timeSpan);
+    
+    messageDiv.appendChild(senderSpan);
+    messageDiv.appendChild(bubbleDiv);
+    
+    chatMessagesDiv.appendChild(messageDiv);
+
+    // Yeni mesaj animasyonu
+    if (isNew) {
+        messageDiv.style.animation = 'fadeInMessage 0.3s ease-out';
+    }
+}
+
+/**
+ * Chat mesajı gönder
+ */
+function sendChatMessage() {
+    const chatInput = document.getElementById('chatInput');
+    if (!chatInput) return;
+
+    const messageText = chatInput.value.trim();
+    
+    if (messageText === '') {
+        showToast('❌ Mesaj boş olamaz!', 'error');
+        return;
+    }
+
+    if (!currentUserName) {
+        showToast('❌ Kullanıcı bilgisi bulunamadı!', 'error');
+        return;
+    }
+
+    if (!db) {
+        showToast('❌ Firebase bağlantısı kurulamadı!', 'error');
+        return;
+    }
+
+    // Mesajı Firebase'e kaydet
+    const messageData = {
+        sender: currentUserName,
+        text: messageText,
+        timestamp: Date.now()
+    };
+
+    chatMessagesRef = db.ref('chat/messages');
+    chatMessagesRef.push(messageData)
+        .then(() => {
+            // Input'u temizle
+            chatInput.value = '';
+            chatInput.focus();
+        })
+        .catch((error) => {
+            console.error('❌ Mesaj gönderme hatası:', error);
+            showToast('❌ Mesaj gönderilemedi!', 'error');
+        });
+}
+
+/**
+ * Chat'i en alta kaydır
+ */
+function scrollChatToBottom() {
+    const chatMessagesDiv = document.getElementById('chatMessages');
+    if (chatMessagesDiv) {
+        chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+    }
+}
+
+/**
+ * Zamanı formatla (örn: "14:30" veya "Dün 14:30")
+ */
+function formatChatTime(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+    
+    const diffDays = Math.floor((today - messageDate) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        return timeStr;
+    } else if (diffDays === 1) {
+        return `Dün ${timeStr}`;
+    } else if (diffDays < 7) {
+        const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+        return `${days[date.getDay()]} ${timeStr}`;
+    } else {
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        return `${day}.${month} ${timeStr}`;
+    }
+}
+
+/**
+ * Chat badge'ini artır
+ */
+function incrementChatBadge() {
+    unreadMessageCount++;
+    updateChatBadge();
+}
+
+/**
+ * Chat badge'ini sıfırla
+ */
+function resetChatBadge() {
+    unreadMessageCount = 0;
+    updateChatBadge();
+}
+
+/**
+ * Chat badge'ini güncelle
+ */
+function updateChatBadge() {
+    const badge = document.getElementById('chatBadge');
+    if (!badge) return;
+    
+    if (unreadMessageCount > 0) {
+        badge.textContent = unreadMessageCount > 99 ? '99+' : unreadMessageCount;
+        badge.style.display = 'block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+/**
+ * Enter tuşu ile mesaj gönder
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+    }
+});
+
+console.log('💬 Gerçek Zamanlı Chat Sistemi yüklendi!');
