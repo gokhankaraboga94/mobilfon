@@ -714,7 +714,7 @@ function openSectionInDashboard(sectionName, event) {
                     } else {
                         // Normal mod mesajları
                         if (newIMEIs.length === 1) {
-                            showToast(` ${newIMEIs[0]} !`, 'success');
+                            showToast(` ${newIMEIs[0]} ✅ !`, 'success');
                         } else {
                             showToast(`✅ ${newIMEIs.length} adet barkod gri listeye eklendi!`, 'success');
                         }
@@ -897,7 +897,72 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
     }
 
     try {
-        // ⭐ addToGriListe fonksiyonunu kullan (otomatik kaynak liste bulma ve silme ile)
+        // ========================================
+        // GRİ LİSTE MUAFİYETİ KONTROLÜ
+        // atanacak, teslimEdilenler, garantiServis → Direkt transfer
+        // ========================================
+        const griListeExcludedLists = ['teslimEdilenler', 'atanacak', 'garantiServis'];
+        const shouldUseGriListe = !griListeExcludedLists.includes(targetList);
+
+        if (!shouldUseGriListe) {
+            // Direkt transfer - gri liste yok
+            console.log(`🚀 Direkt transfer (gri liste muaf): ${barcode} → ${targetList}`);
+            
+            // Barkodun şu anki listesini bul ve sil
+            let previousList = null;
+            for (const [listName, codeSet] of Object.entries(userCodes)) {
+                if (codeSet && codeSet.has && codeSet.has(barcode)) {
+                    previousList = listName;
+                    // Eski listeden sil
+                    const dbPathFrom = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+                    await db.ref(`servis/${dbPathFrom}/${barcode}`).remove();
+                    userCodes[listName].delete(barcode);
+                    delete codeTimestamps[listName][barcode];
+                    delete codeUsers[listName][barcode];
+                    updateLabelAndCount(listName);
+                    renderMiniList(listName);
+                    break;
+                }
+            }
+            
+            // Yeni listeye ekle
+            const timestamp = getTimestamp();
+            const dbPathTo = targetList === 'onarim' ? 'onarimTamamlandi' : targetList;
+            await db.ref(`servis/${dbPathTo}/${barcode}`).set({ 
+                ts: timestamp, 
+                user: currentUserName 
+            });
+            
+            // Local state'i güncelle
+            if (!userCodes[targetList]) {
+                userCodes[targetList] = new Set();
+            }
+            userCodes[targetList].add(barcode);
+            codeTimestamps[targetList][barcode] = timestamp;
+            codeUsers[targetList][barcode] = currentUserName;
+            allCodes.add(barcode);
+            
+            // History kaydet
+            saveBarcodeHistory(barcode, previousList || 'YENİ', targetList, currentUserName);
+            
+            // Dashboard güncellemesi (atanacak için)
+            if (targetList === 'atanacak') {
+                await addReceivedIMEI(barcode, targetList);
+                updateDashboardUI();
+            }
+            
+            // UI güncelle
+            updateLabelAndCount(targetList);
+            renderMiniList(targetList);
+            
+            if (!isMultiple) {
+                showToast(`✅ ${barcode} başarıyla ${getListDisplayName(targetList)} listesine eklendi!`, 'success');
+            }
+            console.log('✅ Direkt eklendi:', barcode, '→', targetList);
+            return;
+        }
+
+        // ⭐ GRİ LİSTEYE GÖNDER (Muaf olmayan listeler)
         const success = await addToGriListe(barcode, null, targetList, currentUserName);
 
         if (success) {
@@ -917,7 +982,7 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         }
 
     } catch (error) {
-        console.error('❌ Gri listeye ekleme hatası:', error);
+        console.error('❌ Transfer hatası:', error);
         if (!isMultiple) {
             showToast('❌ Hata: ' + error.message, 'error');
         }
@@ -10822,9 +10887,11 @@ async function checkTimeouts() {
         const ignoredSnapshot = await db.ref('timeoutIgnored').once('value');
         const ignoredList = ignoredSnapshot.val() || {};
 
-        // Kontrol edilecek listeleri belirle (Satış, Teslim, Atanacak, Dış Servisler, Garanti Servis ve Geçmiş hariç hepsi)
+        // Kontrol edilecek listeleri belirle (Satış, Teslim, Dış Servisler, Garanti Servis, Gri Liste ve Geçmiş hariç hepsi)
         // ✅ ÖN CAM, ANAKART DIŞ SERVİS VE GARANTİ SERVİS ZAMAN AŞIMI DASHBOARD'DAN HARİÇ
-        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'atanacak', 'eslesenler', 'adet', 'history', 'serviceReturns', 'onCamDisServis', 'anakartDisServis', 'garantiServis'];
+        // ✅ ATANACAK LİSTESİ ZAMAN AŞIMI KONTROLÜNE DAHİL EDİLDİ
+        // ❌ GRİ LİSTE ZAMAN AŞIMI DASHBOARD'DAN HARİÇ
+        const excludeLists = ['SonKullanıcı', 'teslimEdilenler', 'eslesenler', 'adet', 'history', 'serviceReturns', 'onCamDisServis', 'anakartDisServis', 'garantiServis', 'griListe'];
         const targetLists = Object.keys(userCodes).filter(listName => !excludeLists.includes(listName));
 
         // PhoneCheck ve Onarım listelerini manuel olarak da garantiye al
@@ -10868,8 +10935,8 @@ async function checkTimeouts() {
                     let firstEntryAfterReset = null;
                     for (let i = lastResetIndex + 1; i < entries.length; i++) {
                         const to = (entries[i].to || '').toLowerCase();
-                        // "Teslim Edilenler" ve "Son Kullanıcı" hariç herhangi bir listeye giriş
-                        if (to !== 'teslimedilenler' && to !== 'sonkullanıcı' && entries[i].timestampRaw) {
+                        // "Teslim Edilenler", "Son Kullanıcı" ve "griListe" hariç herhangi bir listeye giriş
+                        if (to !== 'teslimedilenler' && to !== 'sonkullanıcı' && to !== 'griliste' && entries[i].timestampRaw) {
                             firstEntryAfterReset = entries[i];
                             break;
                         }
