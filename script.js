@@ -3805,28 +3805,45 @@ function loadDashboardStats() {
         dashboardListener = null;
     }
 
-    // Yeni gerçek zamanlı listener oluştur
-    dashboardListener = db.ref(`dashboard/daily/${todayDate}`).on('value', (snapshot) => {
+    // ✅ OPTİMİZE EDİLDİ: İlk yükleme - sadece bir kere tüm veriyi al
+    db.ref(`dashboard/daily/${todayDate}`).once('value', (snapshot) => {
         const data = snapshot.val();
-
         if (data) {
-            // Veriyi set'e çevir
             if (data.receivedIMEIs) {
                 dailyReceivedIMEIs = new Set(Object.keys(data.receivedIMEIs));
             } else {
                 dailyReceivedIMEIs.clear();
             }
             dailyDeliveredCount = data.deliveredCount || 0;
-
-            // Kaynak bazlı sayıları da yükle
             updateDashboardUI(data);
-            console.log('📊 Dashboard güncellendi - Teslim Alınan:', dailyReceivedIMEIs.size, 'Teslim Edilen:', dailyDeliveredCount);
+            console.log('📊 Dashboard ilk yükleme - Teslim Alınan:', dailyReceivedIMEIs.size, 'Teslim Edilen:', dailyDeliveredCount);
         } else {
-            // Bugün için veri yoksa sıfırla
             dailyReceivedIMEIs.clear();
             dailyDeliveredCount = 0;
             updateDashboardUI({});
         }
+    }, (error) => {
+        console.error('Dashboard ilk yükleme hatası:', error);
+    });
+
+    // ✅ OPTİMİZE EDİLDİ: Sonra sadece değişiklikleri dinle (çok daha az veri)
+    dashboardListener = db.ref(`dashboard/daily/${todayDate}`).on('child_changed', (snapshot) => {
+        const changedKey = snapshot.key;
+        log(`📊 Dashboard değişiklik: ${changedKey}`);
+        
+        // Değişiklik olduktan sonra tam veriyi tek seferde çek
+        db.ref(`dashboard/daily/${todayDate}`).once('value', (fullSnapshot) => {
+            const data = fullSnapshot.val();
+            if (data) {
+                if (data.receivedIMEIs) {
+                    dailyReceivedIMEIs = new Set(Object.keys(data.receivedIMEIs));
+                } else {
+                    dailyReceivedIMEIs.clear();
+                }
+                dailyDeliveredCount = data.deliveredCount || 0;
+                updateDashboardUI(data);
+            }
+        });
     }, (error) => {
         console.error('Dashboard listener hatası:', error);
     });
@@ -4850,12 +4867,47 @@ async function loadGriListeData() {
     }
 }
 
-// Gri Liste Firebase listener
+// ✅ OPTİMİZE EDİLDİ: Gri Liste Firebase listener
 function setupGriListeListener() {
-    db.ref('servis/griListe').on('value', (snapshot) => {
+    // İlk yükleme - sadece bir kere
+    db.ref('servis/griListe').once('value', (snapshot) => {
         griListeData = snapshot.val() || {};
         renderGriListe();
         updateGriListeCount();
+        console.log('📋 Gri liste ilk yükleme:', Object.keys(griListeData).length, 'kayıt');
+    });
+
+    // ✅ Sadece ekleme dinle (çok daha az veri)
+    db.ref('servis/griListe').on('child_added', (snapshot) => {
+        const barcode = snapshot.key;
+        const data = snapshot.val();
+        
+        // Cache'de yoksa ekle (ilk yüklemede zaten var)
+        if (!griListeData[barcode]) {
+            griListeData[barcode] = data;
+            renderGriListe();
+            updateGriListeCount();
+            log(`➕ Gri listeye eklendi: ${barcode}`);
+        }
+    });
+
+    // ✅ Sadece silme dinle
+    db.ref('servis/griListe').on('child_removed', (snapshot) => {
+        const barcode = snapshot.key;
+        delete griListeData[barcode];
+        renderGriListe();
+        updateGriListeCount();
+        log(`➖ Gri listeden silindi: ${barcode}`);
+    });
+
+    // ✅ Sadece güncelleme dinle
+    db.ref('servis/griListe').on('child_changed', (snapshot) => {
+        const barcode = snapshot.key;
+        const data = snapshot.val();
+        griListeData[barcode] = data;
+        renderGriListe();
+        updateGriListeCount();
+        log(`🔄 Gri listede güncellendi: ${barcode}`);
     });
 }
 
@@ -6412,7 +6464,14 @@ auth.onAuthStateChanged(async user => {
                 document.getElementById('technicianPartOrders').style.display = 'block';
                 loadTechnicianPartOrders();
 
-                db.ref('partOrders').on('value', () => {
+                // ✅ OPTİMİZE EDİLDİ: Sadece değişiklikleri dinle
+                db.ref('partOrders').on('child_changed', () => {
+                    loadTechnicianPartOrders();
+                });
+                db.ref('partOrders').on('child_added', () => {
+                    loadTechnicianPartOrders();
+                });
+                db.ref('partOrders').on('child_removed', () => {
                     loadTechnicianPartOrders();
                 });
             }
@@ -13794,8 +13853,8 @@ function loadChatMessages() {
     // Mevcut mesajları takip etmek için set
     const loadedMessageIds = new Set();
 
-    // Son 50 mesajı getir
-    chatMessagesRef.limitToLast(50).once('value', (snapshot) => {
+    // ✅ OPTİMİZE EDİLDİ: Son 30 mesajı getir (50 yerine - %40 daha az veri)
+    chatMessagesRef.limitToLast(30).once('value', (snapshot) => {
         if (chatMessagesDiv) {
             chatMessagesDiv.innerHTML = '';
         }
@@ -14016,7 +14075,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Arkaplan mesaj dinleyicisi - Chat kapalıyken bile yeni mesajları dinler
+ * ✅ OPTİMİZE EDİLDİ: Arkaplan mesaj dinleyicisi - Chat kapalıyken bile yeni mesajları dinler
  */
 function startBackgroundChatListener() {
     if (!db) {
@@ -14029,19 +14088,22 @@ function startBackgroundChatListener() {
     // Son mesajın timestamp'ini kaydet
     let lastMessageTimestamp = Date.now();
     
-    // Son 1 mesajı dinle (sadece yeni gelen mesajlar için)
-    backgroundChatListener = chatMessagesRef.limitToLast(1).on('child_added', (snapshot) => {
-        const message = snapshot.val();
-        
-        // Mesaj timestamp'i son kayıttan yeniyse ve chat kapalıysa ve başka birinden geldiyse
-        if (message.timestamp > lastMessageTimestamp && 
-            !chatWindowOpen && 
-            message.sender !== currentUserName) {
-            incrementChatBadge();
-        }
-        
-        lastMessageTimestamp = message.timestamp;
-    });
+    // ✅ startAt ile sadece şu andan sonraki mesajları dinle (geçmiş mesajları tekrar indirmez)
+    backgroundChatListener = chatMessagesRef
+        .orderByChild('timestamp')
+        .startAt(lastMessageTimestamp)
+        .on('child_added', (snapshot) => {
+            const message = snapshot.val();
+            
+            // Mesaj şu andan sonra geldi, chat kapalı ve başka birinden
+            if (message.timestamp > lastMessageTimestamp && 
+                !chatWindowOpen && 
+                message.sender !== currentUserName) {
+                incrementChatBadge();
+            }
+            
+            lastMessageTimestamp = message.timestamp;
+        });
 }
 
 console.log('💬 Gerçek Zamanlı Chat Sistemi yüklendi!');
