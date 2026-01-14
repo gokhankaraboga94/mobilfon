@@ -112,7 +112,7 @@ const DirtyLists = {
 let dataSyncCheckInterval = null;
 let lastDataSyncCheck = null;
 let dataSyncMismatches = [];
-const DATA_SYNC_CHECK_INTERVAL = 30 * 60 * 1000; // 30 dakika
+const DATA_SYNC_CHECK_INTERVAL = 20 * 60 * 1000; // 20 dakika (CPU optimizasyonu)
 
 // ========================================
 // THEME TOGGLE (GECE/GÜNDÜZ MODU)
@@ -3307,7 +3307,11 @@ function checkMidnightReset() {
 }
 
 
-setInterval(checkMidnightReset, 15 * 60 * 1000); // 5 dakika
+// ⚡ CPU OPTİMİZASYONU: 15 dakika yerine 30 dakika (gece yarısı kontrolü için yeterli)
+setInterval(() => {
+    if (document.hidden) return; // Backgroundda ise atla
+    checkMidnightReset();
+}, 30 * 60 * 1000); // 30 dakika
 
 
 
@@ -3722,6 +3726,28 @@ window.addEventListener('load', () => {
     lastCheckedDate = getTodayDateString();
     checkMidnightReset();
 });
+
+// ========================================
+// ⚡ PAGE VİSİBİLİTY OPTİMİZASYONU - ÇOK ÖNEMLİ!
+// ========================================
+// Sayfa backgrounda gittiğinde/foregrounda geldiğinde akıllı davran
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        console.log('📴 Sayfa backgrounda gitti - interval\'lar yavaşlatıldı');
+        // Backgrounddayken hiçbir interval çalışmayacak (if kontrolü ile engellendi)
+    } else {
+        console.log('📱 Sayfa foregrounda döndü - interval\'lar normal hızda');
+        // Foregrounda dönünce hemen bir kontrol yap (veri güncel mi?)
+        setTimeout(() => {
+            if (currentUserRole === 'admin') {
+                console.log('🔄 Foregrounda dönüldü, hızlı senkronizasyon kontrolü yapılıyor...');
+                performDataSyncCheck(false);
+            }
+        }, 2000); // 2 saniye bekle, sayfa stabilize olsun
+    }
+});
+// ========================================
+
 
 // Güncel tarihi formatla
 function getTodayDateString() {
@@ -8512,10 +8538,29 @@ function loadData() {
 
 } // ← loadData fonksiyonu kapanış parantezi
 
-// 30 dakikada bir otomatik sayfa yenileme (performans için artırıldı)
-setInterval(function () {
-    location.reload();
-}, 60 * 60 * 1000);
+// ⚡ CPU OPTİMİZASYONU: Akıllı sayfa yenileme
+let pageLoadTime = Date.now();
+let lastUserActivity = Date.now();
+
+// Kullanıcı aktivitesini takip et
+['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
+    document.addEventListener(event, () => {
+        lastUserActivity = Date.now();
+    }, { passive: true });
+});
+
+// Sayfa yenileme - sadece 2 saat+ ve 10 dakika inaktivite sonrası
+setInterval(() => {
+    const now = Date.now();
+    const pageAge = now - pageLoadTime;
+    const timeSinceActivity = now - lastUserActivity;
+    
+    // Sayfa 2 saatten eski VE son 10 dakikada aktivite yoksa
+    if (pageAge > 2 * 60 * 60 * 1000 && timeSinceActivity > 10 * 60 * 1000) {
+        console.log('🔄 Sayfa 2 saattir açık ve kullanıcı pasif, yenileniyor...');
+        location.reload();
+    }
+}, 15 * 60 * 1000); // Her 15 dakikada kontrol
 
 // ✅ SAYFA YÜKLENDİĞİNDE EN ÜSTE SCROLL
 window.addEventListener('load', function () {
@@ -9023,15 +9068,20 @@ function openSyncModalFromNotification() {
 
 // Çakışma kontrolünü başlat
 function startConflictMonitoring() {
-    // İlk kontrol - 30 DAKIKA SONRA (1800000 ms)
+    // İlk kontrol - 30 DAKIKA SONRA
     setTimeout(() => {
         checkAndNotifyConflicts();
-    }, 25 * 60 * 1000); // 30 dakika = 1800000 ms
+    }, 30 * 60 * 1000); // 30 dakika
 
-    // Her 60 dakikada bir kontrol et
+    // ⚡ CPU OPTİMİZASYONU: Her 60 dakikada bir kontrol et (45 yerine)
     conflictCheckInterval = setInterval(() => {
+        // Sayfa backgroundda ise atla
+        if (document.hidden) {
+            console.log('⏭️ Sayfa backgroundda, conflict check atlandı');
+            return;
+        }
         checkAndNotifyConflicts();
-    }, 45 * 60 * 1000);
+    }, 60 * 60 * 1000); // 60 dakika
 }
 
 // Çakışma kontrolünü durdur
@@ -9830,14 +9880,14 @@ function startDataSyncAutoCheck() {
         return;
     }
 
-    console.log('✅ Data Sync Auto Check başlatıldı - Her 5 dakikada kontrol edilecek');
+    console.log('✅ Data Sync Auto Check başlatıldı - Her 20 dakikada kontrol edilecek');
 
     // İlk kontrolü 30 saniye sonra yap
     setTimeout(() => {
         performDataSyncCheck(false); // false = sessiz kontrol (bildirim gösterme)
     }, 30000);
 
-    // 5 dakikada bir otomatik kontrol
+    // ⚡ CPU OPTİMİZASYONU: Her 20 dakikada bir otomatik kontrol
     dataSyncCheckInterval = setInterval(() => {
         performDataSyncCheck(false);
     }, DATA_SYNC_CHECK_INTERVAL);
@@ -9855,6 +9905,12 @@ function stopDataSyncAutoCheck() {
 // Veri kontrolü yap
 async function performDataSyncCheck(showNotification = false) {
     if (currentUserRole !== 'admin') return;
+    
+    // ⚡ CPU OPTİMİZASYONU: Sayfa backgroundda ise atla
+    if (document.hidden) {
+        console.log('⏭️ Sayfa backgroundda, data sync atlandı');
+        return;
+    }
 
     try {
         console.log('🔍 Veri senkronizasyon kontrolü başlatılıyor...');
@@ -9869,40 +9925,41 @@ async function performDataSyncCheck(showNotification = false) {
             'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'
         ];
 
-        for (const listName of listNames) {
-            // Frontend'deki barkodlar
+        // ⚡ CPU OPTİMİZASYONU: Sıralı yerine PARALEL kontrol
+        const checkPromises = listNames.map(async (listName) => {
             const frontendCodes = userCodes[listName] ? Array.from(userCodes[listName]) : [];
             const frontendCount = frontendCodes.length;
-
-            // Database path mapping - onarim -> onarimTamamlandi
             const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
 
-            // Database'deki barkodlar - SADECE 15 HANELİ
             const dbSnapshot = await db.ref(`servis/${dbPath}`).once('value');
             const dbData = dbSnapshot.val();
 
             let dbCodes = [];
             if (dbData) {
-                // Sadece 15 haneli barkodları al
-                dbCodes = Object.keys(dbData).filter(key => /^\d{15}$/.test(key));
+                // ⚡ OPTİMİZASYON: Daha hızlı regex kontrolü
+                dbCodes = Object.keys(dbData).filter(key => key.length === 15 && /^\d+$/.test(key));
             }
 
             const dbCount = dbCodes.length;
 
-            // SADECE GERÇEK FARKLARI TESPIT ET
             if (frontendCount !== dbCount) {
-                // Eksik ve fazla barkodları bul
                 const frontendSet = new Set(frontendCodes);
                 const dbSet = new Set(dbCodes);
-
                 const missingInFrontend = dbCodes.filter(code => !frontendSet.has(code));
                 const missingInDB = frontendCodes.filter(code => !dbSet.has(code));
 
-                // Sadece gerçekten eksik/fazla varsa rapor et
                 if (missingInFrontend.length > 0 || missingInDB.length > 0) {
                     const difference = Math.abs(frontendCount - dbCount);
+                    
+                    console.warn(`⚠️ ${listName}: Frontend=${frontendCount}, DB=${dbCount}, Fark=${difference}`);
+                    if (missingInFrontend.length > 0) {
+                        console.warn(`   📍 DB'de olup Frontend'de olmayan: ${missingInFrontend.length} adet`);
+                    }
+                    if (missingInDB.length > 0) {
+                        console.warn(`   📍 Frontend'de olup DB'de olmayan: ${missingInDB.length} adet`);
+                    }
 
-                    dataSyncMismatches.push({
+                    return {
                         type: 'count_mismatch',
                         listName: listName,
                         frontendCount: frontendCount,
@@ -9913,21 +9970,18 @@ async function performDataSyncCheck(showNotification = false) {
                         missingInDB: missingInDB.slice(0, 5),
                         totalMissingInFrontend: missingInFrontend.length,
                         totalMissingInDB: missingInDB.length
-                    });
-
-                    console.warn(`⚠️ ${listName}: Frontend=${frontendCount}, DB=${dbCount}, Fark=${difference}`);
-                    if (missingInFrontend.length > 0) {
-                        console.warn(`   📍 DB'de olup Frontend'de olmayan: ${missingInFrontend.length} adet`);
-                    }
-                    if (missingInDB.length > 0) {
-                        console.warn(`   📍 Frontend'de olup DB'de olmayan: ${missingInDB.length} adet`);
-                    }
+                    };
                 } else {
-                    // Sayılar farklı ama barkodlar aynı - bu normal olabilir
                     console.info(`ℹ️ ${listName}: Sayı farkı var (${frontendCount} vs ${dbCount}) ama barkodlar aynı - ignore`);
                 }
             }
-        }
+            return null;
+        });
+
+        // Tüm kontrolleri paralel yap - ÇOK DAHA HIZLI!
+        const results = await Promise.all(checkPromises);
+        const listMismatches = results.filter(r => r !== null);
+        dataSyncMismatches.push(...listMismatches);
 
         // 2. DASHBOARD İSTATİSTİKLERİNİ KONTROL ET
         const today = new Date().toISOString().split('T')[0];
@@ -10926,8 +10980,11 @@ window.addEventListener('load', () => {
         checkTimeouts();
     }, 5000);
 
-    // Her 30 dakikada bir kontrol et (Performance Optimized)
-    setInterval(checkTimeouts, 60 * 60 * 1000);
+    // ⚡ CPU OPTİMİZASYONU: Her 2 saatte bir kontrol et (60 dk yerine)
+    setInterval(() => {
+        if (document.hidden) return; // Backgroundda ise atla
+        checkTimeouts();
+    }, 2 * 60 * 60 * 1000); // 2 saat
 });
 
 async function checkTimeouts() {
