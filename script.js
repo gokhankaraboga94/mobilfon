@@ -5053,65 +5053,140 @@ function closePartOrderModal() {
 }
 
 async function submitPartOrder() {
-    const barcode = document.getElementById('partOrderBarcode').value.trim();
+    // Get form values
     const model = document.getElementById('partOrderModel').value.trim();
-    const customer = document.getElementById('partOrderCustomer').value.trim();
+    const customer = document.getElementById('partOrderCustomer') ? document.getElementById('partOrderCustomer').value.trim() : '';
     const statusField = document.getElementById('partOrderStatus').value.trim();
     const service = document.getElementById('partOrderService').value.trim();
     const note = document.getElementById('partOrderNote').value.trim();
+    const technicianDamage = document.getElementById('partOrderTechnicianDamage') ? document.getElementById('partOrderTechnicianDamage').value.trim() : '';
+
+    // Get parts
+    const parts = [];
     const part1 = document.getElementById('partOrderPart1').value.trim();
     const part2 = document.getElementById('partOrderPart2').value.trim();
     const part3 = document.getElementById('partOrderPart3').value.trim();
     const part4 = document.getElementById('partOrderPart4').value.trim();
-
-    if (!barcode || barcode.length !== 15 || !/^\d+$/.test(barcode)) {
-        showToast('Geçerli bir 15 haneli barkod giriniz!', 'error');
-        return;
-    }
-
-    if (!model) {
-        showToast('Cihaz modelini giriniz!', 'error');
-        return;
-    }
-    /*
-        if (!part1) {
-            showToast('En az 1 parça girmelisiniz!', 'error');
-            return;
-        }
-    */
-    const parts = [];
+    
     if (part1) parts.push({ name: part1, status: 'pending' });
     if (part2) parts.push({ name: part2, status: 'pending' });
     if (part3) parts.push({ name: part3, status: 'pending' });
     if (part4) parts.push({ name: part4, status: 'pending' });
 
-    // UNIQUE ID OLUŞTUR - Aynı barkod için birden fazla sipariş olabilsin
-    const uniqueOrderId = `${barcode}_${Date.now()}`;
+    // Validate model
+    if (!model) {
+        showToast('Cihaz modelini seçiniz!', 'error');
+        return;
+    }
 
-    const orderData = {
-        barcode: barcode,
-        model: model,
-        customer: customer || '',  // Müşteri bilgisi (isteğe bağlı)
-        statusField: statusField || '',  // Statü bilgisi (isteğe bağlı)
-        service: service || '',  // Hizmet bilgisi (isteğe bağlı)
-        note: note || '',  // Not bilgisi (isteğe bağlı)
-        parts: parts,
-        technician: currentUserName,
-        status: 'pending',
-        timestamp: Date.now(),
-        timestampReadable: getTimestamp()
-    };
+    // Get barcodes - tek veya çoklu sipariş
+    let barcodes = [];
+    const singleBarcode = document.getElementById('partOrderBarcode');
+    const multipleBarcode = document.getElementById('partOrderBarcodeMultiple');
+    
+    // Tek barkod mu çoklu mu kontrol et
+    if (singleBarcode && singleBarcode.style.display !== 'none' && singleBarcode.value.trim()) {
+        // Tek barkod modu
+        const barcode = singleBarcode.value.trim();
+        if (!barcode || barcode.length !== 15 || !/^\d+$/.test(barcode)) {
+            showToast('Geçerli bir 15 haneli barkod giriniz!', 'error');
+            return;
+        }
+        barcodes = [barcode];
+    } else if (multipleBarcode && multipleBarcode.style.display !== 'none' && multipleBarcode.value.trim()) {
+        // Çoklu barkod modu
+        const text = multipleBarcode.value.trim();
+        // Satır satır veya virgülle ayrılmış barkodları parse et
+        barcodes = text.split(/[\n,]+/)
+            .map(b => b.trim())
+            .filter(b => b.length > 0);
+        
+        if (barcodes.length === 0) {
+            showToast('En az bir barkod giriniz!', 'error');
+            return;
+        }
+        
+        // Tüm barkodları validate et
+        const invalidBarcodes = barcodes.filter(b => b.length !== 15 || !/^\d+$/.test(b));
+        if (invalidBarcodes.length > 0) {
+            showToast(`Geçersiz barkodlar bulundu (15 haneli olmalı):\n${invalidBarcodes.join('\n')}`, 'error');
+            return;
+        }
+    } else {
+        showToast('Barkod giriniz!', 'error');
+        return;
+    }
+
+    const timestamp = Date.now();
+    const timestampReadable = getTimestamp();
+    const isMultiple = barcodes.length > 1;
+    const groupId = isMultiple ? `group_${timestamp}_${Math.random().toString(36).substr(2, 9)}` : null;
 
     try {
-        // IMEI bazlı değil, unique ID bazlı kayıt
-        await db.ref(`partOrders/${uniqueOrderId}`).set(orderData);
-        showToast('Parça siparişi başarıyla gönderildi!', 'success');
+        // PERFORMANS İYİLEŞTİRMESİ: Modal'ı hemen kapat ve toast göster
+        // Kullanıcı işlemin devam ettiğini görsün
+        showToast(`⏳ ${barcodes.length} sipariş oluşturuluyor...`, 'info');
         closePartOrderModal();
+
+        // Siparişleri arka planda asenkron olarak oluştur
+        // UI donmasını önlemek için Promise.all kullanmıyoruz
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const barcode of barcodes) {
+            try {
+                const uniqueOrderId = `${barcode}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                
+                const orderData = {
+                    barcode: barcode,
+                    model: model,
+                    customer: customer || '',
+                    statusField: statusField || '',
+                    service: service || '',
+                    note: note || '',
+                    parts: parts,
+                    technician: currentUserName,
+                    technicianDamage: technicianDamage || '',
+                    status: 'pending',
+                    timestamp: timestamp,
+                    timestampReadable: timestampReadable,
+                    isMultiOrder: isMultiple,
+                    groupId: groupId,
+                    multiOrderCount: barcodes.length
+                };
+
+                // Firebase'e kaydet - await kullanarak sırayla yaz
+                await db.ref(`partOrders/${uniqueOrderId}`).set(orderData);
+                successCount++;
+                
+                // Her 5 siparişte bir progress göster
+                if (barcodes.length > 5 && successCount % 5 === 0) {
+                    showToast(`📦 ${successCount}/${barcodes.length} sipariş oluşturuldu...`, 'info');
+                }
+                
+            } catch (error) {
+                console.error(`Sipariş oluşturma hatası (${barcode}):`, error);
+                failCount++;
+            }
+        }
+
+        // Tüm siparişler tamamlandı - sonuç göster
+        if (failCount === 0) {
+            showToast(`✅ ${successCount} sipariş başarıyla oluşturuldu!`, 'success');
+        } else {
+            showToast(`⚠️ ${successCount} sipariş oluşturuldu, ${failCount} başarısız!`, 'warning');
+        }
 
         // Teknisyen sipariş listesini güncelle
         if (currentUserRole === 'technician') {
             loadTechnicianPartOrders();
         }
+        
+        // Warehouse kullanıcısıysa sipariş listesini yenile
+        if (currentUserRole === 'warehouse') {
+            loadWarehouseOrders();
+        }
+
     } catch (error) {
         console.error('Parça siparişi gönderilirken hata:', error);
         showToast('Parça siparişi gönderilirken hata oluştu!', 'error');
@@ -10827,131 +10902,6 @@ function closePartOrderModal() {
 }
 
 // Submit part order
-async function submitPartOrder() {
-    try {
-        // Get form values
-        const model = document.getElementById('partOrderModel').value;
-        const customer = document.getElementById('partOrderCustomer').value;
-        const statusField = document.getElementById('partOrderStatus').value;
-        const service = document.getElementById('partOrderService').value;
-        const note = document.getElementById('partOrderNote').value;
-        const technicianDamage = document.getElementById('partOrderTechnicianDamage').value;
-
-        // Get parts
-        const parts = [];
-        for (let i = 1; i <= 4; i++) {
-            const partValue = document.getElementById(`partOrderPart${i}`).value.trim();
-            if (partValue) {
-                parts.push({ name: partValue });
-            }
-        }
-
-        // Validate common fields
-        if (!model) {
-            alert('Lütfen cihaz modelini seçin!');
-            return;
-        }
-        /*
-                if (parts.length === 0) {
-                    alert('Lütfen en az bir parça girin!');
-                    return;
-                }
-        */
-        // Get barcodes based on type
-        let barcodes = [];
-        if (currentPartOrderType === 'single') {
-            const barcode = document.getElementById('partOrderBarcode').value.trim();
-            if (!barcode) {
-                alert('Lütfen barkod girin!');
-                return;
-            }
-            if (!validateIMEI(barcode)) {
-                alert('Barkod 15 haneli olmalıdır!');
-                return;
-            }
-            barcodes = [barcode];
-        } else {
-            const multipleText = document.getElementById('partOrderBarcodeMultiple').value;
-            barcodes = parseMultipleBarcodes(multipleText);
-
-            if (barcodes.length === 0) {
-                alert('Lütfen en az bir barkod girin!');
-                return;
-            }
-
-            // Validate all barcodes
-            const invalidBarcodes = barcodes.filter(b => !validateIMEI(b));
-            if (invalidBarcodes.length > 0) {
-                alert(`Geçersiz barkodlar bulundu (15 haneli olmalı):\n${invalidBarcodes.join('\n')}`);
-                return;
-            }
-        }
-
-        // Get current user info
-        const currentUser = firebase.auth().currentUser;
-        if (!currentUser) {
-            alert('Kullanıcı oturumu bulunamadı!');
-            return;
-        }
-
-        const technician = currentUser.email.split('@')[0];
-        const timestamp = Date.now();
-        const timestampReadable = new Date(timestamp).toLocaleString('tr-TR');
-
-        // Generate group ID for multiple orders
-        const groupId = currentPartOrderType === 'multiple' ? `group_${timestamp}_${Math.random().toString(36).substr(2, 9)}` : null;
-
-        // Create orders for each barcode
-        const orderPromises = barcodes.map(async (barcode) => {
-            const orderData = {
-                barcode: barcode,
-                model: model,
-                customer: customer,
-                statusField: statusField,
-                service: service,
-                note: note,
-                parts: parts,
-                technician: technician,
-                technicianDamage: technicianDamage,
-                status: 'pending',
-                timestamp: timestamp,
-                timestampReadable: timestampReadable,
-                isMultiOrder: currentPartOrderType === 'multiple',
-                groupId: groupId,
-                multiOrderCount: barcodes.length
-            };
-
-            // Save to database
-            const newOrderRef = db.ref('partOrders').push();
-            await newOrderRef.set(orderData);
-
-            return { orderId: newOrderRef.key, ...orderData };
-        });
-
-        // Wait for all orders to be created
-        await Promise.all(orderPromises);
-
-        // Show success message
-        if (currentPartOrderType === 'single') {
-            showToast(`✅ Parça siparişi başarıyla oluşturuldu!`, 'success');
-        } else {
-            showToast(`✅ ${barcodes.length} adet parça siparişi başarıyla oluşturuldu!`, 'success');
-        }
-
-        // Close modal
-        closePartOrderModal();
-
-        // Reload warehouse panel if user is warehouse
-        if (currentUserRole === 'warehouse') {
-            loadWarehouseOrders();
-        }
-
-    } catch (error) {
-        console.error('Parça siparişi oluşturulurken hata:', error);
-        alert('Parça siparişi oluşturulurken bir hata oluştu!');
-    }
-}
-
 
 
 // ========================================
