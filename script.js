@@ -112,7 +112,7 @@ const DirtyLists = {
 let dataSyncCheckInterval = null;
 let lastDataSyncCheck = null;
 let dataSyncMismatches = [];
-const DATA_SYNC_CHECK_INTERVAL = 20 * 60 * 1000; // 20 dakika (CPU optimizasyonu)
+const DATA_SYNC_CHECK_INTERVAL = 30 * 60 * 1000; // 30 dakika
 
 // ========================================
 // THEME TOGGLE (GECE/GÜNDÜZ MODU)
@@ -3307,11 +3307,7 @@ function checkMidnightReset() {
 }
 
 
-// ⚡ CPU OPTİMİZASYONU: 15 dakika yerine 30 dakika (gece yarısı kontrolü için yeterli)
-setInterval(() => {
-    if (document.hidden) return; // Backgroundda ise atla
-    checkMidnightReset();
-}, 30 * 60 * 1000); // 30 dakika
+setInterval(checkMidnightReset, 15 * 60 * 1000); // 5 dakika
 
 
 
@@ -3726,28 +3722,6 @@ window.addEventListener('load', () => {
     lastCheckedDate = getTodayDateString();
     checkMidnightReset();
 });
-
-// ========================================
-// ⚡ PAGE VİSİBİLİTY OPTİMİZASYONU - ÇOK ÖNEMLİ!
-// ========================================
-// Sayfa backgrounda gittiğinde/foregrounda geldiğinde akıllı davran
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        console.log('📴 Sayfa backgrounda gitti - interval\'lar yavaşlatıldı');
-        // Backgrounddayken hiçbir interval çalışmayacak (if kontrolü ile engellendi)
-    } else {
-        console.log('📱 Sayfa foregrounda döndü - interval\'lar normal hızda');
-        // Foregrounda dönünce hemen bir kontrol yap (veri güncel mi?)
-        setTimeout(() => {
-            if (currentUserRole === 'admin') {
-                console.log('🔄 Foregrounda dönüldü, hızlı senkronizasyon kontrolü yapılıyor...');
-                performDataSyncCheck(false);
-            }
-        }, 2000); // 2 saniye bekle, sayfa stabilize olsun
-    }
-});
-// ========================================
-
 
 // Güncel tarihi formatla
 function getTodayDateString() {
@@ -5053,140 +5027,65 @@ function closePartOrderModal() {
 }
 
 async function submitPartOrder() {
-    // Get form values
+    const barcode = document.getElementById('partOrderBarcode').value.trim();
     const model = document.getElementById('partOrderModel').value.trim();
-    const customer = document.getElementById('partOrderCustomer') ? document.getElementById('partOrderCustomer').value.trim() : '';
+    const customer = document.getElementById('partOrderCustomer').value.trim();
     const statusField = document.getElementById('partOrderStatus').value.trim();
     const service = document.getElementById('partOrderService').value.trim();
     const note = document.getElementById('partOrderNote').value.trim();
-    const technicianDamage = document.getElementById('partOrderTechnicianDamage') ? document.getElementById('partOrderTechnicianDamage').value.trim() : '';
-
-    // Get parts
-    const parts = [];
     const part1 = document.getElementById('partOrderPart1').value.trim();
     const part2 = document.getElementById('partOrderPart2').value.trim();
     const part3 = document.getElementById('partOrderPart3').value.trim();
     const part4 = document.getElementById('partOrderPart4').value.trim();
-    
+
+    if (!barcode || barcode.length !== 15 || !/^\d+$/.test(barcode)) {
+        showToast('Geçerli bir 15 haneli barkod giriniz!', 'error');
+        return;
+    }
+
+    if (!model) {
+        showToast('Cihaz modelini giriniz!', 'error');
+        return;
+    }
+    /*
+        if (!part1) {
+            showToast('En az 1 parça girmelisiniz!', 'error');
+            return;
+        }
+    */
+    const parts = [];
     if (part1) parts.push({ name: part1, status: 'pending' });
     if (part2) parts.push({ name: part2, status: 'pending' });
     if (part3) parts.push({ name: part3, status: 'pending' });
     if (part4) parts.push({ name: part4, status: 'pending' });
 
-    // Validate model
-    if (!model) {
-        showToast('Cihaz modelini seçiniz!', 'error');
-        return;
-    }
+    // UNIQUE ID OLUŞTUR - Aynı barkod için birden fazla sipariş olabilsin
+    const uniqueOrderId = `${barcode}_${Date.now()}`;
 
-    // Get barcodes - tek veya çoklu sipariş
-    let barcodes = [];
-    const singleBarcode = document.getElementById('partOrderBarcode');
-    const multipleBarcode = document.getElementById('partOrderBarcodeMultiple');
-    
-    // Tek barkod mu çoklu mu kontrol et
-    if (singleBarcode && singleBarcode.style.display !== 'none' && singleBarcode.value.trim()) {
-        // Tek barkod modu
-        const barcode = singleBarcode.value.trim();
-        if (!barcode || barcode.length !== 15 || !/^\d+$/.test(barcode)) {
-            showToast('Geçerli bir 15 haneli barkod giriniz!', 'error');
-            return;
-        }
-        barcodes = [barcode];
-    } else if (multipleBarcode && multipleBarcode.style.display !== 'none' && multipleBarcode.value.trim()) {
-        // Çoklu barkod modu
-        const text = multipleBarcode.value.trim();
-        // Satır satır veya virgülle ayrılmış barkodları parse et
-        barcodes = text.split(/[\n,]+/)
-            .map(b => b.trim())
-            .filter(b => b.length > 0);
-        
-        if (barcodes.length === 0) {
-            showToast('En az bir barkod giriniz!', 'error');
-            return;
-        }
-        
-        // Tüm barkodları validate et
-        const invalidBarcodes = barcodes.filter(b => b.length !== 15 || !/^\d+$/.test(b));
-        if (invalidBarcodes.length > 0) {
-            showToast(`Geçersiz barkodlar bulundu (15 haneli olmalı):\n${invalidBarcodes.join('\n')}`, 'error');
-            return;
-        }
-    } else {
-        showToast('Barkod giriniz!', 'error');
-        return;
-    }
-
-    const timestamp = Date.now();
-    const timestampReadable = getTimestamp();
-    const isMultiple = barcodes.length > 1;
-    const groupId = isMultiple ? `group_${timestamp}_${Math.random().toString(36).substr(2, 9)}` : null;
+    const orderData = {
+        barcode: barcode,
+        model: model,
+        customer: customer || '',  // Müşteri bilgisi (isteğe bağlı)
+        statusField: statusField || '',  // Statü bilgisi (isteğe bağlı)
+        service: service || '',  // Hizmet bilgisi (isteğe bağlı)
+        note: note || '',  // Not bilgisi (isteğe bağlı)
+        parts: parts,
+        technician: currentUserName,
+        status: 'pending',
+        timestamp: Date.now(),
+        timestampReadable: getTimestamp()
+    };
 
     try {
-        // PERFORMANS İYİLEŞTİRMESİ: Modal'ı hemen kapat ve toast göster
-        // Kullanıcı işlemin devam ettiğini görsün
-        showToast(`⏳ ${barcodes.length} sipariş oluşturuluyor...`, 'info');
+        // IMEI bazlı değil, unique ID bazlı kayıt
+        await db.ref(`partOrders/${uniqueOrderId}`).set(orderData);
+        showToast('Parça siparişi başarıyla gönderildi!', 'success');
         closePartOrderModal();
-
-        // Siparişleri arka planda asenkron olarak oluştur
-        // UI donmasını önlemek için Promise.all kullanmıyoruz
-        let successCount = 0;
-        let failCount = 0;
-
-        for (const barcode of barcodes) {
-            try {
-                const uniqueOrderId = `${barcode}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-                
-                const orderData = {
-                    barcode: barcode,
-                    model: model,
-                    customer: customer || '',
-                    statusField: statusField || '',
-                    service: service || '',
-                    note: note || '',
-                    parts: parts,
-                    technician: currentUserName,
-                    technicianDamage: technicianDamage || '',
-                    status: 'pending',
-                    timestamp: timestamp,
-                    timestampReadable: timestampReadable,
-                    isMultiOrder: isMultiple,
-                    groupId: groupId,
-                    multiOrderCount: barcodes.length
-                };
-
-                // Firebase'e kaydet - await kullanarak sırayla yaz
-                await db.ref(`partOrders/${uniqueOrderId}`).set(orderData);
-                successCount++;
-                
-                // Her 5 siparişte bir progress göster
-                if (barcodes.length > 5 && successCount % 5 === 0) {
-                    showToast(`📦 ${successCount}/${barcodes.length} sipariş oluşturuldu...`, 'info');
-                }
-                
-            } catch (error) {
-                console.error(`Sipariş oluşturma hatası (${barcode}):`, error);
-                failCount++;
-            }
-        }
-
-        // Tüm siparişler tamamlandı - sonuç göster
-        if (failCount === 0) {
-            showToast(`✅ ${successCount} sipariş başarıyla oluşturuldu!`, 'success');
-        } else {
-            showToast(`⚠️ ${successCount} sipariş oluşturuldu, ${failCount} başarısız!`, 'warning');
-        }
 
         // Teknisyen sipariş listesini güncelle
         if (currentUserRole === 'technician') {
             loadTechnicianPartOrders();
         }
-        
-        // Warehouse kullanıcısıysa sipariş listesini yenile
-        if (currentUserRole === 'warehouse') {
-            loadWarehouseOrders();
-        }
-
     } catch (error) {
         console.error('Parça siparişi gönderilirken hata:', error);
         showToast('Parça siparişi gönderilirken hata oluştu!', 'error');
@@ -8613,29 +8512,10 @@ function loadData() {
 
 } // ← loadData fonksiyonu kapanış parantezi
 
-// ⚡ CPU OPTİMİZASYONU: Akıllı sayfa yenileme
-let pageLoadTime = Date.now();
-let lastUserActivity = Date.now();
-
-// Kullanıcı aktivitesini takip et
-['mousedown', 'keydown', 'scroll', 'touchstart'].forEach(event => {
-    document.addEventListener(event, () => {
-        lastUserActivity = Date.now();
-    }, { passive: true });
-});
-
-// Sayfa yenileme - sadece 2 saat+ ve 10 dakika inaktivite sonrası
-setInterval(() => {
-    const now = Date.now();
-    const pageAge = now - pageLoadTime;
-    const timeSinceActivity = now - lastUserActivity;
-    
-    // Sayfa 2 saatten eski VE son 10 dakikada aktivite yoksa
-    if (pageAge > 2 * 60 * 60 * 1000 && timeSinceActivity > 10 * 60 * 1000) {
-        console.log('🔄 Sayfa 2 saattir açık ve kullanıcı pasif, yenileniyor...');
-        location.reload();
-    }
-}, 15 * 60 * 1000); // Her 15 dakikada kontrol
+// 30 dakikada bir otomatik sayfa yenileme (performans için artırıldı)
+setInterval(function () {
+    location.reload();
+}, 60 * 60 * 1000);
 
 // ✅ SAYFA YÜKLENDİĞİNDE EN ÜSTE SCROLL
 window.addEventListener('load', function () {
@@ -9143,20 +9023,15 @@ function openSyncModalFromNotification() {
 
 // Çakışma kontrolünü başlat
 function startConflictMonitoring() {
-    // İlk kontrol - 30 DAKIKA SONRA
+    // İlk kontrol - 30 DAKIKA SONRA (1800000 ms)
     setTimeout(() => {
         checkAndNotifyConflicts();
-    }, 30 * 60 * 1000); // 30 dakika
+    }, 25 * 60 * 1000); // 30 dakika = 1800000 ms
 
-    // ⚡ CPU OPTİMİZASYONU: Her 60 dakikada bir kontrol et (45 yerine)
+    // Her 60 dakikada bir kontrol et
     conflictCheckInterval = setInterval(() => {
-        // Sayfa backgroundda ise atla
-        if (document.hidden) {
-            console.log('⏭️ Sayfa backgroundda, conflict check atlandı');
-            return;
-        }
         checkAndNotifyConflicts();
-    }, 60 * 60 * 1000); // 60 dakika
+    }, 45 * 60 * 1000);
 }
 
 // Çakışma kontrolünü durdur
@@ -9955,14 +9830,14 @@ function startDataSyncAutoCheck() {
         return;
     }
 
-    console.log('✅ Data Sync Auto Check başlatıldı - Her 20 dakikada kontrol edilecek');
+    console.log('✅ Data Sync Auto Check başlatıldı - Her 5 dakikada kontrol edilecek');
 
     // İlk kontrolü 30 saniye sonra yap
     setTimeout(() => {
         performDataSyncCheck(false); // false = sessiz kontrol (bildirim gösterme)
     }, 30000);
 
-    // ⚡ CPU OPTİMİZASYONU: Her 20 dakikada bir otomatik kontrol
+    // 5 dakikada bir otomatik kontrol
     dataSyncCheckInterval = setInterval(() => {
         performDataSyncCheck(false);
     }, DATA_SYNC_CHECK_INTERVAL);
@@ -9980,12 +9855,6 @@ function stopDataSyncAutoCheck() {
 // Veri kontrolü yap
 async function performDataSyncCheck(showNotification = false) {
     if (currentUserRole !== 'admin') return;
-    
-    // ⚡ CPU OPTİMİZASYONU: Sayfa backgroundda ise atla
-    if (document.hidden) {
-        console.log('⏭️ Sayfa backgroundda, data sync atlandı');
-        return;
-    }
 
     try {
         console.log('🔍 Veri senkronizasyon kontrolü başlatılıyor...');
@@ -10000,41 +9869,40 @@ async function performDataSyncCheck(showNotification = false) {
             'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'
         ];
 
-        // ⚡ CPU OPTİMİZASYONU: Sıralı yerine PARALEL kontrol
-        const checkPromises = listNames.map(async (listName) => {
+        for (const listName of listNames) {
+            // Frontend'deki barkodlar
             const frontendCodes = userCodes[listName] ? Array.from(userCodes[listName]) : [];
             const frontendCount = frontendCodes.length;
+
+            // Database path mapping - onarim -> onarimTamamlandi
             const dbPath = listName === 'onarim' ? 'onarimTamamlandi' : listName;
 
+            // Database'deki barkodlar - SADECE 15 HANELİ
             const dbSnapshot = await db.ref(`servis/${dbPath}`).once('value');
             const dbData = dbSnapshot.val();
 
             let dbCodes = [];
             if (dbData) {
-                // ⚡ OPTİMİZASYON: Daha hızlı regex kontrolü
-                dbCodes = Object.keys(dbData).filter(key => key.length === 15 && /^\d+$/.test(key));
+                // Sadece 15 haneli barkodları al
+                dbCodes = Object.keys(dbData).filter(key => /^\d{15}$/.test(key));
             }
 
             const dbCount = dbCodes.length;
 
+            // SADECE GERÇEK FARKLARI TESPIT ET
             if (frontendCount !== dbCount) {
+                // Eksik ve fazla barkodları bul
                 const frontendSet = new Set(frontendCodes);
                 const dbSet = new Set(dbCodes);
+
                 const missingInFrontend = dbCodes.filter(code => !frontendSet.has(code));
                 const missingInDB = frontendCodes.filter(code => !dbSet.has(code));
 
+                // Sadece gerçekten eksik/fazla varsa rapor et
                 if (missingInFrontend.length > 0 || missingInDB.length > 0) {
                     const difference = Math.abs(frontendCount - dbCount);
-                    
-                    console.warn(`⚠️ ${listName}: Frontend=${frontendCount}, DB=${dbCount}, Fark=${difference}`);
-                    if (missingInFrontend.length > 0) {
-                        console.warn(`   📍 DB'de olup Frontend'de olmayan: ${missingInFrontend.length} adet`);
-                    }
-                    if (missingInDB.length > 0) {
-                        console.warn(`   📍 Frontend'de olup DB'de olmayan: ${missingInDB.length} adet`);
-                    }
 
-                    return {
+                    dataSyncMismatches.push({
                         type: 'count_mismatch',
                         listName: listName,
                         frontendCount: frontendCount,
@@ -10045,18 +9913,21 @@ async function performDataSyncCheck(showNotification = false) {
                         missingInDB: missingInDB.slice(0, 5),
                         totalMissingInFrontend: missingInFrontend.length,
                         totalMissingInDB: missingInDB.length
-                    };
+                    });
+
+                    console.warn(`⚠️ ${listName}: Frontend=${frontendCount}, DB=${dbCount}, Fark=${difference}`);
+                    if (missingInFrontend.length > 0) {
+                        console.warn(`   📍 DB'de olup Frontend'de olmayan: ${missingInFrontend.length} adet`);
+                    }
+                    if (missingInDB.length > 0) {
+                        console.warn(`   📍 Frontend'de olup DB'de olmayan: ${missingInDB.length} adet`);
+                    }
                 } else {
+                    // Sayılar farklı ama barkodlar aynı - bu normal olabilir
                     console.info(`ℹ️ ${listName}: Sayı farkı var (${frontendCount} vs ${dbCount}) ama barkodlar aynı - ignore`);
                 }
             }
-            return null;
-        });
-
-        // Tüm kontrolleri paralel yap - ÇOK DAHA HIZLI!
-        const results = await Promise.all(checkPromises);
-        const listMismatches = results.filter(r => r !== null);
-        dataSyncMismatches.push(...listMismatches);
+        }
 
         // 2. DASHBOARD İSTATİSTİKLERİNİ KONTROL ET
         const today = new Date().toISOString().split('T')[0];
@@ -10902,6 +10773,131 @@ function closePartOrderModal() {
 }
 
 // Submit part order
+async function submitPartOrder() {
+    try {
+        // Get form values
+        const model = document.getElementById('partOrderModel').value;
+        const customer = document.getElementById('partOrderCustomer').value;
+        const statusField = document.getElementById('partOrderStatus').value;
+        const service = document.getElementById('partOrderService').value;
+        const note = document.getElementById('partOrderNote').value;
+        const technicianDamage = document.getElementById('partOrderTechnicianDamage').value;
+
+        // Get parts
+        const parts = [];
+        for (let i = 1; i <= 4; i++) {
+            const partValue = document.getElementById(`partOrderPart${i}`).value.trim();
+            if (partValue) {
+                parts.push({ name: partValue });
+            }
+        }
+
+        // Validate common fields
+        if (!model) {
+            alert('Lütfen cihaz modelini seçin!');
+            return;
+        }
+        /*
+                if (parts.length === 0) {
+                    alert('Lütfen en az bir parça girin!');
+                    return;
+                }
+        */
+        // Get barcodes based on type
+        let barcodes = [];
+        if (currentPartOrderType === 'single') {
+            const barcode = document.getElementById('partOrderBarcode').value.trim();
+            if (!barcode) {
+                alert('Lütfen barkod girin!');
+                return;
+            }
+            if (!validateIMEI(barcode)) {
+                alert('Barkod 15 haneli olmalıdır!');
+                return;
+            }
+            barcodes = [barcode];
+        } else {
+            const multipleText = document.getElementById('partOrderBarcodeMultiple').value;
+            barcodes = parseMultipleBarcodes(multipleText);
+
+            if (barcodes.length === 0) {
+                alert('Lütfen en az bir barkod girin!');
+                return;
+            }
+
+            // Validate all barcodes
+            const invalidBarcodes = barcodes.filter(b => !validateIMEI(b));
+            if (invalidBarcodes.length > 0) {
+                alert(`Geçersiz barkodlar bulundu (15 haneli olmalı):\n${invalidBarcodes.join('\n')}`);
+                return;
+            }
+        }
+
+        // Get current user info
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            alert('Kullanıcı oturumu bulunamadı!');
+            return;
+        }
+
+        const technician = currentUser.email.split('@')[0];
+        const timestamp = Date.now();
+        const timestampReadable = new Date(timestamp).toLocaleString('tr-TR');
+
+        // Generate group ID for multiple orders
+        const groupId = currentPartOrderType === 'multiple' ? `group_${timestamp}_${Math.random().toString(36).substr(2, 9)}` : null;
+
+        // Create orders for each barcode
+        const orderPromises = barcodes.map(async (barcode) => {
+            const orderData = {
+                barcode: barcode,
+                model: model,
+                customer: customer,
+                statusField: statusField,
+                service: service,
+                note: note,
+                parts: parts,
+                technician: technician,
+                technicianDamage: technicianDamage,
+                status: 'pending',
+                timestamp: timestamp,
+                timestampReadable: timestampReadable,
+                isMultiOrder: currentPartOrderType === 'multiple',
+                groupId: groupId,
+                multiOrderCount: barcodes.length
+            };
+
+            // Save to database
+            const newOrderRef = db.ref('partOrders').push();
+            await newOrderRef.set(orderData);
+
+            return { orderId: newOrderRef.key, ...orderData };
+        });
+
+        // Wait for all orders to be created
+        await Promise.all(orderPromises);
+
+        // Show success message
+        if (currentPartOrderType === 'single') {
+            showToast(`✅ Parça siparişi başarıyla oluşturuldu!`, 'success');
+        } else {
+            showToast(`✅ ${barcodes.length} adet parça siparişi başarıyla oluşturuldu!`, 'success');
+        }
+
+        // Close modal
+        closePartOrderModal();
+
+        // Reload warehouse panel if user is warehouse
+        if (currentUserRole === 'warehouse') {
+            loadWarehouseOrders();
+        }
+
+    } catch (error) {
+        console.error('Parça siparişi oluşturulurken hata:', error);
+        alert('Parça siparişi oluşturulurken bir hata oluştu!');
+    }
+}
+
 
 
 // ========================================
@@ -10930,11 +10926,8 @@ window.addEventListener('load', () => {
         checkTimeouts();
     }, 5000);
 
-    // ⚡ CPU OPTİMİZASYONU: Her 2 saatte bir kontrol et (60 dk yerine)
-    setInterval(() => {
-        if (document.hidden) return; // Backgroundda ise atla
-        checkTimeouts();
-    }, 2 * 60 * 60 * 1000); // 2 saat
+    // Her 30 dakikada bir kontrol et (Performance Optimized)
+    setInterval(checkTimeouts, 60 * 60 * 1000);
 });
 
 async function checkTimeouts() {
