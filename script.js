@@ -473,7 +473,7 @@ function openSayimModuListSelection() {
         modalHTML += `
             <div class="sayim-list-item">
                 <label>
-                    <input type="checkbox" class="sayim-list-checkbox" value="${list.id}" ${count > 0 ? '' : 'disabled'}>
+                    <input type="checkbox" class="sayim-list-checkbox" value="${list.id}">
                     <span class="sayim-list-label">
                         <span class="sayim-list-emoji">${list.emoji}</span>
                         <span class="sayim-list-name">${list.label}</span>
