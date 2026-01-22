@@ -199,12 +199,12 @@ function toggleSayimModu() {
             const btn = document.getElementById('sayimModuBtn');
             const btnText = document.getElementById('sayimModuText');
             const btnIcon = document.getElementById('sayimModuIcon');
-            
+
             sayimModuActive = false;
             if (btn) btn.classList.remove('active');
             if (btnText) btnText.textContent = 'Sayım Modu: KAPALI';
             if (btnIcon) btnIcon.textContent = '📊';
-            
+
             // Seçili listeleri temizle
             sayimModuSelectedLists = [];
         }, 100);
@@ -338,11 +338,89 @@ function isBarcodeInCache(barcode) {
 }
 
 /**
+ * IMEI'nin sistemdeki herhangi bir listede olup olmadığını kontrol et
+ * @param {string} imei - Kontrol edilecek IMEI
+ * @returns {boolean} - IMEI herhangi bir listede varsa true
+ */
+function isIMEIInAnyList(imei) {
+    for (const [listName, codeSet] of Object.entries(userCodes)) {
+        if (codeSet && codeSet.has && codeSet.has(imei)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Sayım modunda IMEI'yi başka listeden bu listeye direkt transfer et (gri liste olmadan)
+ * @param {string} imei - Transfer edilecek IMEI
+ * @param {string} targetList - Hedef liste
+ * @returns {Promise<boolean>} - Transfer başarılı mı
+ */
+async function directTransferIMEI(imei, targetList) {
+    try {
+        console.log(`🔄 Direkt transfer başlıyor: ${imei} → ${targetList}`);
+
+        // Eski listeden sil
+        let sourceList = null;
+        for (const [listName, codeSet] of Object.entries(userCodes)) {
+            if (codeSet && codeSet.has && codeSet.has(imei)) {
+                sourceList = listName;
+                // Firebase'den sil
+                const dbPathFrom = listName === 'onarim' ? 'onarimTamamlandi' : listName;
+                await db.ref(`servis/${dbPathFrom}/${imei}`).remove();
+                // Local state'den sil
+                userCodes[listName].delete(imei);
+                delete codeTimestamps[listName][imei];
+                delete codeUsers[listName][imei];
+                updateLabelAndCount(listName);
+                renderMiniList(listName);
+                console.log(`  ✅ ${imei} ${listName} listesinden silindi`);
+                break;
+            }
+        }
+
+        // Yeni listeye ekle
+        const timestamp = getTimestamp();
+        const dbPathTo = targetList === 'onarim' ? 'onarimTamamlandi' : targetList;
+        await db.ref(`servis/${dbPathTo}/${imei}`).set({
+            ts: timestamp,
+            user: currentUserName
+        });
+
+        // Local state'i güncelle
+        if (!userCodes[targetList]) {
+            userCodes[targetList] = new Set();
+        }
+        userCodes[targetList].add(imei);
+        codeTimestamps[targetList][imei] = timestamp;
+        codeUsers[targetList][imei] = currentUserName;
+        allCodes.add(imei);
+
+        // History kaydet
+        saveBarcodeHistory(imei, sourceList || 'BAŞKA LİSTE', targetList, currentUserName);
+
+        // UI güncelle
+        updateLabelAndCount(targetList);
+        renderMiniList(targetList);
+
+        console.log(`  ✅ ${imei} ${targetList} listesine eklendi`);
+        console.log(`✅ Direkt transfer tamamlandı: ${sourceList} → ${targetList}`);
+
+        return true;
+    } catch (error) {
+        console.error(`❌ Direkt transfer hatası:`, error);
+        return false;
+    }
+}
+
+
+/**
  * Sayım Modu için alan seçim modalini aç
  */
 function openSayimModuListSelection() {
     console.log('📋 Sayım Modu Alan Seçim Modalı açılıyor...');
-    
+
     // Mevcut Parça/İşlem Türleri listeleri
     const partOperationLists = [
         { id: 'demontaj', label: '🔧 Demontaj', emoji: '🔧' },
@@ -363,7 +441,7 @@ function openSayimModuListSelection() {
         { id: 'sahiniden', label: '🏪 Sahibinden', emoji: '🏪' },
         { id: 'mediaMarkt', label: '🛒 Satış Sonrası', emoji: '🛒' }
     ];
-    
+
     // Modal HTML'i oluştur
     let modalHTML = `
         <div class="modal-overlay active" id="sayimModuListSelectionModal">
@@ -388,7 +466,7 @@ function openSayimModuListSelection() {
                     
                     <div class="sayim-list-selection" id="sayimListSelection">
     `;
-    
+
     // Her alan için checkbox ekle
     partOperationLists.forEach(list => {
         const count = userCodes[list.id] ? userCodes[list.id].size : 0;
@@ -405,7 +483,7 @@ function openSayimModuListSelection() {
             </div>
         `;
     });
-    
+
     modalHTML += `
                     </div>
                 </div>
@@ -418,7 +496,7 @@ function openSayimModuListSelection() {
             </div>
         </div>
     `;
-    
+
     // Modalı ekle
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
@@ -456,37 +534,37 @@ function startSayimModuWithSelectedLists() {
     // Seçili listeleri al
     const checkboxes = document.querySelectorAll('.sayim-list-checkbox:checked');
     sayimModuSelectedLists = Array.from(checkboxes).map(cb => cb.value);
-    
+
     if (sayimModuSelectedLists.length === 0) {
         showToast('❌ Lütfen en az bir alan seçin!', 'error');
         return;
     }
-    
+
     // Modalı kapat
     closeSayimModuListSelection();
-    
+
     // Sayım modunu başlat
     console.log('📊 Sayım Modu AÇILIYOR...');
     console.log('📋 Seçili alanlar:', sayimModuSelectedLists);
-    
+
     // Cache'i başlat - Sadece seçili alanları cache'e al
     initializeSayimModuCache();
-    
+
     // Okutulan barkodları temizle
     sayimModuScannedBarcodes.clear();
-    
+
     // Sayım modunu aktif et
     sayimModuActive = true;
-    
+
     // UI güncelle
     const btn = document.getElementById('sayimModuBtn');
     const btnText = document.getElementById('sayimModuText');
     const btnIcon = document.getElementById('sayimModuIcon');
-    
+
     if (btn) btn.classList.add('active');
     if (btnText) btnText.textContent = `Sayım Modu: AÇIK (${sayimModuSelectedLists.length} alan)`;
     if (btnIcon) btnIcon.textContent = '✅';
-    
+
     showToast(`📊 Sayım Modu AÇILDI! ${sayimModuCache.size} cihaz cache'e alındı`, 'success');
     console.log(`✅ Sayım Modu aktif - ${sayimModuCache.size} cihaz cache'lendi`);
     console.log(`📋 Cache'deki ilk 10 barkod:`, Array.from(sayimModuCache).slice(0, 10));
@@ -682,34 +760,47 @@ function openSectionInDashboard(sectionName, event) {
 
                 // Tüm IMEI'leri işle
                 for (const imei of newIMEIs) {
-                    // Sayım Modu AÇIKSA ve IMEI listede varsa, okutulan olarak işaretle ve atla
-                    if (sayimModuActive && userCodes[sectionName] && userCodes[sectionName].has(imei)) {
-                        sayimModuScannedBarcodes.add(imei);
-                        skippedCount++;
-                        console.log(`✅ Sayım Modu (Overlay): ${imei} "${sectionName}" listesinde MEVCUT - Okutulan olarak işaretlendi (Toplam okutulan: ${sayimModuScannedBarcodes.size})`);
-                        console.log(`   📋 sayimModuScannedBarcodes içeriği:`, Array.from(sayimModuScannedBarcodes));
-                    } else if (!sayimModuActive) {
-                        // Normal mod - Gri listeye gönder (toast gösterme)
-                        await sendToGriListe(imei, sectionName, null, true);
-                        addedCount++;
+                    if (sayimModuActive) {
+                        // Sayım modu aktif - IMEI'nin sistemde olup olmadığını kontrol et
+                        const existsInCurrentList = userCodes[sectionName] && userCodes[sectionName].has(imei);
+                        const existsInAnyList = isIMEIInAnyList(imei);
+
+                        if (existsInCurrentList || existsInAnyList) {
+                            // IMEI sistemde var - Okutulan olarak işaretle
+                            sayimModuScannedBarcodes.add(imei);
+                            skippedCount++;
+
+                            if (existsInCurrentList) {
+                                console.log(`✅ Sayım: ${imei} okutulan olarak işaretlendi (doğru listede)`);
+                            } else {
+                                // IMEI başka listede - Direkt transfer et (gri liste olmadan)
+                                console.log(`✅ Sayım: ${imei} okutulan olarak işaretlendi (başka listede) - Direkt transfer ediliyor...`);
+                                await directTransferIMEI(imei, sectionName);
+                            }
+                        } else {
+                            // IMEI sistemde hiçbir listede yok - Gri listeye gönder
+                            await sendToGriListe(imei, sectionName, null, true);
+                            addedCount++;
+                            console.log(`⚠️ Sayım: ${imei} sistemde bulunamadı - Gri listeye eklendi`);
+                        }
                     } else {
-                        // Sayım Modu AÇIK ama IMEI listede YOK - Gri listeye gönder
-                        console.log(`⚠️ Sayım Modu (Overlay): ${imei} "${sectionName}" listesinde YOK - Gri listeye ekleniyor`);
+                        // Normal mod - Gri listeye gönder (toast gösterme)
                         await sendToGriListe(imei, sectionName, null, true);
                         addedCount++;
                     }
                 }
+
 
                 // Tek bir özet toast mesajı göster
                 setTimeout(() => {
                     if (sayimModuActive) {
                         // Sayım Modu mesajları
                         if (addedCount > 0 && skippedCount > 0) {
-                            showToast(`⏳ Sayım: ${addedCount} eklendi, ${skippedCount} listede mevcut`, 'warning');
+                            showToast(`📊 Sayım: ${skippedCount} okutulan, ${addedCount} sistemde yok (gri liste)`, 'warning');
                         } else if (addedCount > 0) {
-                            showToast(`⏳ Sayım: ${addedCount} adet gri listeye eklendi (Listede YOK)`, 'warning');
+                            showToast(`⚠️ Sayım: ${addedCount} adet sistemde bulunamadı (gri listeye eklendi)`, 'warning');
                         } else if (skippedCount > 0) {
-                            showToast(`❌ Sayım: ${skippedCount} adet listede MEVCUT - İşlem yapılmadı`, 'success');
+                            showToast(`✅ Sayım: ${skippedCount} adet okutulan olarak işaretlendi`, 'success');
                         }
                     } else {
                         // Normal mod mesajları
@@ -854,26 +945,35 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         console.log(`🔍 Sayım Modu Aktif (Overlay) - Kontrol ediliyor: ${barcode} → ${targetList} listesinde`);
 
         const existsInCurrentList = userCodes[targetList] && userCodes[targetList].has(barcode);
+        const existsInAnyList = isIMEIInAnyList(barcode);
 
         console.log(`   userCodes[${targetList}] var mı?`, !!userCodes[targetList]);
         console.log(`   userCodes[${targetList}].has(${barcode})?`, existsInCurrentList);
+        console.log(`   Sistemde herhangi bir listede var mı?`, existsInAnyList);
 
-        if (userCodes[targetList]) {
-            console.log(`   ${targetList} listesindeki toplam cihaz sayısı:`, userCodes[targetList].size);
-            console.log(`   ${targetList} listesindeki ilk 5 cihaz:`, Array.from(userCodes[targetList]).slice(0, 5));
-        }
-
-        if (existsInCurrentList) {
-            // IMEI listede mevcut - Hiçbir işlem yapma, ama okutulan olarak işaretle
+        if (existsInCurrentList || existsInAnyList) {
+            // IMEI sistemde var - Okutulan olarak işaretle
             sayimModuScannedBarcodes.add(barcode);
-            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde MEVCUT - İşlem yapılmadı (Okutulan: ${sayimModuScannedBarcodes.size})`);
-            if (!isMultiple) {
-                showToast(`❌ Sayım: ${barcode} listede MEVCUT - İşlem yapılmadı`, 'success');
+
+            if (existsInCurrentList) {
+                // IMEI doğru listede - Gri listeye gönderme
+                console.log(`✅ Sayım Modu: ${barcode} okutulan olarak işaretlendi (doğru listede)`);
+                if (!isMultiple) {
+                    showToast(`✅ Sayım: ${barcode} okutulan olarak işaretlendi`, 'success');
+                }
+                return; // Fonksiyondan çık, gri listeye ekleme
+            } else {
+                // IMEI başka listede - Direkt transfer et (gri liste olmadan)
+                console.log(`✅ Sayım Modu: ${barcode} okutulan olarak işaretlendi (başka listede) - Direkt transfer ediliyor...`);
+                const success = await directTransferIMEI(barcode, targetList);
+                if (success && !isMultiple) {
+                    showToast(`✅ Sayım: ${barcode} başka listeden transfer edildi`, 'success');
+                }
+                return; // Fonksiyondan çık
             }
-            return; // Fonksiyondan çık, gri listeye ekleme
         } else {
-            // IMEI listede YOK - Gri listeye eklenecek (devam et)
-            console.log(`❌ Sayım Modu (Overlay): ${barcode} "${CACHED_LIST_NAMES[targetList] || targetList}" listesinde YOK - Gri listeye ekleniyor`);
+            // IMEI sistemde hiçbir listede yok - Gri listeye eklenecek (devam et)
+            console.log(`⚠️ Sayım Modu: ${barcode} sistemde bulunamadı - Gri listeye ekleniyor`);
             // Fonksiyon normal akışa devam edecek
         }
     }
@@ -907,7 +1007,7 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
         if (!shouldUseGriListe) {
             // Direkt transfer - gri liste yok
             console.log(`🚀 Direkt transfer (gri liste muaf): ${barcode} → ${targetList}`);
-            
+
             // Barkodun şu anki listesini bul ve sil
             let previousList = null;
             for (const [listName, codeSet] of Object.entries(userCodes)) {
@@ -924,15 +1024,15 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
                     break;
                 }
             }
-            
+
             // Yeni listeye ekle
             const timestamp = getTimestamp();
             const dbPathTo = targetList === 'onarim' ? 'onarimTamamlandi' : targetList;
-            await db.ref(`servis/${dbPathTo}/${barcode}`).set({ 
-                ts: timestamp, 
-                user: currentUserName 
+            await db.ref(`servis/${dbPathTo}/${barcode}`).set({
+                ts: timestamp,
+                user: currentUserName
             });
-            
+
             // Local state'i güncelle
             if (!userCodes[targetList]) {
                 userCodes[targetList] = new Set();
@@ -941,20 +1041,20 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
             codeTimestamps[targetList][barcode] = timestamp;
             codeUsers[targetList][barcode] = currentUserName;
             allCodes.add(barcode);
-            
+
             // History kaydet
             saveBarcodeHistory(barcode, previousList || 'YENİ', targetList, currentUserName);
-            
+
             // Dashboard güncellemesi (atanacak için)
             if (targetList === 'atanacak') {
                 await addReceivedIMEI(barcode, targetList);
                 updateDashboardUI();
             }
-            
+
             // UI güncelle
             updateLabelAndCount(targetList);
             renderMiniList(targetList);
-            
+
             if (!isMultiple) {
                 showToast(`✅ ${barcode} başarıyla ${getListDisplayName(targetList)} listesine eklendi!`, 'success');
             }
@@ -7729,13 +7829,13 @@ function performSearch(value, resultElementId, historyElementId, partInfoElement
             }
 
             searchResult.innerHTML = `<div style="color: #2ecc71;">📦 Barkod bulundu:</div>${foundIn.join("<br>")}${timeoutCategoryHTML}`;
-            
+
             // Wrapper div'i göster - doğru wrapper'ı seç
             const wrapperParent = partInfo ? partInfo.parentElement : historyLog.parentElement;
             if (wrapperParent && wrapperParent.classList.contains('info-history-wrapper')) {
                 wrapperParent.style.display = "flex";
             }
-            
+
             loadAndDisplayHistoryToElement(query, historyElementId);
 
             // ✅ PARÇA BİLGİLERİNİ GÖSTER - BU KISIM ÖNEMLİ
@@ -12649,7 +12749,7 @@ function openQRTransferModal(imei) {
         // TEKNİSYEN KONTROLÜ: Kendi listesine atama engeli
         // ========================================
         const isOwnList = currentUserIsTechnician && list.name === currentUserName;
-        
+
         if (isOwnList) {
             // Teknisyen kendi listesini görmesin (skip)
             return;
@@ -12682,7 +12782,7 @@ async function selectQRTransferList(listName, imei) {
     // Teknisyenler kendi listelerine cihaz atayamaz
     // ========================================
     const currentUserIsTechnician = TECHNICIAN_LISTS.includes(currentUserName);
-    
+
     if (currentUserIsTechnician && listName === currentUserName) {
         showToast('❌ Kendi listenize cihaz atama yetkiniz yok!', 'error');
         console.warn(`⚠️ Teknisyen ${currentUserName} kendi listesine atmaya çalıştı - engellendi`);
@@ -12827,7 +12927,7 @@ async function addToGriListeFromQR(imei, targetList) {
     // Teknisyenler kendi listelerine cihaz atayamaz
     // ========================================
     const currentUserIsTechnician = TECHNICIAN_LISTS.includes(userName);
-    
+
     if (currentUserIsTechnician && targetList === userName) {
         console.error(`❌ Teknisyen ${userName} kendi listesine (${targetList}) QR ile ekleme girişiminde bulundu - ENGELLENDİ`);
         showToast('❌ Kendi listenize cihaz atama yetkiniz yok!', 'error');
@@ -13564,34 +13664,34 @@ console.log('✅ Admin Dashboard Control fonksiyonları yüklendi');
  */
 function expandCardOverlay(button, event, sectionName, inputId, listId) {
     event.stopPropagation();
-    
+
     // Overlay elementini bul
     const overlay = button.closest('.dashboard-section-overlay');
     if (!overlay) {
         console.error('❌ Overlay bulunamadı!');
         return;
     }
-    
+
     // Section bilgilerini al
     const sectionInfo = getSectionInfo(sectionName);
     if (!sectionInfo) {
         console.error('❌ Section bilgisi bulunamadı:', sectionName);
         return;
     }
-    
+
     // OVERLAY İÇİNDEKİ listeyi bul (orijinal gizli liste değil!)
     const overlayListId = listId + '_overlay';
     const overlayList = document.getElementById(overlayListId);
-    
+
     if (!overlayList) {
         console.error('❌ Overlay içindeki liste bulunamadı:', overlayListId);
         return;
     }
-    
+
     console.log('🔍 DEBUG - Overlay list ID:', overlayListId);
     console.log('🔍 DEBUG - Overlay list:', overlayList);
     console.log('🔍 DEBUG - Overlay list children:', overlayList.children.length);
-    
+
     // Genişletilmiş modal oluştur
     const expandedModal = document.createElement('div');
     expandedModal.className = 'dashboard-expanded-modal';
@@ -13609,13 +13709,13 @@ function expandCardOverlay(button, event, sectionName, inputId, listId) {
             </div>
         </div>
     `;
-    
+
     // Modal'ı body'e ekle
     document.body.appendChild(expandedModal);
-    
+
     // Body elementini bul
     const expandedBody = expandedModal.querySelector('.dashboard-expanded-body');
-    
+
     // Eğer overlay listesi boşsa bilgi ver
     if (overlayList.children.length === 0) {
         console.warn('⚠️ Overlay listesi boş! Veri yok.');
@@ -13624,21 +13724,21 @@ function expandCardOverlay(button, event, sectionName, inputId, listId) {
         // OVERLAY LİSTESİNİN DEEP CLONE'unu oluştur
         let clonedList = overlayList.cloneNode(true);
         clonedList.id = listId + '_expanded';
-        
+
         console.log('✅ Overlay listesi klonlandı. Öğe sayısı:', clonedList.children.length);
-        
+
         // Sadece listeyi ekle
         expandedBody.appendChild(clonedList);
-        
+
         // Son öğe sayısını sakla (değişiklik kontrolü için)
         let lastChildCount = overlayList.children.length;
-        
+
         // Listeyi düzenli aralıklarla güncelle (SADECE DEĞİŞİKLİK VARSA)
         const updateInterval = setInterval(() => {
             if (document.contains(expandedModal) && document.contains(overlayList)) {
                 // Öğe sayısı değişti mi kontrol et
                 const currentChildCount = overlayList.children.length;
-                
+
                 // Eğer overlay listesi boşsa
                 if (currentChildCount === 0) {
                     expandedBody.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6); font-size: 18px;">📭 Liste boş - henüz veri eklenmemiş</div>';
@@ -13646,14 +13746,14 @@ function expandCardOverlay(button, event, sectionName, inputId, listId) {
                 } else if (currentChildCount !== lastChildCount) {
                     // SADECE ÖĞESAYISI DEĞİŞTİYSE GÜNCELLE
                     console.log('🔄 Liste değişti! Eski:', lastChildCount, 'Yeni:', currentChildCount);
-                    
+
                     // Scroll pozisyonunu kaydet
                     const scrollPos = clonedList.scrollTop;
-                    
+
                     // Overlay listesinden güncelle
                     const updatedClone = overlayList.cloneNode(true);
                     updatedClone.id = listId + '_expanded';
-                    
+
                     // Eski listeyi kaldır ve yenisini ekle
                     if (clonedList && clonedList.parentNode) {
                         clonedList.parentNode.replaceChild(updatedClone, clonedList);
@@ -13663,12 +13763,12 @@ function expandCardOverlay(button, event, sectionName, inputId, listId) {
                         expandedBody.appendChild(updatedClone);
                         clonedList = updatedClone;
                     }
-                    
+
                     // Scroll pozisyonunu geri yükle
                     setTimeout(() => {
                         clonedList.scrollTop = scrollPos;
                     }, 0);
-                    
+
                     lastChildCount = currentChildCount;
                     console.log('✅ Liste güncellendi. Öğe sayısı:', currentChildCount);
                 }
@@ -13677,19 +13777,19 @@ function expandCardOverlay(button, event, sectionName, inputId, listId) {
             }
         }, 1000);
     }
-    
+
     // Modal animasyonunu başlat
     setTimeout(() => {
         expandedModal.classList.add('active');
     }, 10);
-    
+
     // Modal dışına tıklanınca kapatma
-    expandedModal.addEventListener('click', function(e) {
+    expandedModal.addEventListener('click', function (e) {
         if (e.target === expandedModal) {
             closeExpandedModal();
         }
     });
-    
+
     console.log('✅ Genişletilmiş modal açıldı:', sectionName);
 }
 
@@ -13730,12 +13830,12 @@ function getUserColor(username) {
         hash = username.charCodeAt(i) + ((hash << 5) - hash);
         hash = hash & hash; // 32-bit integer'a dönüştür
     }
-    
+
     // Hash'ten HSL renk değerleri üret
     const hue = Math.abs(hash % 360); // 0-360 arası hue
     const saturation = 65 + (Math.abs(hash) % 20); // 65-85 arası saturation
     const lightness = 55 + (Math.abs(hash) % 15); // 55-70 arası lightness
-    
+
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
@@ -13744,11 +13844,11 @@ function getUserColor(username) {
  */
 function toggleChatWindow() {
     const chatWindow = document.getElementById('chatWindow');
-    
+
     if (!chatWindow) return;
 
     chatWindowOpen = !chatWindowOpen;
-    
+
     if (chatWindowOpen) {
         chatWindow.style.display = 'flex';
         // Chat açıldığında badge'i sıfırla
@@ -13784,7 +13884,7 @@ function loadChatMessages() {
 
     // Chat mesajları referansı
     chatMessagesRef = db.ref('chat/messages');
-    
+
     // Önce mevcut mesajları temizle
     const chatMessagesDiv = document.getElementById('chatMessages');
     if (chatMessagesDiv) {
@@ -13799,7 +13899,7 @@ function loadChatMessages() {
         if (chatMessagesDiv) {
             chatMessagesDiv.innerHTML = '';
         }
-        
+
         if (!snapshot.exists()) {
             if (chatMessagesDiv) {
                 chatMessagesDiv.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">Henüz mesaj yok. İlk mesajı siz gönderin! 💬</div>';
@@ -13821,13 +13921,13 @@ function loadChatMessages() {
     chatListener = chatMessagesRef.on('child_added', (snapshot) => {
         const message = snapshot.val();
         const messageId = snapshot.key;
-        
+
         // Eğer mesaj daha önce yüklenmediyse ekle
         if (!loadedMessageIds.has(messageId)) {
             loadedMessageIds.add(messageId);
             displayChatMessage(message, messageId, true);
             scrollChatToBottom();
-            
+
             // Eğer chat penceresi kapalıysa ve mesaj başka birinden geldiyse badge'i artır
             if (!chatWindowOpen && message.sender !== currentUserName) {
                 incrementChatBadge();
@@ -13851,31 +13951,31 @@ function displayChatMessage(message, messageId, isNew) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'chat-message ' + (message.sender === currentUserName ? 'own' : 'other');
     messageDiv.setAttribute('data-message-id', messageId);
-    
+
     const senderSpan = document.createElement('div');
     senderSpan.className = 'chat-message-sender';
     senderSpan.textContent = message.sender;
     // Kullanıcıya özel renk ata
     senderSpan.style.color = getUserColor(message.sender);
     senderSpan.style.fontWeight = '600';
-    
+
     const bubbleDiv = document.createElement('div');
     bubbleDiv.className = 'chat-message-bubble';
-    
+
     const textP = document.createElement('p');
     textP.className = 'chat-message-text';
     textP.textContent = message.text;
-    
+
     const timeSpan = document.createElement('div');
     timeSpan.className = 'chat-message-time';
     timeSpan.textContent = formatChatTime(message.timestamp);
-    
+
     bubbleDiv.appendChild(textP);
     bubbleDiv.appendChild(timeSpan);
-    
+
     messageDiv.appendChild(senderSpan);
     messageDiv.appendChild(bubbleDiv);
-    
+
     chatMessagesDiv.appendChild(messageDiv);
 
     // Yeni mesaj animasyonu
@@ -13892,7 +13992,7 @@ function sendChatMessage() {
     if (!chatInput) return;
 
     const messageText = chatInput.value.trim();
-    
+
     if (messageText === '') {
         showToast('❌ Mesaj boş olamaz!', 'error');
         return;
@@ -13946,13 +14046,13 @@ function formatChatTime(timestamp) {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
+
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const timeStr = `${hours}:${minutes}`;
-    
+
     const diffDays = Math.floor((today - messageDate) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) {
         return timeStr;
     } else if (diffDays === 1) {
@@ -13989,7 +14089,7 @@ function resetChatBadge() {
 function updateChatBadge() {
     const badge = document.getElementById('chatBadge');
     if (!badge) return;
-    
+
     if (unreadMessageCount > 0) {
         badge.textContent = unreadMessageCount > 99 ? '99+' : unreadMessageCount;
         badge.style.display = 'block';
@@ -14001,16 +14101,16 @@ function updateChatBadge() {
 /**
  * Enter tuşu ile mesaj gönder
  */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const chatInput = document.getElementById('chatInput');
     if (chatInput) {
-        chatInput.addEventListener('keypress', function(e) {
+        chatInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 sendChatMessage();
             }
         });
     }
-    
+
     // Arkaplan mesaj dinleyicisini başlat
     startBackgroundChatListener();
 });
@@ -14023,23 +14123,23 @@ function startBackgroundChatListener() {
         console.error('❌ Firebase database başlatılmamış!');
         return;
     }
-    
+
     chatMessagesRef = db.ref('chat/messages');
-    
+
     // Son mesajın timestamp'ini kaydet
     let lastMessageTimestamp = Date.now();
-    
+
     // Son 1 mesajı dinle (sadece yeni gelen mesajlar için)
     backgroundChatListener = chatMessagesRef.limitToLast(1).on('child_added', (snapshot) => {
         const message = snapshot.val();
-        
+
         // Mesaj timestamp'i son kayıttan yeniyse ve chat kapalıysa ve başka birinden geldiyse
-        if (message.timestamp > lastMessageTimestamp && 
-            !chatWindowOpen && 
+        if (message.timestamp > lastMessageTimestamp &&
+            !chatWindowOpen &&
             message.sender !== currentUserName) {
             incrementChatBadge();
         }
-        
+
         lastMessageTimestamp = message.timestamp;
     });
 }
