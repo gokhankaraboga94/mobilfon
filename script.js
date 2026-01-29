@@ -1803,6 +1803,8 @@ async function generateReport() {
                                 mehmet: '🧑‍🔧 Mehmet',
                                 mert: '🧑‍🔧 Mert',
                                 onarim: '🔧 Onarım Tamamlandı',
+                                onCam: '🪟 ÖN CAM',
+                                onCam: '🪟 ÖN CAM',
                                 onCamDisServis: '🔨 Ön Cam Dış Servis',
                                 anakartDisServis: '🔨 Anakart Dış Servis',
                                 satisa: '💰 Satışa Gidecek',
@@ -1846,6 +1848,8 @@ async function generateReport() {
                     mehmet: '🧑‍🔧 Mehmet',
                     mert: '🧑‍🔧 Mert',
                     onarim: '🔧 Onarım Tamamlandı',
+                    onCam: '🪟 ÖN CAM',
+                    onCam: '🪟 ÖN CAM',
                     onCamDisServis: '🔨 Ön Cam Dış Servis',
                     anakartDisServis: '🔨 Anakart Dış Servis',
                     satisa: '💰 Satışa Gidecek',
@@ -2871,6 +2875,7 @@ function exportServiceReturnReportToExcel() {
                         onarim: '🔧 Onarım Tamamlandı',
                         phonecheck: '📱 PhoneCheck',
                         parcaBekliyor: '⚙️ Parça Bekliyor',
+                        onCam: '🪟 ÖN CAM',
                         onCamDisServis: '🔨 Ön Cam Dış Servis',
                         anakartDisServis: '🔨 Anakart Dış Servis',
                         satisa: '💰 Satışa Gidecek',
@@ -2912,6 +2917,7 @@ function exportServiceReturnReportToExcel() {
                     onarim: '🔧 Onarım Tamamlandı',
                     phonecheck: '📱 PhoneCheck',
                     parcaBekliyor: '⚙️ Parça Bekliyor',
+                    onCam: '🪟 ÖN CAM',
                     onCamDisServis: '🔨 Ön Cam Dış Servis',
                     anakartDisServis: '🔨 Anakart Dış Servis',
                     satisa: '💰 Satışa Gidecek',
@@ -8732,10 +8738,11 @@ function performNavSearch(query) {
         return;
     }
 
-    if (queryTrimmed.length !== 15 || !/^\d+$/.test(queryTrimmed)) {
+    // 4-15 hane arası kontrol (sadece rakam)
+    if (queryTrimmed.length < 4 || queryTrimmed.length > 15 || !/^\d+$/.test(queryTrimmed)) {
         navSearchResult.innerHTML = `
             <div style="color: #e74c3c; text-align: center; padding: 10px;">
-                ⚠️ Lütfen 15 haneli geçerli bir barkod girin
+                ⚠️ Lütfen 4-15 hane arası geçerli bir barkod girin
             </div>
         `;
         navSearchResult.classList.add('active');
@@ -8743,7 +8750,7 @@ function performNavSearch(query) {
     }
 
     const foundIn = [];
-    const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "onarim", "onCamDisServis", "anakartDisServis", "SonKullanıcı", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
+    const allLists = ["atanacak", "parcaBekliyor", "phonecheck", "gokhan", "enes", "yusuf", "samet", "engin", "ismail", "mehmet", "mert", "onarim", "onCam", "onCamDisServis", "anakartDisServis", "SonKullanıcı", "satisa", "sahiniden", "mediaMarkt", "teslimEdilenler"];
 
     Object.keys(userCodes).forEach(key => {
         if (!allLists.includes(key)) {
@@ -8752,38 +8759,46 @@ function performNavSearch(query) {
     });
 
     allLists.forEach(name => {
-        if (userCodes[name] && userCodes[name].has(queryTrimmed)) {
-            const listNames = {
-                atanacak: '📋 Atanacak',
-                parcaBekliyor: '⚙️ Parça Bekliyor',
-                phonecheck: '📱 PhoneCheck',
-                gokhan: '🧑‍🔧 Gökhan',
-                enes: '🧑‍🔧 Enes',
-                yusuf: '🧑‍🔧 Yusuf',
-                samet: '🧑‍🔧 Samet',
+        if (userCodes[name]) {
+            // Tam eşleşme veya son X hane eşleşmesi kontrolü
+            for (const barcode of userCodes[name]) {
+                if (barcode === queryTrimmed || barcode.endsWith(queryTrimmed)) {
+                    const listNames = {
+                        atanacak: '📋 Atanacak',
+                        parcaBekliyor: '⚙️ Parça Bekliyor',
+                        phonecheck: '📱 PhoneCheck',
+                        gokhan: '🧑‍🔧 Gökhan',
+                        enes: '🧑‍🔧 Enes',
+                        yusuf: '🧑‍🔧 Yusuf',
+                        samet: '🧑‍🔧 Samet',
+                        engin: '🧑‍🔧 Engin',
+                        ismail: '🧑‍🔧 İsmail',
+                        mehmet: '🧑‍🔧 Mehmet',
+                        mert: '🧑‍🔧 Mert',
+                        onarim: '🔧 Onarım Tamamlandı',
+                        onCam: '🪟 ÖN CAM',
+                        onCam: '🪟 ÖN CAM',
+                        onCamDisServis: '🔨 Ön Cam Dış Servis',
+                        anakartDisServis: '🔨 Anakart Dış Servis',
+                        SonKullanıcı: '👤 Son Kullanıcı',
+                        satisa: '💰 Satışa Gidecek',
+                        sahiniden: '🏪 Sahibinden',
+                        mediaMarkt: '🛒 Satış Sonrası',
+                        teslimEdilenler: '✅ Teslim Edilenler'
+                    };
 
-                engin: '🧑‍🔧 Engin',
-                ismail: '🧑‍🔧 İsmail',
-                mehmet: '🧑‍🔧 Mehmet',
-                onarim: '🔧 Onarım Tamamlandı',
-                onCamDisServis: '🔨 Ön Cam Dış Servis',
-                anakartDisServis: '🔨 Anakart Dış Servis',
-                SonKullanıcı: '👤 Son Kullanıcı',
-                satisa: '💰 Satışa Gidecek',
-                sahiniden: '🏪 Sahibinden',
-                mediaMarkt: '🛒 Satış Sonrası',
-                teslimEdilenler: '✅ Teslim Edilenler'
-            };
+                    const displayName = listNames[name] || `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}`;
+                    const timestamp = codeTimestamps[name][barcode] || 'Tarih yok';
+                    const user = codeUsers[name][barcode] || '';
 
-            const displayName = listNames[name] || `🧑‍🔧 ${name.charAt(0).toUpperCase() + name.slice(1)}`;
-            const timestamp = codeTimestamps[name][queryTrimmed] || 'Tarih yok';
-            const user = codeUsers[name][queryTrimmed] || '';
-
-            foundIn.push({
-                name: displayName,
-                timestamp: timestamp,
-                user: user
-            });
+                    foundIn.push({
+                        barcode: barcode,
+                        name: displayName,
+                        timestamp: timestamp,
+                        user: user
+                    });
+                }
+            }
         }
     });
 
@@ -8791,7 +8806,7 @@ function performNavSearch(query) {
         let resultHTML = `
             <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
                 <div style="color: #2ecc71; font-weight: bold; font-size: 16px;">
-                    ✅ Barkod Bulundu: ${queryTrimmed}
+                    ✅ ${foundIn.length} Barkod Bulundu
                 </div>
             </div>
         `;
@@ -8800,27 +8815,23 @@ function performNavSearch(query) {
             resultHTML += `
                 <div style="margin-bottom: 8px; padding: 8px; background: #f8f9fa; border-radius: 5px;">
                     <div style="font-weight: bold; color: #333;">${item.name}</div>
+                    <div style="font-size: 13px; color: #2c3e50; margin: 5px 0;">📦 ${item.barcode}</div>
                     <div style="font-size: 12px; color: #666;">
                         📅 ${item.timestamp}${item.user ? ` • 👤 ${item.user}` : ''}
                     </div>
+                    <button onclick="showFullBarcodeDetails('${item.barcode}')" 
+                            style="margin-top: 5px; padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px;">
+                        📊 Detay
+                    </button>
                 </div>
             `;
         });
-
-        resultHTML += `
-            <div style="margin-top: 10px; text-align: center;">
-                <button onclick="showFullBarcodeDetails('${queryTrimmed}')" 
-                        style="padding: 8px 15px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px;">
-                    📊 Detaylı Bilgi Göster
-                </button>
-            </div>
-        `;
 
         navSearchResult.innerHTML = resultHTML;
     } else {
         navSearchResult.innerHTML = `
             <div style="color: #e74c3c; text-align: center; padding: 20px;">
-                ❌ Barkod bulunamadı: ${queryTrimmed}
+                ❌ "${queryTrimmed}" ile eşleşen barkod bulunamadı
             </div>
         `;
     }
@@ -9181,6 +9192,7 @@ async function generateServiceReturnReport(startDateInput, endDateInput) {
                             onarim: '🔧 Onarım Tamamlandı',
                             phonecheck: '📱 PhoneCheck',
                             parcaBekliyor: '⚙️ Parça Bekliyor',
+                            onCam: '🪟 ÖN CAM',
                             onCamDisServis: '🔨 Ön Cam Dış Servis',
                             anakartDisServis: '🔨 Anakart Dış Servis',
                             satisa: '💰 Satışa Gidecek',
@@ -9261,6 +9273,7 @@ async function generateServiceReturnReport(startDateInput, endDateInput) {
                         onarim: '🔧 Onarım Tamamlandı',
                         phonecheck: '📱 PhoneCheck',
                         parcaBekliyor: '⚙️ Parça Bekliyor',
+                        onCam: '🪟 ÖN CAM',
                         onCamDisServis: '🔨 Ön Cam Dış Servis',
                         anakartDisServis: '🔨 Anakart Dış Servis',
                         satisa: '💰 Satışa Gidecek',
@@ -9356,6 +9369,7 @@ async function generateServiceReturnReport(startDateInput, endDateInput) {
                 onarim: '🔧 Onarım Tamamlandı',
                 phonecheck: '📱 PhoneCheck',
                 parcaBekliyor: '⚙️ Parça Bekliyor',
+                onCam: '🪟 ÖN CAM',
                 onCamDisServis: '🔨 Ön Cam Dış Servis',
                 anakartDisServis: '🔨 Anakart Dış Servis',
                 satisa: '💰 Satışa Gidecek',
@@ -9412,6 +9426,7 @@ async function generateServiceReturnReport(startDateInput, endDateInput) {
                 onarim: '🔧 Onarım Tamamlandı',
                 phonecheck: '📱 PhoneCheck',
                 parcaBekliyor: '⚙️ Parça Bekliyor',
+                onCam: '🪟 ÖN CAM',
                 onCamDisServis: '🔨 Ön Cam Dış Servis',
                 anakartDisServis: '🔨 Anakart Dış Servis',
                 satisa: '💰 Satışa Gidecek',
@@ -10573,6 +10588,7 @@ function displayLogs(logs) {
         ismail: '🧑‍🔧 İsmail',
         mehmet: '🧑‍🔧 Mehmet',
         onarim: '🔧 Onarım Tamamlandı',
+        onCam: '🪟 ÖN CAM',
         onCamDisServis: '🔨 Ön Cam Dış Servis',
         anakartDisServis: '🔨 Anakart Dış Servis',
         satisa: '💰 Satışa Gidecek',
@@ -10645,6 +10661,7 @@ function exportLogsToExcel() {
         ismail: 'İsmail',
         mehmet: 'Mehmet',
         onarim: 'Onarım Tamamlandı',
+        onCam: '🪟 ÖN CAM',
         onCamDisServis: 'Ön Cam Dış Servis',
         anakartDisServis: 'Anakart Dış Servis',
         satisa: 'Satışa Gidecek',
@@ -11390,6 +11407,7 @@ function renderTimeoutDeviceModal(devices, category) {
         ismail: '🧑‍🔧 İsmail',
         mehmet: '🧑‍🔧 Mehmet',
         onarim: '🔧 Onarım Tamamlandı',
+        onCam: '🪟 ÖN CAM',
         onCamDisServis: '🔨 Ön Cam Dış Servis',
         anakartDisServis: '🔨 Anakart Dış Servis',
         satisa: '💰 Satışa Gidecek',
@@ -12042,6 +12060,7 @@ function renderAdminCardModal(devices, title, subtitle, color) {
         ismail: '🧑‍🔧 İsmail',
         mehmet: '🧑‍🔧 Mehmet',
         onarim: '🔧 Onarım Tamamlandı',
+        onCam: '🪟 ÖN CAM',
         onCamDisServis: '🔨 Ön Cam Dış Servis',
         anakartDisServis: '🔨 Anakart Dış Servis',
         garantiServis: '🛡️ Garanti Servis',
