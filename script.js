@@ -4674,6 +4674,7 @@ function renderTechnicianCards() {
     const technicianTitles = {
         'gokhan': 'DOÇ.DR.GÖKHAN',
         'yusuf': 'DR.YUSUF',
+        'tolga': 'DR.TOLGA',
         'enes': 'DOÇ.DR.ENES',
         'samet': 'DOÇ.DR.SAMET',
         'engin': 'PROF.DR.ENGİN',
