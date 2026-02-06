@@ -9,8 +9,7 @@ const error = console.error.bind(console); // Always log errors
 // ========================================
 // GLOBAL CONSTANTS - Sistem Sabitleri
 // ========================================
-// Teknisyen listesi - Kendi listelerine cihaz atayamayan kullanıcılar
-const TECHNICIAN_LISTS = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes', 'mert'];
+// Teknisyen listesi artık dinamik - allTechnicianUsers kullanılıyor
 
 
 // ========================================
@@ -983,12 +982,11 @@ async function sendToGriListe(barcode, targetList, inputElement, isMultiple = fa
 
     // ⭐ SELF-ASSIGNMENT KONTROLÜ - Kullanıcı kendi üzerine cihaz atayamaz
     // ⚠️ İSTİSNA: Enes kullanıcısı düzenleyici olduğu için kendi üzerine atama yapabilir
-    const technicianLists = ['gokhan', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
     const targetListLower = targetList.toLowerCase();
     const currentUserLower = currentUserName.toLowerCase();
 
     // Enes hariç diğer kullanıcılar kendi üzerine atama yapamaz
-    if (currentUserLower !== 'enes' && technicianLists.includes(targetListLower) && targetListLower === currentUserLower) {
+    if (currentUserLower !== 'enes' && allTechnicianUsers.includes(targetListLower) && targetListLower === currentUserLower) {
         if (!isMultiple) {
             showToast(`❌ HATA: Kullanıcı kendi üzerine cihaz atayamaz! (${currentUserName} → ${getListDisplayName(targetList)})`, 'error');
         }
@@ -3612,21 +3610,20 @@ async function analyzeSyncIssues() {
 function getListPriority(lists) {
     // ✅ YENİ MANTIK: En son eklenen (en yüksek timestamp) listede tut
     // Teknisyen listelerine öncelik ver (çünkü aktif çalışma alanları)
-    const technicianLists = ['gokhan', 'enes', 'yusuf', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
 
     // Özel durumlar için öncelik kontrolü
     // 1. Eğer teslimEdilenler varsa, kesinlikle orada kalmalı
     if (lists.includes('teslimEdilenler')) return 'teslimEdilenler';
 
     // 2. Teknisyen listelerinden biri varsa öncelik ver
-    const techListInConflict = lists.find(list => technicianLists.includes(list));
+    const techListInConflict = lists.find(list => allTechnicianUsers.includes(list));
     if (techListInConflict) {
         // Teknisyen listelerinden en son eklenen
         let latestTechList = techListInConflict;
         let latestTimestamp = 0;
 
         lists.forEach(listName => {
-            if (technicianLists.includes(listName)) {
+            if (allTechnicianUsers.includes(listName)) {
                 // Bu listedeki tüm barkodlar için timestamp kontrol et
                 const timestamps = codeTimestamps[listName] || {};
                 Object.values(timestamps).forEach(ts => {
@@ -4631,6 +4628,98 @@ let editingList = null;
 let editingUserId = null;
 
 // ========================================
+// TEKNİSYEN KULLANICI KONTROLÜ - DİNAMİK
+// ========================================
+let allTechnicianUsers = []; // Firebase'den yüklenen tüm teknisyen kullanıcı isimleri
+
+// Teknisyen kullanıcı listesini güncelle
+async function updateTechnicianUsersList() {
+    try {
+        const snapshot = await db.ref('users').once('value');
+        const users = snapshot.val();
+        
+        if (!users) {
+            allTechnicianUsers = [];
+            return;
+        }
+        
+        // Teknisyen rolündeki kullanıcıları bul
+        allTechnicianUsers = Object.entries(users)
+            .filter(([uid, userData]) => userData.role === 'technician' && userData.technicianName)
+            .map(([uid, userData]) => userData.technicianName);
+        
+        // Eski statik teknisyen listesini de ekle (geriye dönük uyumluluk için)
+        const staticTechnicians = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes', 'mert'];
+        staticTechnicians.forEach(name => {
+            if (!allTechnicianUsers.includes(name)) {
+                allTechnicianUsers.push(name);
+            }
+        });
+        
+        // ✅ Dashboard'daki teknisyen kartlarını güncelle
+        renderTechnicianCards();
+        
+        console.log('✅ Teknisyen kullanıcı listesi güncellendi:', allTechnicianUsers);
+    } catch (error) {
+        console.error('❌ Teknisyen listesi güncellenirken hata:', error);
+    }
+}
+
+// Teknisyen kartlarını dinamik olarak oluştur
+function renderTechnicianCards() {
+    const container = document.getElementById('dynamicTechniciansContainer');
+    if (!container) return;
+    
+    // Özel unvanlar (varsa kullanılır)
+    const technicianTitles = {
+        'gokhan': 'DOÇ.DR.GÖKHAN',
+        'yusuf': 'DR.YUSUF',
+        'enes': 'DOÇ.DR.ENES',
+        'samet': 'DOÇ.DR.SAMET',
+        'engin': 'PROF.DR.ENGİN',
+        'ismail': 'PROF.DR.İSMAİL',
+        'mehmet': 'DOÇ.DR.MEHMET',
+        'mert': 'STJ.DR.MERT'
+    };
+    
+    container.innerHTML = '';
+    
+    allTechnicianUsers.forEach(techName => {
+        const card = document.createElement('div');
+        card.className = `parts-stat-card ${techName}`;
+        card.onclick = (event) => openSectionInDashboard(techName, event);
+        
+        const displayName = technicianTitles[techName] || techName.toUpperCase();
+        const capitalizedName = techName.charAt(0).toUpperCase() + techName.slice(1);
+        
+        // Resim var mı kontrol et (eski teknisyenler için)
+        const hasPhoto = ['gokhan', 'yusuf', 'enes', 'samet', 'engin', 'ismail', 'mehmet', 'mert'].includes(techName);
+        
+        card.innerHTML = `
+            <div class="technician-photo-container">
+                ${hasPhoto ? 
+                    `<img src="images/${techName}.jpg" alt="${capitalizedName}" class="technician-photo">` :
+                    `<div class="technician-photo-placeholder">🧑‍🔧</div>`
+                }
+            </div>
+            <div class="parts-stat-value" id="partsDashboard${capitalizedName}">0</div>
+            <div class="parts-stat-label">${displayName}</div>
+        `;
+        
+        container.appendChild(card);
+    });
+    
+    console.log('✅ Teknisyen kartları oluşturuldu:', allTechnicianUsers.length);
+}
+
+// Kullanıcı teknisyen mi kontrol et
+function isTechnicianUser(userName = currentUserName, userRole = currentUserRole) {
+    return userRole === 'technician' || 
+           userRole === 'editor' || 
+           allTechnicianUsers.includes(userName);
+}
+
+// ========================================
 // SAYIM MODU SİSTEMİ
 // ========================================
 // sayimModuActive is declared at the top of the file (line 159)
@@ -5029,19 +5118,32 @@ const PART_TYPE_LISTS = [
     // Mevcut listeler
     'parcaBekliyor', 'phonecheck', 'onarim', 'atanacak', 'satisa', 'sahiniden', 'onCamDisServis', 'mediaMarkt',
     // Yeni parça türleri
-    'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme',
-    // Teknisyenler
-    'gokhan', 'yusuf', 'enes', 'samet', 'engin', 'ismail', 'mehmet', 'mert'
+    'pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'
+    // Teknisyenler artık dinamik olarak allTechnicianUsers'dan gelecek
 ];
 
 function updatePartTypesDashboard() {
     let total = 0;
 
+    // Önce statik listeleri işle
     PART_TYPE_LISTS.forEach(listName => {
         const count = userCodes[listName] ? userCodes[listName].size : 0;
         total += count;
 
         // Dashboard değerini güncelle - element ID'sini doğru oluştur
+        const elementId = 'partsDashboard' + listName.charAt(0).toUpperCase() + listName.slice(1);
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = count;
+        }
+    });
+
+    // Sonra dinamik teknisyen listelerini ekle
+    allTechnicianUsers.forEach(listName => {
+        const count = userCodes[listName] ? userCodes[listName].size : 0;
+        total += count;
+
+        // Dashboard değerini güncelle
         const elementId = 'partsDashboard' + listName.charAt(0).toUpperCase() + listName.slice(1);
         const element = document.getElementById(elementId);
         if (element) {
@@ -5147,11 +5249,8 @@ async function submitPartOrder() {
 }
 
 async function loadTechnicianPartOrders() {
-    // Teknisyen kullanıcıları listesi
-    const technicianUsers = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
-
-    // Rol kontrolü - technician rolü VEYA teknisyen kullanıcı listesinde olması
-    if (currentUserRole !== 'technician' && !technicianUsers.includes(currentUserName)) return;
+    // Rol kontrolü - technician rolü VEYA teknisyen kullanıcı olması
+    if (!isTechnicianUser()) return;
 
     try {
         const snapshot = await db.ref('partOrders').once('value');
@@ -5969,6 +6068,41 @@ async function addNewUser() {
         }
 
         technicianName = email.split('@')[0];
+        
+        // ========================================
+        // YENİ TEKNİSYENLER İÇİN OTOMATİK YETKİLER
+        // Mevcut teknisyenlerle aynı yetkilere sahip olsun
+        // ========================================
+        // Parça türlerine edit yetkisi ekle (eğer yoksa)
+        const partTypes = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
+        partTypes.forEach(partType => {
+            if (!permissions[partType]) {
+                permissions[partType] = 'edit';
+            }
+        });
+        
+        // Diğer tüm teknisyen listelerine edit yetkisi ekle (kendi listesi hariç)
+        await updateAllSectionsList();
+        ALL_SECTIONS.forEach(section => {
+            // Teknisyen bölümlerini bul (kendi listesi hariç)
+            if (section.id !== technicianName && 
+                !['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis', 
+                  'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'].includes(section.id) &&
+                !partTypes.includes(section.id)) {
+                if (!permissions[section.id]) {
+                    permissions[section.id] = 'edit';
+                }
+            }
+        });
+        
+        // Ana bölümlere view yetkisi ekle
+        const mainSections = ['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis', 
+                             'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
+        mainSections.forEach(section => {
+            if (!permissions[section]) {
+                permissions[section] = 'view';
+            }
+        });
     }
 
     try {
@@ -6002,6 +6136,8 @@ async function addNewUser() {
         loadUsers();
 
         if (role === 'technician') {
+            // ✅ YENİ: Teknisyen listesini güncelle
+            await updateTechnicianUsersList();
             setTimeout(() => location.reload(), 1500);
         }
     } catch (error) {
@@ -6039,6 +6175,8 @@ async function deleteUser(uid, email) {
         loadUsers();
 
         if (userData && userData.role === 'technician') {
+            // ✅ YENİ: Teknisyen listesini güncelle
+            await updateTechnicianUsersList();
             setTimeout(() => location.reload(), 1500);
         }
     } catch (error) {
@@ -6299,6 +6437,11 @@ auth.onAuthStateChanged(async user => {
         const name = user.email.split('@')[0];
         currentUserName = name;
 
+        // ========================================
+        // TEKNİSYEN LİSTESİNİ GÜNCELLE
+        // ========================================
+        await updateTechnicianUsersList();
+
         await loadTechnicianSections();
 
         if (user.email === 'admin@servis.com') {
@@ -6513,7 +6656,7 @@ auth.onAuthStateChanged(async user => {
 
             // Teknisyen için parça sipariş özellikleri
             const technicianUsers = ['technician', 'samet', 'yusuf', 'ismail', 'gokhan', 'engin', 'enes', 'mehmet'];
-            if (currentUserRole === 'technician' || technicianUsers.includes(name)) {
+            if (currentUserRole === 'technician' || allTechnicianUsers.includes(name)) {
                 document.getElementById('partOrderButton').style.display = 'flex';
                 document.getElementById('technicianPartOrders').style.display = 'block';
                 loadTechnicianPartOrders();
@@ -6547,8 +6690,8 @@ auth.onAuthStateChanged(async user => {
             if (normalUserSearch) normalUserSearch.style.display = 'flex';
         }
 
-        const technicianUsers = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
-        const isTechnician = currentUserRole === 'technician' || technicianUsers.includes(currentUserName);
+        // Artık allTechnicianUsers kullanılıyor
+        const isTechnician = currentUserRole === 'technician' || allTechnicianUsers.includes(currentUserName);
 
         if (isTechnician && scannerSection && normalSearchSection) {
             const parentContainer = scannerSection.parentNode;
@@ -6687,13 +6830,15 @@ function showError(message) {
 }
 
 function applyPermissions() {
-    const normalUsers = ['gokhan', 'enes', 'yusuf', 'samet', 'ismail', 'engin', 'mehmet'];
+    // Artık allTechnicianUsers kullanılıyor
     const specialInputs = ['phonecheck', 'parcaBekliyor', 'atanacak', 'satisa', 'sahiniden', 'mediaMarkt'];
 
     // Teknisyen izinleri
     if (currentUserRole === 'technician' && currentUserPermissions) {
+        const specialInputs = ['atanacak', 'parcaBekliyor', 'phonecheck', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı'];
+        
         // Tüm section'ları topla (dinamik teknisyenler dahil)
-        const allSectionIds = [...normalUsers, ...specialInputs, 'onarim', 'teslimEdilenler'];
+        const allSectionIds = [...allTechnicianUsers, ...specialInputs, 'onarim', 'teslimEdilenler'];
 
         // Dinamik olarak eklenen teknisyen section'larını da ekle
         Object.keys(inputs).forEach(name => {
@@ -6707,12 +6852,12 @@ function applyPermissions() {
         // Teknisyenler sadece KENDİ listelerine cihaz atayamaz
         // Diğer teknisyen listelerine atama yapabilir
         // ========================================
-        const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
+        // Artık allTechnicianUsers kullanılıyor
 
         allSectionIds.forEach(name => {
             if (inputs[name]) {
                 // Sadece kendi listesine yazma yasak
-                if (name === currentUserName && technicianLists.includes(name)) {
+                if (name === currentUserName && allTechnicianUsers.includes(name)) {
                     inputs[name].disabled = true;
                     inputs[name].style.opacity = '0.6';
                     inputs[name].style.cursor = 'not-allowed';
@@ -6721,7 +6866,7 @@ function applyPermissions() {
                 }
 
                 // Diğer teknisyen listelerine yazma izni var
-                if (technicianLists.includes(name) && name !== currentUserName) {
+                if (allTechnicianUsers.includes(name) && name !== currentUserName) {
                     inputs[name].disabled = false;
                     inputs[name].style.opacity = '1';
                     inputs[name].style.cursor = 'text';
@@ -6858,12 +7003,8 @@ function applyPermissions() {
     // ========================================
     const partTypeSections = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
 
-    // Teknisyen kullanıcı listesi (rol 'viewer' olsa bile bu isimler teknisyen sayılır)
-    const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
-    const isTechnicianUser = currentUserRole === 'technician' || currentUserRole === 'editor' || technicianUserNames.includes(currentUserName);
-
     // Teknisyen ve Editor için Parça Türleri erişimi (semi-admin hariç)
-    if (isTechnicianUser && currentUserRole !== 'semi-admin') {
+    if (isTechnicianUser() && currentUserRole !== 'semi-admin') {
         partTypeSections.forEach(name => {
             // Section'ı görünür yap
             const section = document.querySelector(`[data-section="${name}"]`);
@@ -6914,8 +7055,7 @@ function applyPermissions() {
 
     if (currentUserRole === 'viewer') {
         // ✅ Viewer rolündeki teknisyenler için parça türü section'larını görünür yap
-        const technicianUserNamesForViewer = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes'];
-        if (technicianUserNamesForViewer.includes(currentUserName)) {
+        if (isTechnicianUser()) {
             const partTypeSectionsForViewer = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
             partTypeSectionsForViewer.forEach(name => {
                 // Section'ı görünür yap
@@ -6947,7 +7087,7 @@ function applyPermissions() {
             }
 
             // Diğer teknisyen listeleri açık
-            technicianUserNamesForViewer.forEach(techName => {
+            allTechnicianUsers.forEach(techName => {
                 if (techName !== currentUserName && inputs[techName]) {
                     inputs[techName].disabled = false;
                     inputs[techName].style.opacity = '1';
@@ -6959,7 +7099,7 @@ function applyPermissions() {
 
         // Teknisyen olmayan viewer'lar için normal kullanıcı listeleri disabled
         if (!technicianUserNamesForViewer.includes(currentUserName)) {
-            normalUsers.forEach(name => {
+            allTechnicianUsers.forEach(name => {
                 if (inputs[name]) {
                     inputs[name].disabled = true;
                     inputs[name].style.opacity = '0.6';
@@ -6988,7 +7128,7 @@ function applyPermissions() {
             inputs.searchNormal.placeholder = 'Aramak istediğiniz barkodu girin...';
         }
     } else {
-        normalUsers.forEach(name => {
+        allTechnicianUsers.forEach(name => {
             if (inputs[name]) {
                 inputs[name].disabled = false;
                 inputs[name].style.opacity = '1';
@@ -7377,8 +7517,6 @@ async function saveCodes(name, value) {
         return;
     }
 
-    // Teknisyen kullanıcı listesi (rol 'viewer' olsa bile bu isimler teknisyen sayılır)
-    const technicianUserNames = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes', 'mert'];
     const partTypeSections = ['pil', 'kasa', 'ekran', 'onCam', 'pilKasa', 'pilEkran', 'ekranKasa', 'pilEkranKasa', 'demontaj', 'montaj', 'yetkilendirme'];
 
     // ========================================
@@ -7388,36 +7526,33 @@ async function saveCodes(name, value) {
     // Örnek: samet -> gokhan OK, samet -> samet YASAK
     // İSTİSNA: Düzenleyici (editor) rolü kendi listesine atama yapabilir
     // ========================================
-    const technicianLists = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes', 'mert'];
-    const isTechnicianRole = currentUserRole === 'technician' || technicianUserNames.includes(currentUserName);
+    const isTechnicianRole = isTechnicianUser();
 
     // Teknisyen kendi listesine yazamaz (ama editor yazabilir)
-    if (technicianLists.includes(name) && name === currentUserName && isTechnicianRole && currentUserRole !== 'editor') {
+    if (allTechnicianUsers.includes(name) && name === currentUserName && isTechnicianRole && currentUserRole !== 'editor') {
         showToast('Kendi listenize cihaz atama yetkiniz yok! Sadece admin/düzenleyici atama yapabilir.', 'warning');
         return;
     }
     // ========================================
 
-    const isTechnicianUser = currentUserRole === 'technician' || currentUserRole === 'editor' || technicianUserNames.includes(currentUserName);
-
     // Teknisyen kullanıcılar için parça türleri izni
-    if (isTechnicianUser && partTypeSections.includes(name)) {
+    if (isTechnicianUser() && partTypeSections.includes(name)) {
         // Parça türleri için teknisyenlere izin var, devam et (semi-admin hariç yukarıda kontrol edildi)
     } else if (currentUserRole === 'technician') {
         // Teknisyenler diğer teknisyen listelerine yazabilir (kendi listesi yukarıda engellendi)
-        if (technicianLists.includes(name) && name !== currentUserName) {
+        if (allTechnicianUsers.includes(name) && name !== currentUserName) {
             // Diğer teknisyen listelerine yazma izni var, devam et
         } else if (currentUserPermissions && currentUserPermissions[name]) {
             if (currentUserPermissions[name] === 'view') {
                 return;
             }
-        } else if (!partTypeSections.includes(name) && !technicianLists.includes(name)) {
+        } else if (!partTypeSections.includes(name) && !allTechnicianUsers.includes(name)) {
             return;
         }
-    } else if (currentUserRole === 'viewer' && technicianUserNames.includes(currentUserName)) {
+    } else if (currentUserRole === 'viewer' && isTechnicianUser()) {
         // Viewer rolündeki teknisyenler için - diğer teknisyen listelerine ve parça türlerine yazabilir
         // Kendi listesi yukarıda engellendi
-        if (!partTypeSections.includes(name) && !technicianLists.includes(name)) {
+        if (!partTypeSections.includes(name) && !allTechnicianUsers.includes(name)) {
             return;
         }
     } else if (currentUserRole === 'editor') {
@@ -8099,12 +8234,9 @@ function renderMiniList(name, forceRender = false) {
             SonKullanıcı: "waiting"
         };
 
-        // Teknisyen listesi kontrol - gokhan, yusuf, enes, samet, engin, mehmet, ismail, mert
-        const technicianLists = ['gokhan', 'yusuf', 'enes', 'samet', 'engin', 'mehmet', 'ismail', 'mert'];
-
         if (specialClasses[name]) {
             div.classList.add(specialClasses[name]);
-        } else if (technicianLists.includes(name)) {
+        } else if (allTechnicianUsers.includes(name)) {
             // Teknisyen listelerinde: sabit renk kullanımı (kırmızı/yeşil eşleşme mantığı kaldırıldı)
             div.classList.add("technician");
         } else {
@@ -8133,7 +8265,7 @@ function renderMiniList(name, forceRender = false) {
         <span style="flex: 1;">${codeDisplay}</span>
         <span class="status"></span>
       </div>
-      <div class="mini-item-time">📅 ${item.timestamp}${item.user ? ' • ' + item.user : ''}${technicianLists.includes(name) ? getTimeoutCategoryDisplay(code) : ''}</div>
+      <div class="mini-item-time">📅 ${item.timestamp}${item.user ? ' • ' + item.user : ''}${allTechnicianUsers.includes(name) ? getTimeoutCategoryDisplay(code) : ''}</div>
       ${currentUserRole === 'admin' ? `
         <div class="mini-item-actions">
           <button class="item-action-btn edit" onclick="openEditBarcodeModal('${code}', '${name}')">✏️ Düzenle</button>
@@ -8342,11 +8474,10 @@ function updateAdminStats() {
 
     const totalBarcodes = totalCodesWithOnarim.size;
 
-    // Teknisyen cihazlarını hesapla - SADECE BELİRTİLEN 8 TEKNİSYEN
-    const teknisyenListeleri = ['gokhan', 'yusuf', 'enes', 'samet', 'engin', 'ismail', 'mehmet', 'mert'];
+    // Teknisyen cihazlarını hesapla - TÜM DİNAMİK TEKNİSYENLER
     let toplamTeknisyenCihazlari = 0;
 
-    teknisyenListeleri.forEach(teknisyen => {
+    allTechnicianUsers.forEach(teknisyen => {
         if (userCodes[teknisyen]) {
             toplamTeknisyenCihazlari += userCodes[teknisyen].size;
         }
@@ -12761,7 +12892,7 @@ function openQRTransferModal(imei) {
     listContainer.innerHTML = '';
 
     // Teknisyen listesi - Global sabitten al
-    const currentUserIsTechnician = TECHNICIAN_LISTS.includes(currentUserName);
+    const currentUserIsTechnician = allTechnicianUsers.includes(currentUserName);
 
     allLists.forEach(list => {
         // ========================================
@@ -12800,7 +12931,7 @@ async function selectQRTransferList(listName, imei) {
     // TEKNİSYEN GÜVENLİK KONTROLÜ
     // Teknisyenler kendi listelerine cihaz atayamaz
     // ========================================
-    const currentUserIsTechnician = TECHNICIAN_LISTS.includes(currentUserName);
+    const currentUserIsTechnician = allTechnicianUsers.includes(currentUserName);
 
     if (currentUserIsTechnician && listName === currentUserName) {
         showToast('❌ Kendi listenize cihaz atama yetkiniz yok!', 'error');
@@ -12945,7 +13076,7 @@ async function addToGriListeFromQR(imei, targetList) {
     // TEKNİSYEN GÜVENLİK KONTROLÜ (3. KATMAN)
     // Teknisyenler kendi listelerine cihaz atayamaz
     // ========================================
-    const currentUserIsTechnician = TECHNICIAN_LISTS.includes(userName);
+    const currentUserIsTechnician = allTechnicianUsers.includes(userName);
 
     if (currentUserIsTechnician && targetList === userName) {
         console.error(`❌ Teknisyen ${userName} kendi listesine (${targetList}) QR ile ekleme girişiminde bulundu - ENGELLENDİ`);
