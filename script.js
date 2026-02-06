@@ -4694,7 +4694,7 @@ function renderTechnicianCards() {
         const capitalizedName = techName.charAt(0).toUpperCase() + techName.slice(1);
         
         // Resim var mı kontrol et (eski teknisyenler için)
-        const hasPhoto = ['gokhan', 'yusuf', 'enes', 'samet', 'engin', 'ismail', 'mehmet', 'mert'].includes(techName);
+        const hasPhoto = ['gokhan', 'yusuf', 'tolga', 'enes', 'samet', 'engin', 'ismail', 'mehmet', 'mert'].includes(techName);
         
         card.innerHTML = `
             <div class="technician-photo-container">
