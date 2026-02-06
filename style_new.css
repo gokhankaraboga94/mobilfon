@@ -6858,6 +6858,7 @@ body.light-mode .technicians-strip-header h3 {
 .parts-stat-card.gokhan,
 .parts-stat-card.yusuf,
 .parts-stat-card.enes,
+.parts-stat-card.tolga,
 .parts-stat-card.samet,
 .parts-stat-card.engin,
 .parts-stat-card.ismail,
@@ -6870,6 +6871,7 @@ body.light-mode .technicians-strip-header h3 {
 .parts-stat-card.gokhan:hover,
 .parts-stat-card.yusuf:hover,
 .parts-stat-card.enes:hover,
+.parts-stat-card.tolga:hover,
 .parts-stat-card.samet:hover,
 .parts-stat-card.engin:hover,
 .parts-stat-card.ismail:hover,
@@ -6930,6 +6932,7 @@ body.light-mode .parts-stat-card.samet,
 body.light-mode .parts-stat-card.engin,
 body.light-mode .parts-stat-card.ismail,
 body.light-mode .parts-stat-card.mehmet,
+body.light-mode .parts-stat-card.tolga,
 body.light-mode .parts-stat-card.mert {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -6940,6 +6943,7 @@ body.light-mode .parts-stat-card.yusuf .parts-stat-label,
 body.light-mode .parts-stat-card.enes .parts-stat-label,
 body.light-mode .parts-stat-card.samet .parts-stat-label,
 body.light-mode .parts-stat-card.engin .parts-stat-label,
+body.light-mode .parts-stat-card.tolga .parts-stat-label,
 body.light-mode .parts-stat-card.ismail .parts-stat-label,
 body.light-mode .parts-stat-card.mehmet .parts-stat-label,
 body.light-mode .parts-stat-card.mert .parts-stat-label {
