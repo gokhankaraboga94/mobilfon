@@ -1650,6 +1650,663 @@ function openPriceList() {
     window.open('fiyatlar.html', '_blank');
 }
 
+// ========================================
+// PRİM HESAPLAMA SİSTEMİ
+// ========================================
+
+// Varsayılan puan değerleri
+const defaultPrimValues = {
+    // PARÇALAR
+    'batarya': 15,
+    'arkaKamera': 10,
+    'faceId': 12,
+    'flex': 8,
+    'sarjSoketi': 10,
+    'ustAhize': 6,
+    'altAhize': 6,
+    'arkaCam': 10,
+    'onKamera': 8,
+    'onCam': 10,
+    'cipAktarma': 25,
+    'ekran': 10,
+    'kasa': 20,
+    'kameraCami': 8,
+    'arkaKapak': 12,
+    'sesFlexi': 7,
+    'hoparlor': 7,
+    'montaj': 5,
+    'demontaj': 5,
+
+    // HİZMETLER
+    'yukseltme': 10,
+    'camSilme': 8,
+    'yazilimYukleme': 10,
+    'swapKarari': 15,
+    'temizlik': 5,
+    'kasaParlatma': 8,
+    'imeiKontrol': 5,
+    'lehimIslem': 15,
+    'genelBakim': 12,
+    'iadeDepo': 3,
+    'musteriIade': 3,
+    'onarim': 10,
+    'arkaKapakYapistirma': 7,
+    'ekranBandiYenileme': 8
+};
+
+// Prim hesaplama modalını aç
+function showPrimHesaplama() {
+    if (currentUserRole !== 'admin' && currentUserRole !== 'semi-admin') {
+        alert('Bu özelliğe sadece admin ve semi-admin erişebilir!');
+        return;
+    }
+
+    document.getElementById('primHesaplamaModal').style.display = 'flex';
+
+    // Varsayılan olarak geçen ayı seç
+    setPrimDateRange('lastMonth');
+
+    // Puan değerlerini yükle
+    loadPrimValues();
+}
+
+// Tarih aralığını hızlı seç
+function setPrimDateRange(range) {
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (range) {
+        case 'thisMonth':
+            // Bu ayın 1'i ile bugün
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            break;
+
+        case 'lastMonth':
+            // Geçen ayın 1'i ile son günü
+            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), 0); // Son gün
+            break;
+
+        case 'last3Months':
+            // 3 ay önce ile bugün
+            startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            break;
+
+        default:
+            return;
+    }
+
+    // Tarihleri input'lara yaz
+    document.getElementById('primStartDate').value = startDate.toISOString().split('T')[0];
+    document.getElementById('primEndDate').value = endDate.toISOString().split('T')[0];
+}
+
+// Prim hesaplama modalını kapat
+function closePrimHesaplama() {
+    document.getElementById('primHesaplamaModal').style.display = 'none';
+    document.getElementById('primResultsContainer').style.display = 'none';
+}
+
+// Puan değerlerini Firebase'den yükle
+async function loadPrimValues() {
+    try {
+        // Önce Firebase'den mevcut değerleri kontrol et
+        const snapshot = await db.ref('primSettings/values').once('value');
+        let values = snapshot.val();
+
+        // Eğer Firebase'de değer yoksa veya eksik alanlar varsa, defaultPrimValues'ı kullan
+        if (!values || Object.keys(values).length !== Object.keys(defaultPrimValues).length) {
+            // Firebase'e default değerleri kaydet
+            await db.ref('primSettings/values').set(defaultPrimValues);
+            values = defaultPrimValues;
+            showToast('Puan değerleri varsayılan değerlerle güncellendi!', 'info');
+        }
+
+        const grid = document.getElementById('primValuesGrid');
+        grid.innerHTML = '';
+
+        // PARÇALAR başlığı
+        const parcalarHeader = document.createElement('div');
+        parcalarHeader.className = 'prim-section-header';
+        parcalarHeader.innerHTML = '<h4>📦 PARÇALAR</h4>';
+        grid.appendChild(parcalarHeader);
+
+        // Parça alanları - sırayla
+        const parcaKeys = [
+            'batarya', 'arkaKamera', 'faceId', 'flex', 'sarjSoketi',
+            'ustAhize', 'altAhize', 'arkaCam', 'onKamera', 'onCam',
+            'cipAktarma', 'ekran', 'kasa', 'kameraCami', 'arkaKapak',
+            'sesFlexi', 'hoparlor', 'montaj', 'demontaj'
+        ];
+
+        parcaKeys.forEach(key => {
+            if (values[key] !== undefined) {
+                const item = document.createElement('div');
+                item.className = 'prim-value-item';
+                item.innerHTML = `
+                    <label>${formatPrimFieldName(key)}</label>
+                    <input type="number" 
+                           data-field="${key}" 
+                           value="${values[key]}" 
+                           min="0" 
+                           step="1"
+                           placeholder="Puan değeri">
+                `;
+                grid.appendChild(item);
+            }
+        });
+
+        // HİZMETLER başlığı
+        const hizmetlerHeader = document.createElement('div');
+        hizmetlerHeader.className = 'prim-section-header';
+        hizmetlerHeader.innerHTML = '<h4>🔧 HİZMETLER</h4>';
+        grid.appendChild(hizmetlerHeader);
+
+        // Hizmet alanları - sırayla
+        const hizmetKeys = [
+            'yukseltme', 'camSilme', 'yazilimYukleme', 'swapKarari',
+            'temizlik', 'kasaParlatma', 'imeiKontrol', 'lehimIslem',
+            'genelBakim', 'iadeDepo', 'musteriIade', 'onarim',
+            'arkaKapakYapistirma', 'ekranBandiYenileme'
+        ];
+
+        hizmetKeys.forEach(key => {
+            if (values[key] !== undefined) {
+                const item = document.createElement('div');
+                item.className = 'prim-value-item';
+                item.innerHTML = `
+                    <label>${formatPrimFieldName(key)}</label>
+                    <input type="number" 
+                           data-field="${key}" 
+                           value="${values[key]}" 
+                           min="0" 
+                           step="1"
+                           placeholder="Puan değeri">
+                `;
+                grid.appendChild(item);
+            }
+        });
+
+    } catch (error) {
+        console.error('Puan değerleri yüklenirken hata:', error);
+        showToast('Puan değerleri yüklenirken hata oluştu!', 'error');
+    }
+}
+
+// Alan adını formatla
+function formatPrimFieldName(key) {
+    const names = {
+        // PARÇALAR
+        'batarya': '🔋 Batarya',
+        'arkaKamera': '📷 Arka Kamera',
+        'faceId': '🆔 Face ID',
+        'flex': '🔌 Flex',
+        'sarjSoketi': '🔌 Şarj Soketi',
+        'ustAhize': '📞 Üst Ahize',
+        'altAhize': '📞 Alt Ahize',
+        'arkaCam': '🪟 Arka Cam',
+        'onKamera': '📷 Ön Kamera',
+        'onCam': '🪟 Ön Cam',
+        'cipAktarma': '💾 Çip Aktarma',
+        'ekran': '📱 Ekran',
+        'kasa': '📦 Kasa',
+        'kameraCami': '📷 Kamera Camı',
+        'arkaKapak': '🔙 Arka Kapak',
+        'sesFlexi': '🔊 Ses Flexi',
+        'hoparlor': '🔊 Hoparlör',
+        'montaj': '🔧 Montaj',
+        'demontaj': '🔧 Demontaj',
+
+        // HİZMETLER
+        'yukseltme': '⬆️ Yükseltme',
+        'camSilme': '🧹 Cam Silme',
+        'yazilimYukleme': '💿 Yazılım Yükleme',
+        'swapKarari': '🔄 Swap Kararı',
+        'temizlik': '🧼 Temizlik',
+        'kasaParlatma': '✨ Kasa Parlatma',
+        'imeiKontrol': '🔍 IMEI Kontrol',
+        'lehimIslem': '🔥 Lehim İşlem',
+        'genelBakim': '🔧 Genel Bakım',
+        'iadeDepo': '📦 İade Depo',
+        'musteriIade': '👤 Müşteri İade',
+        'onarim': '🔧 Onarım',
+        'arkaKapakYapistirma': '🔙 Arka Kapak Yapıştırma',
+        'ekranBandiYenileme': '📱 Ekran Bandı Yenileme'
+    };
+    return names[key] || key;
+}
+
+// Puan değerlerini kaydet
+async function savePrimValues() {
+    try {
+        const inputs = document.querySelectorAll('#primValuesGrid input[data-field]');
+        const values = {};
+
+        inputs.forEach(input => {
+            const field = input.getAttribute('data-field');
+            const value = parseInt(input.value) || 0;
+            values[field] = value;
+        });
+
+        await db.ref('primSettings/values').set(values);
+        showToast('Puan değerleri kaydedildi!', 'success');
+    } catch (error) {
+        console.error('Puan değerleri kaydedilirken hata:', error);
+        showToast('Puan değerleri kaydedilirken hata oluştu!', 'error');
+    }
+}
+
+// Prim hesapla
+async function hesaplaPrim() {
+    const startDateInput = document.getElementById('primStartDate').value;
+    const endDateInput = document.getElementById('primEndDate').value;
+
+    if (!startDateInput || !endDateInput) {
+        showToast('Lütfen başlangıç ve bitiş tarihlerini seçin!', 'error');
+        return;
+    }
+
+    const startDate = new Date(startDateInput);
+    const endDate = new Date(endDateInput);
+    endDate.setHours(23, 59, 59, 999);
+
+    if (startDate > endDate) {
+        showToast('Başlangıç tarihi bitiş tarihinden büyük olamaz!', 'error');
+        return;
+    }
+
+    const startOfPeriod = startDate.getTime();
+    const endOfPeriod = endDate.getTime();
+
+    try {
+        // Puan değerlerini yükle
+        const valuesSnapshot = await db.ref('primSettings/values').once('value');
+        const primValues = valuesSnapshot.val() || defaultPrimValues;
+
+        // Parça siparişlerini çek
+        const partOrdersSnapshot = await db.ref('partOrders').once('value');
+        const partOrdersData = partOrdersSnapshot.val();
+
+        if (!partOrdersData) {
+            showToast('Seçilen tarih aralığında parça siparişi bulunamadı!', 'error');
+            return;
+        }
+
+        // Teknisyen puanlarını hesapla
+        const technicianScores = {};
+        const technicianDetails = {};
+
+        for (const [orderId, order] of Object.entries(partOrdersData)) {
+            // Tarih aralığında mı kontrol et
+            if (order.timestamp >= startOfPeriod && order.timestamp <= endOfPeriod) {
+                const technician = order.technician;
+
+                if (!technicianScores[technician]) {
+                    technicianScores[technician] = 0;
+                    technicianDetails[technician] = {};
+                }
+
+                // Parçaları kontrol et
+                if (order.parts && Array.isArray(order.parts)) {
+                    order.parts.forEach(part => {
+                        // Kapsamlı eşleştirme algoritması kullan
+                        const points = calculatePartPoints(part.name, primValues);
+
+                        if (points > 0) {
+                            technicianScores[technician] += points;
+
+                            // Hangi parça türü olduğunu bul
+                            const partKey = findPartKey(part.name, primValues);
+                            if (partKey) {
+                                technicianDetails[technician][partKey] =
+                                    (technicianDetails[technician][partKey] || 0) + 1;
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        // Sonuçları göster
+        displayPrimResults(technicianScores, technicianDetails, primValues);
+
+    } catch (error) {
+        console.error('Prim hesaplanırken hata:', error);
+        showToast('Prim hesaplanırken hata oluştu!', 'error');
+    }
+}
+
+// Prim sonuçlarını göster
+function displayPrimResults(scores, details, primValues) {
+    const resultsContainer = document.getElementById('primResultsContainer');
+    const resultsGrid = document.getElementById('primResults');
+
+    if (Object.keys(scores).length === 0) {
+        resultsGrid.innerHTML = '<div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.7);">Seçilen tarih aralığında veri bulunamadı.</div>';
+        resultsContainer.style.display = 'block';
+        return;
+    }
+
+    // Puanlara göre sırala (en yüksek önce)
+    const sortedTechs = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+    resultsGrid.innerHTML = '';
+
+    sortedTechs.forEach(([technician, score]) => {
+        const card = document.createElement('div');
+        card.className = 'prim-result-card';
+
+        let detailsHTML = '';
+        if (details[technician]) {
+            for (const [key, count] of Object.entries(details[technician])) {
+                const fieldName = formatPrimFieldName(key);
+                const points = primValues[key] * count;
+                detailsHTML += `
+                    <div class="prim-detail-item">
+                        <span class="prim-detail-label">${fieldName} (${count} adet)</span>
+                        <span class="prim-detail-value">${points} puan</span>
+                    </div>
+                `;
+            }
+        }
+
+        card.innerHTML = `
+            <div class="prim-result-technician">
+                🧑‍🔧 ${technician}
+            </div>
+            <div class="prim-result-score">${score}</div>
+            <div class="prim-result-label">TOPLAM PUAN</div>
+            ${detailsHTML ? `<div class="prim-result-details">${detailsHTML}</div>` : ''}
+        `;
+
+        resultsGrid.appendChild(card);
+    });
+
+    resultsContainer.style.display = 'block';
+}
+
+// ========================================
+// PRİM HESAPLAMA SİSTEMİ SONU
+// ========================================
+
+// ========================================
+// TEKNİSYEN PUAN TAKİP SİSTEMİ
+// ========================================
+
+// Teknisyen puanlarını hesapla ve göster
+async function calculateAndDisplayTechnicianScore(technicianName) {
+    if (!technicianName) return;
+
+    try {
+        // Son hesaplama zamanını kontrol et
+        const lastCalculation = localStorage.getItem(`lastScoreCalc_${technicianName}`);
+        const now = Date.now();
+
+        // 1 saatte bir güncelle (3600000 ms = 1 saat) - daha sık güncellenme için
+        if (lastCalculation && (now - parseInt(lastCalculation)) < 3600000) {
+            // Cache'den puanları al
+            const cachedLastMonth = localStorage.getItem(`techScoreLastMonth_${technicianName}`);
+            const cachedCurrentMonth = localStorage.getItem(`techScoreCurrentMonth_${technicianName}`);
+            if (cachedLastMonth !== null && cachedCurrentMonth !== null) {
+                displayTechnicianScores(parseInt(cachedLastMonth), parseInt(cachedCurrentMonth));
+                return;
+            }
+        }
+
+        // Yeni hesaplama yap
+        const scores = await calculateTechnicianScores(technicianName);
+
+        // Cache'e kaydet
+        localStorage.setItem(`techScoreLastMonth_${technicianName}`, scores.lastMonth.toString());
+        localStorage.setItem(`techScoreCurrentMonth_${technicianName}`, scores.currentMonth.toString());
+        localStorage.setItem(`lastScoreCalc_${technicianName}`, now.toString());
+
+        // Göster
+        displayTechnicianScores(scores.lastMonth, scores.currentMonth);
+
+    } catch (error) {
+        console.error('Teknisyen puanı hesaplanırken hata:', error);
+    }
+}
+
+// Hem geçen ay hem bu ay puanlarını hesapla
+async function calculateTechnicianScores(technicianName) {
+    try {
+        // Puan değerlerini yükle
+        const valuesSnapshot = await db.ref('primSettings/values').once('value');
+        const primValues = valuesSnapshot.val() || defaultPrimValues;
+
+        const now = new Date();
+
+        // BU AY (Ayın 1'inden bugüne kadar)
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        const currentMonthEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        // GEÇEN AY (Geçen ayın 1'i ile son günü arası)
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999); // Ayın son günü
+
+        // Parça siparişlerini çek
+        const partOrdersSnapshot = await db.ref('partOrders').once('value');
+        const partOrdersData = partOrdersSnapshot.val();
+
+        if (!partOrdersData) {
+            return { lastMonth: 0, currentMonth: 0 };
+        }
+
+        let lastMonthScore = 0;
+        let currentMonthScore = 0;
+
+        // Tüm siparişleri tara
+        for (const [orderId, order] of Object.entries(partOrdersData)) {
+            // Bu teknisyene ait mi?
+            if (order.technician !== technicianName) continue;
+
+            const orderTimestamp = order.timestamp;
+
+            // Geçen ay mı?
+            const isLastMonth = orderTimestamp >= lastMonthStart.getTime() &&
+                orderTimestamp <= lastMonthEnd.getTime();
+
+            // Bu ay mı?
+            const isCurrentMonth = orderTimestamp >= currentMonthStart.getTime() &&
+                orderTimestamp <= currentMonthEnd.getTime();
+
+            if (!isLastMonth && !isCurrentMonth) continue;
+
+            // Parçaları kontrol et ve puan hesapla
+            if (order.parts && Array.isArray(order.parts)) {
+                order.parts.forEach(part => {
+                    const points = calculatePartPoints(part.name, primValues);
+
+                    if (isLastMonth) {
+                        lastMonthScore += points;
+                    }
+                    if (isCurrentMonth) {
+                        currentMonthScore += points;
+                    }
+                });
+            }
+        }
+
+        return {
+            lastMonth: lastMonthScore,
+            currentMonth: currentMonthScore
+        };
+
+    } catch (error) {
+        console.error('Puan hesaplanırken hata:', error);
+        return { lastMonth: 0, currentMonth: 0 };
+    }
+}
+
+// Parça adından puan hesapla (tekrar eden kod için yardımcı fonksiyon)
+function calculatePartPoints(partName, primValues) {
+    const partNameLower = partName.toLowerCase()
+        .replace(/ş/g, 's')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/ı/g, 'i')
+        .replace(/İ/g, 'i');
+
+    // Her anahtar kelime için kontrol
+    const checks = {
+        // PARÇALAR
+        'batarya': ['batarya', 'battery', 'pil'],
+        'arkaKamera': ['arka kamera', 'rear camera', 'back camera'],
+        'faceId': ['face id', 'faceid', 'face'],
+        'flex': ['flex', 'kablo'],
+        'sarjSoketi': ['sarj', 'charge', 'lightning', 'usb', 'soket'],
+        'ustAhize': ['ust ahize', 'top speaker', 'earpiece', 'ust hoparlor'],
+        'altAhize': ['alt ahize', 'bottom speaker', 'lower speaker', 'alt hoparlor'],
+        'arkaCam': ['arka cam', 'rear glass', 'back glass'],
+        'onKamera': ['on kamera', 'front camera', 'selfie'],
+        'onCam': ['on cam', 'front glass'],
+        'cipAktarma': ['cip', 'chip', 'nand', 'ic', 'aktarma', 'aktarim'],
+        'ekran': ['ekran', 'screen', 'display'],
+        'kasa': ['kasa', 'housing', 'frame'],
+        'kameraCami': ['kamera cami', 'camera glass', 'lens'],
+        'arkaKapak': ['arka kapak', 'back cover', 'battery cover'],
+        'sesFlexi': ['ses flexi', 'audio flex', 'sound flex'],
+        'hoparlor': ['hoparlor', 'speaker', 'ses'],
+        'montaj': ['montaj', 'assembly', 'kurulum'],
+        'demontaj': ['demontaj', 'disassembly', 'sokme'],
+
+        // HİZMETLER
+        'yukseltme': ['yukseltme', 'upgrade'],
+        'camSilme': ['cam silme', 'glass removal'],
+        'yazilimYukleme': ['yazilim', 'software', 'firmware', 'yukleme'],
+        'swapKarari': ['swap', 'degisim', 'karar'],
+        'temizlik': ['temizlik', 'clean'],
+        'kasaParlatma': ['parlatma', 'polish'],
+        'imeiKontrol': ['imei', 'seri', 'kontrol'],
+        'lehimIslem': ['lehim', 'solder', 'islem'],
+        'genelBakim': ['genel bakim', 'general maintenance', 'bakim'],
+        'iadeDepo': ['iade depo', 'return warehouse'],
+        'musteriIade': ['musteri iade', 'customer return'],
+        'onarim': ['onarim', 'repair'],
+        'arkaKapakYapistirma': ['arka kapak yapistirma', 'back cover adhesive', 'yapistirma'],
+        'ekranBandiYenileme': ['ekran bandi', 'screen tape', 'display adhesive', 'bandi']
+    };
+
+    // Her primValues anahtarı için kontrol yap
+    for (const [key, value] of Object.entries(primValues)) {
+        // Eğer bu anahtar için kontrol listesi varsa
+        if (checks[key]) {
+            for (const check of checks[key]) {
+                if (partNameLower.includes(check)) {
+                    return value;
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+// Parça adından hangi prim kategorisine ait olduğunu bul
+function findPartKey(partName, primValues) {
+    const partNameLower = partName.toLowerCase()
+        .replace(/ş/g, 's')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/ı/g, 'i')
+        .replace(/İ/g, 'i');
+
+    // Her anahtar kelime için kontrol (calculatePartPoints ile aynı)
+    const checks = {
+        // PARÇALAR
+        'batarya': ['batarya', 'battery', 'pil'],
+        'arkaKamera': ['arka kamera', 'rear camera', 'back camera'],
+        'faceId': ['face id', 'faceid', 'face'],
+        'flex': ['flex', 'kablo'],
+        'sarjSoketi': ['sarj', 'charge', 'lightning', 'usb', 'soket'],
+        'ustAhize': ['ust ahize', 'top speaker', 'earpiece', 'ust hoparlor'],
+        'altAhize': ['alt ahize', 'bottom speaker', 'lower speaker', 'alt hoparlor'],
+        'arkaCam': ['arka cam', 'rear glass', 'back glass'],
+        'onKamera': ['on kamera', 'front camera', 'selfie'],
+        'onCam': ['on cam', 'front glass'],
+        'cipAktarma': ['cip', 'chip', 'nand', 'ic', 'aktarma', 'aktarim'],
+        'ekran': ['ekran', 'screen', 'display'],
+        'kasa': ['kasa', 'housing', 'frame'],
+        'kameraCami': ['kamera cami', 'camera glass', 'lens'],
+        'arkaKapak': ['arka kapak', 'back cover', 'battery cover'],
+        'sesFlexi': ['ses flexi', 'audio flex', 'sound flex'],
+        'hoparlor': ['hoparlor', 'speaker', 'ses'],
+        'montaj': ['montaj', 'assembly', 'kurulum'],
+        'demontaj': ['demontaj', 'disassembly', 'sokme'],
+
+        // HİZMETLER
+        'yukseltme': ['yukseltme', 'upgrade'],
+        'camSilme': ['cam silme', 'glass removal'],
+        'yazilimYukleme': ['yazilim', 'software', 'firmware', 'yukleme'],
+        'swapKarari': ['swap', 'degisim', 'karar'],
+        'temizlik': ['temizlik', 'clean'],
+        'kasaParlatma': ['parlatma', 'polish'],
+        'imeiKontrol': ['imei', 'seri', 'kontrol'],
+        'lehimIslem': ['lehim', 'solder', 'islem'],
+        'genelBakim': ['genel bakim', 'general maintenance', 'bakim'],
+        'iadeDepo': ['iade depo', 'return warehouse'],
+        'musteriIade': ['musteri iade', 'customer return'],
+        'onarim': ['onarim', 'repair'],
+        'arkaKapakYapistirma': ['arka kapak yapistirma', 'back cover adhesive', 'yapistirma'],
+        'ekranBandiYenileme': ['ekran bandi', 'screen tape', 'display adhesive', 'bandi']
+    };
+
+    // Her primValues anahtarı için kontrol yap
+    for (const [key, value] of Object.entries(primValues)) {
+        // Eğer bu anahtar için kontrol listesi varsa
+        if (checks[key]) {
+            for (const check of checks[key]) {
+                if (partNameLower.includes(check)) {
+                    return key;
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+// Hem geçen ay hem bu ay puanlarını ekranda göster
+function displayTechnicianScores(lastMonthScore, currentMonthScore) {
+    const scoresContainer = document.getElementById('navUserScores');
+    const lastMonthElement = document.getElementById('navUserScoreLast');
+    const currentMonthElement = document.getElementById('navUserScoreCurrent');
+
+    if (scoresContainer && lastMonthElement && currentMonthElement) {
+        // Geçen ay puanını göster
+        lastMonthElement.textContent = `💵 Geçen Ay: ${lastMonthScore}`;
+        lastMonthElement.style.display = 'block';
+
+        // Bu ay puanını göster (canlı)
+        currentMonthElement.textContent = `🔥 Bu Ay: ${currentMonthScore}`;
+        currentMonthElement.style.display = 'block';
+
+        // Container'ı göster
+        scoresContainer.style.display = 'flex';
+    }
+}
+
+// Teknisyen puanlarını gizle
+function hideTechnicianScore() {
+    const scoresContainer = document.getElementById('navUserScores');
+    if (scoresContainer) {
+        scoresContainer.style.display = 'none';
+    }
+}
+
+// ========================================
+// TEKNİSYEN PUAN TAKİP SİSTEMİ SONU
+// ========================================
+
+
 // Muhasebe Sistemi sayfasını aç
 function openAccounting() {
     window.open('muhasebe.html', '_blank');
@@ -4637,17 +5294,17 @@ async function updateTechnicianUsersList() {
     try {
         const snapshot = await db.ref('users').once('value');
         const users = snapshot.val();
-        
+
         if (!users) {
             allTechnicianUsers = [];
             return;
         }
-        
+
         // Teknisyen rolündeki kullanıcıları bul
         allTechnicianUsers = Object.entries(users)
             .filter(([uid, userData]) => userData.role === 'technician' && userData.technicianName)
             .map(([uid, userData]) => userData.technicianName);
-        
+
         // Eski statik teknisyen listesini de ekle (geriye dönük uyumluluk için)
         const staticTechnicians = ['gokhan', 'samet', 'yusuf', 'ismail', 'engin', 'mehmet', 'enes', 'mert'];
         staticTechnicians.forEach(name => {
@@ -4655,10 +5312,10 @@ async function updateTechnicianUsersList() {
                 allTechnicianUsers.push(name);
             }
         });
-        
+
         // ✅ Dashboard'daki teknisyen kartlarını güncelle
         renderTechnicianCards();
-        
+
         console.log('✅ Teknisyen kullanıcı listesi güncellendi:', allTechnicianUsers);
     } catch (error) {
         console.error('❌ Teknisyen listesi güncellenirken hata:', error);
@@ -4669,7 +5326,7 @@ async function updateTechnicianUsersList() {
 function renderTechnicianCards() {
     const container = document.getElementById('dynamicTechniciansContainer');
     if (!container) return;
-    
+
     // Özel unvanlar (varsa kullanılır)
     const technicianTitles = {
         'gokhan': 'DOÇ.DR.GÖKHAN',
@@ -4682,42 +5339,42 @@ function renderTechnicianCards() {
         'mehmet': 'DOÇ.DR.MEHMET',
         'mert': 'STJ.DR.MERT'
     };
-    
+
     container.innerHTML = '';
-    
+
     allTechnicianUsers.forEach(techName => {
         const card = document.createElement('div');
         card.className = `parts-stat-card ${techName}`;
         card.onclick = (event) => openSectionInDashboard(techName, event);
-        
+
         const displayName = technicianTitles[techName] || techName.toUpperCase();
         const capitalizedName = techName.charAt(0).toUpperCase() + techName.slice(1);
-        
+
         // Resim var mı kontrol et (eski teknisyenler için)
         const hasPhoto = ['gokhan', 'yusuf', 'tolga', 'enes', 'samet', 'engin', 'ismail', 'mehmet', 'mert'].includes(techName);
-        
+
         card.innerHTML = `
             <div class="technician-photo-container">
-                ${hasPhoto ? 
-                    `<img src="images/${techName}.jpg" alt="${capitalizedName}" class="technician-photo">` :
-                    `<div class="technician-photo-placeholder">🧑‍🔧</div>`
-                }
+                ${hasPhoto ?
+                `<img src="images/${techName}.jpg" alt="${capitalizedName}" class="technician-photo">` :
+                `<div class="technician-photo-placeholder">🧑‍🔧</div>`
+            }
             </div>
             <div class="parts-stat-value" id="partsDashboard${capitalizedName}">0</div>
             <div class="parts-stat-label">${displayName}</div>
         `;
-        
+
         container.appendChild(card);
     });
-    
+
     console.log('✅ Teknisyen kartları oluşturuldu:', allTechnicianUsers.length);
 }
 
 // Kullanıcı teknisyen mi kontrol et
 function isTechnicianUser(userName = currentUserName, userRole = currentUserRole) {
-    return userRole === 'technician' || 
-           userRole === 'editor' || 
-           allTechnicianUsers.includes(userName);
+    return userRole === 'technician' ||
+        userRole === 'editor' ||
+        allTechnicianUsers.includes(userName);
 }
 
 // ========================================
@@ -6069,7 +6726,7 @@ async function addNewUser() {
         }
 
         technicianName = email.split('@')[0];
-        
+
         // ========================================
         // YENİ TEKNİSYENLER İÇİN OTOMATİK YETKİLER
         // Mevcut teknisyenlerle aynı yetkilere sahip olsun
@@ -6081,24 +6738,24 @@ async function addNewUser() {
                 permissions[partType] = 'edit';
             }
         });
-        
+
         // Diğer tüm teknisyen listelerine edit yetkisi ekle (kendi listesi hariç)
         await updateAllSectionsList();
         ALL_SECTIONS.forEach(section => {
             // Teknisyen bölümlerini bul (kendi listesi hariç)
-            if (section.id !== technicianName && 
-                !['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis', 
-                  'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'].includes(section.id) &&
+            if (section.id !== technicianName &&
+                !['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis',
+                    'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'].includes(section.id) &&
                 !partTypes.includes(section.id)) {
                 if (!permissions[section.id]) {
                     permissions[section.id] = 'edit';
                 }
             }
         });
-        
+
         // Ana bölümlere view yetkisi ekle
-        const mainSections = ['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis', 
-                             'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
+        const mainSections = ['atanacak', 'parcaBekliyor', 'phonecheck', 'onarim', 'onCamDisServis', 'anakartDisServis',
+            'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı', 'teslimEdilenler'];
         mainSections.forEach(section => {
             if (!permissions[section]) {
                 permissions[section] = 'view';
@@ -6483,6 +7140,7 @@ auth.onAuthStateChanged(async user => {
                 document.getElementById('resetDashboardBtn').style.display = 'block';
                 document.getElementById('restoreDashboardBtn').style.display = 'inline-block';
                 document.getElementById('sayimModuBtn').style.display = 'flex'; // Sayım Modu butonu
+                document.getElementById('primHesaplamaBtn').style.display = 'block'; // Prim Hesaplama butonu
 
                 // Bakım Modu Butonu - Debug
                 const maintenanceBtn = document.getElementById('maintenanceBtn');
@@ -6645,6 +7303,7 @@ auth.onAuthStateChanged(async user => {
             if (currentUserRole === 'admin' || currentUserRole === 'semi-admin') {
                 document.getElementById('dashboardPanel').style.display = 'block';
                 document.getElementById('depoStatsBtn').style.display = 'block'; // Depo Stats butonu
+                document.getElementById('primHesaplamaBtn').style.display = 'block'; // Prim Hesaplama butonu
                 updateDashboardDate();
                 loadDashboardStats();
             } else {
@@ -6665,6 +7324,14 @@ auth.onAuthStateChanged(async user => {
                 db.ref('partOrders').on('value', () => {
                     loadTechnicianPartOrders();
                 });
+
+                // ✅ TEKNİSYEN PUANINI HESAPLA VE GÖSTER
+                setTimeout(() => {
+                    calculateAndDisplayTechnicianScore(name);
+                }, 1000);
+            } else {
+                // Admin, semi-admin ve diğer roller için puanı gizle
+                hideTechnicianScore();
             }
 
             // ✅ Başlangıç görünümü artık yukarıda her rol için ayrı ayrı ayarlanıyor
@@ -6837,7 +7504,7 @@ function applyPermissions() {
     // Teknisyen izinleri
     if (currentUserRole === 'technician' && currentUserPermissions) {
         const specialInputs = ['atanacak', 'parcaBekliyor', 'phonecheck', 'onCamDisServis', 'anakartDisServis', 'satisa', 'sahiniden', 'mediaMarkt', 'SonKullanıcı'];
-        
+
         // Tüm section'ları topla (dinamik teknisyenler dahil)
         const allSectionIds = [...allTechnicianUsers, ...specialInputs, 'onarim', 'teslimEdilenler'];
 
