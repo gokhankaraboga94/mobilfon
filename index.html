@@ -84,7 +84,6 @@
                 <button onclick="openAccounting()" id="accountingBtn">📒 Muhasebe Sistemi</button>
                 <button onclick="showUserManagement()" id="userManagementBtn" style="display: none;">👥 Kullanıcı
                     Yönetimi</button>
-                <button onclick="showPrimHesaplama()" id="primHesaplamaBtn" style="display: none;">💰 Prim Hesaplama</button>
                 <button onclick="toggleMaintenanceMode()" id="maintenanceBtn" style="display: block;"
                     class="maintenance-btn">
                     <span id="maintenanceBtnIcon">🔧</span>
@@ -123,13 +122,7 @@
 
             <!-- MEVCUT USER INFO -->
             <div class="nav-user-info" id="navUserInfo" style="display: none;">
-                <div style="display: flex; flex-direction: column; gap: 5px;">
-                    <span class="nav-user-name" id="navUserName">👤 Kullanıcı</span>
-                    <div class="nav-user-scores" id="navUserScores" style="display: none; flex-direction: column; gap: 3px;">
-                        <span class="nav-user-score-last" id="navUserScoreLast" style="display: none;">💵 Geçen Ay: 0</span>
-                        <span class="nav-user-score-current" id="navUserScoreCurrent" style="display: none;">🔥 Bu Ay: 0</span>
-                    </div>
-                </div>
+                <span class="nav-user-name" id="navUserName">👤 Kullanıcı</span>
                 <button class="nav-logout-button" id="navLogoutButton">Çıkış</button>
             </div>
         </div>
@@ -1677,74 +1670,6 @@
                     </p>
                 </div>
             </div>
-
-            <!-- PRİM HESAPLAMA MODAL -->
-            <div class="modal-overlay" id="primHesaplamaModal" style="display: none;">
-                <div class="modal" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
-                    <div class="modal-header">
-                        <h2>💰 Prim Hesaplama Sistemi</h2>
-                        <button class="close-modal-btn" onclick="closePrimHesaplama()">✕</button>
-                    </div>
-
-                    <div class="modal-body" style="padding: 20px;">
-                        <!-- PUAN DEĞERLERİ YÖNETİMİ -->
-                        <div class="prim-settings-section">
-                            <h3 style="margin-bottom: 15px;">⚙️ Puan Değerleri</h3>
-                            <div class="prim-values-grid" id="primValuesGrid">
-                                <!-- Buraya dinamik olarak puan değerleri eklenecek -->
-                            </div>
-                            <button class="modal-button secondary" onclick="savePrimValues()" style="margin-top: 15px;">
-                                💾 Değerleri Kaydet
-                            </button>
-                        </div>
-
-                        <hr style="margin: 30px 0; border: none; border-top: 1px solid rgba(255,255,255,0.1);">
-
-                        <!-- HESAPLAMA BÖLÜMÜ -->
-                        <div class="prim-calculation-section">
-                            <h3 style="margin-bottom: 15px;">📊 Prim Hesaplama</h3>
-                            
-                            <div class="prim-date-filters" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                                <div style="flex: 1; min-width: 200px;">
-                                    <label style="display: block; margin-bottom: 5px; color: rgba(255,255,255,0.7);">📅 Başlangıç Tarihi</label>
-                                    <input type="date" id="primStartDate" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
-                                </div>
-                                <div style="flex: 1; min-width: 200px;">
-                                    <label style="display: block; margin-bottom: 5px; color: rgba(255,255,255,0.7);">📅 Bitiş Tarihi</label>
-                                    <input type="date" id="primEndDate" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white;">
-                                </div>
-                            </div>
-
-                            <!-- HIZLI SEÇİM BUTONLARI -->
-                            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                                <button class="modal-button secondary" onclick="setPrimDateRange('thisMonth')" style="flex: 1; min-width: 150px;">
-                                    🔥 Bu Ay
-                                </button>
-                                <button class="modal-button secondary" onclick="setPrimDateRange('lastMonth')" style="flex: 1; min-width: 150px;">
-                                    💵 Geçen Ay
-                                </button>
-                                <button class="modal-button secondary" onclick="setPrimDateRange('last3Months')" style="flex: 1; min-width: 150px;">
-                                    📊 Son 3 Ay
-                                </button>
-                            </div>
-
-                            <button class="modal-button" onclick="hesaplaPrim()" 
-                                style="width: 100%; background: linear-gradient(135deg, #3498db, #2980b9); font-size: 16px; padding: 15px;">
-                                🧮 Prim Hesapla
-                            </button>
-
-                            <!-- SONUÇLAR BÖLÜMÜ -->
-                            <div id="primResultsContainer" style="margin-top: 30px; display: none;">
-                                <h3 style="margin-bottom: 15px;">📈 Teknisyen Puanları</h3>
-                                <div id="primResults" class="prim-results-grid">
-                                    <!-- Buraya hesaplama sonuçları eklenecek -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
 
 
 </body>
