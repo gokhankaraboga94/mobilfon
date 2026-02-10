@@ -8308,3 +8308,272 @@ body.light-mode .chat-message-time {
 body.light-mode .chat-messages::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.05);
 }
+
+/* ========================================
+   PRİM HESAPLAMA SİSTEMİ STİLLERİ
+======================================== */
+
+.prim-settings-section {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prim-values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.prim-section-header {
+    grid-column: 1 / -1;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.5);
+}
+
+.prim-section-header h4 {
+    color: #667eea;
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.prim-value-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.prim-value-item:hover {
+    border-color: rgba(102, 126, 234, 0.5);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.prim-value-item label {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.prim-value-item input {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.prim-value-item input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.prim-value-delete {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(231, 76, 60, 0.8);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.prim-value-delete:hover {
+    background: #e74c3c;
+    transform: scale(1.1);
+}
+
+.prim-calculation-section {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.prim-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.prim-result-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+}
+
+.prim-result-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.6);
+}
+
+.prim-result-technician {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prim-result-score {
+    font-size: 32px;
+    font-weight: 900;
+    color: #667eea;
+    margin-bottom: 5px;
+}
+
+.prim-result-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.prim-result-details {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prim-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+}
+
+.prim-detail-label {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.prim-detail-value {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Light Mode */
+body.light-mode .prim-settings-section {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .prim-value-item {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .prim-value-item:hover {
+    border-color: #667eea;
+}
+
+body.light-mode .prim-value-item label {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+body.light-mode .prim-value-item input {
+    background: rgba(0, 0, 0, 0.02);
+    color: #333;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .prim-calculation-section {
+    background: rgba(0, 0, 0, 0.01);
+}
+
+body.light-mode .prim-result-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+body.light-mode .prim-result-technician {
+    color: #333;
+}
+
+body.light-mode .prim-detail-label {
+    color: rgba(0, 0, 0, 0.7);
+}
+
+body.light-mode .prim-detail-value {
+    color: #333;
+}
+
+/* NAV USER SCORE STİLİ */
+.nav-user-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.nav-user-score-last {
+    font-size: 12px;
+    font-weight: 700;
+    color: #27ae60;
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(46, 204, 113, 0.2));
+    padding: 4px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(39, 174, 96, 0.3);
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.nav-user-score-current {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f39c12;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.2), rgba(230, 126, 34, 0.2));
+    padding: 4px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    text-align: center;
+    letter-spacing: 0.5px;
+    animation: pulse-score 2s infinite;
+}
+
+@keyframes pulse-score {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(243, 156, 18, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(243, 156, 18, 0.6);
+    }
+}
+
+body.light-mode .nav-user-score-last {
+    color: #27ae60;
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.15), rgba(46, 204, 113, 0.15));
+    border: 1px solid rgba(39, 174, 96, 0.4);
+}
+
+body.light-mode .nav-user-score-current {
+    color: #e67e22;
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(230, 126, 34, 0.15));
+    border: 1px solid rgba(243, 156, 18, 0.4);
+}
