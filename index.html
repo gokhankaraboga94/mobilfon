@@ -503,11 +503,44 @@
                     <label>Teknisyen Hasarı:</label>
                     <select id="partOrderTechnicianDamage" class="modal-input">
                         <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-                        <option value="Hasar Yok">Hasar Yok</option>
-                        <option value="Ekran Hasarı">Ekran Hasarı</option>
-                        <option value="Pil Hasarı">Pil Hasarı</option>
-                        <option value="Face ID Hasarı">Face ID Hasarı</option>
-                        <option value="Kamera Hasarı">Kamera Hasarı</option>
+                        <option value="Hasar Yok">✅ Hasar Yok</option>
+                        <optgroup label="📦 PARÇA HASARLARI">
+                            <option value="Batarya Hasarı">🔋 Batarya Hasarı</option>
+                            <option value="Arka Kamera Hasarı">📷 Arka Kamera Hasarı</option>
+                            <option value="Face ID Hasarı">🆔 Face ID Hasarı</option>
+                            <option value="Flex Hasarı">🔌 Flex Hasarı</option>
+                            <option value="Şarj Soketi Hasarı">🔌 Şarj Soketi Hasarı</option>
+                            <option value="Üst Ahize Hasarı">📞 Üst Ahize Hasarı</option>
+                            <option value="Alt Ahize Hasarı">📞 Alt Ahize Hasarı</option>
+                            <option value="Arka Cam Hasarı">🪟 Arka Cam Hasarı</option>
+                            <option value="Ön Kamera Hasarı">📷 Ön Kamera Hasarı</option>
+                            <option value="Ön Cam Hasarı">🪟 Ön Cam Hasarı</option>
+                            <option value="Çip Aktarma Hasarı">💾 Çip Aktarma Hasarı</option>
+                            <option value="Ekran Hasarı">📱 Ekran Hasarı</option>
+                            <option value="Kasa Hasarı">📦 Kasa Hasarı</option>
+                            <option value="Kamera Camı Hasarı">📷 Kamera Camı Hasarı</option>
+                            <option value="Arka Kapak Hasarı">🔙 Arka Kapak Hasarı</option>
+                            <option value="Ses Flexi Hasarı">🔊 Ses Flexi Hasarı</option>
+                            <option value="Hoparlör Hasarı">🔊 Hoparlör Hasarı</option>
+                            <option value="Montaj Hasarı">🔧 Montaj Hasarı</option>
+                            <option value="Demontaj Hasarı">🔧 Demontaj Hasarı</option>
+                        </optgroup>
+                        <optgroup label="🔧 HİZMET HASARLARI">
+                            <option value="Yükseltme Hasarı">⬆️ Yükseltme Hasarı</option>
+                            <option value="Cam Silme Hasarı">🧹 Cam Silme Hasarı</option>
+                            <option value="Yazılım Yükleme Hasarı">💿 Yazılım Yükleme Hasarı</option>
+                            <option value="Swap Kararı Hasarı">🔄 Swap Kararı Hasarı</option>
+                            <option value="Temizlik Hasarı">🧼 Temizlik Hasarı</option>
+                            <option value="Kasa Parlatma Hasarı">✨ Kasa Parlatma Hasarı</option>
+                            <option value="IMEI Kontrol Hasarı">🔍 IMEI Kontrol Hasarı</option>
+                            <option value="Lehim İşlem Hasarı">🔥 Lehim İşlem Hasarı</option>
+                            <option value="Genel Bakım Hasarı">🔧 Genel Bakım Hasarı</option>
+                            <option value="İade Depo Hasarı">📦 İade Depo Hasarı</option>
+                            <option value="Müşteri İade Hasarı">👤 Müşteri İade Hasarı</option>
+                            <option value="Onarım Hasarı">🔧 Onarım Hasarı</option>
+                            <option value="Arka Kapak Yapıştırma Hasarı">🔙 Arka Kapak Yapıştırma Hasarı</option>
+                            <option value="Ekran Bandı Yenileme Hasarı">📱 Ekran Bandı Yenileme Hasarı</option>
+                        </optgroup>
                     </select>
                 </div>
 
@@ -1699,6 +1732,23 @@
                         <!-- PUAN DEĞERLERİ YÖNETİMİ -->
                         <div class="prim-settings-section">
                             <h3 style="margin-bottom: 15px;">⚙️ Puan Değerleri</h3>
+                            
+                            <!-- MİNİMUM EŞİK PUANI -->
+                            <div style="background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid rgba(52, 152, 219, 0.3);">
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #3498db;">
+                                    🎯 Minimum Eşik Puanı
+                                    <span style="font-size: 12px; color: rgba(255,255,255,0.5); font-weight: normal; margin-left: 8px;">
+                                        (Bu puanın altındaki teknisyenler 0 puan alır)
+                                    </span>
+                                </label>
+                                <input type="number" 
+                                       id="primThreshold" 
+                                       placeholder="Örn: 5000" 
+                                       min="0"
+                                       step="100"
+                                       style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(52, 152, 219, 0.5); background: rgba(0,0,0,0.3); color: white; font-size: 16px; font-weight: 600;">
+                            </div>
+                            
                             <div class="prim-values-grid" id="primValuesGrid">
                                 <!-- Buraya dinamik olarak puan değerleri eklenecek -->
                             </div>
