@@ -8420,18 +8420,19 @@ body.light-mode .chat-messages::-webkit-scrollbar-track {
 }
 
 .prim-result-card {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.2) 0%, rgba(39, 174, 96, 0.2) 100%);
     padding: 25px;
     border-radius: 16px;
-    border: 2px solid rgba(102, 126, 234, 0.3);
+    border: 2px solid rgba(46, 204, 113, 0.4);
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .prim-result-card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 12px 32px rgba(46, 204, 113, 0.3);
     border-width: 3px;
+    border-color: rgba(46, 204, 113, 0.6);
 }
 
 .prim-result-technician {
