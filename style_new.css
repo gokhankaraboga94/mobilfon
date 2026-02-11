@@ -8402,7 +8402,7 @@ body.light-mode .chat-messages::-webkit-scrollbar-track {
 }
 
 .prim-value-delete:hover {
-    background: #e74c3c;
+    background: #f39c12;
     transform: scale(1.1);
 }
 
