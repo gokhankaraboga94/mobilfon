@@ -8564,6 +8564,15 @@ body.light-mode .prim-detail-value {
     border: 1px solid rgba(39, 174, 96, 0.3);
     text-align: center;
     letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-user-score-last:hover {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.35), rgba(46, 204, 113, 0.35));
+    border-color: rgba(39, 174, 96, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
 }
 
 .nav-user-score-current {
@@ -8577,6 +8586,14 @@ body.light-mode .prim-detail-value {
     text-align: center;
     letter-spacing: 0.5px;
     animation: pulse-score 2s infinite;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-user-score-current:hover {
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.35), rgba(230, 126, 34, 0.35));
+    border-color: rgba(243, 156, 18, 0.6);
+    transform: translateY(-2px);
 }
 
 @keyframes pulse-score {
