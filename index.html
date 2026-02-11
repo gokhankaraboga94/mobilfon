@@ -125,7 +125,9 @@
 
             <!-- MEVCUT USER INFO -->
             <div class="nav-user-info" id="navUserInfo" style="display: none;">
-                <div style="display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; flex-direction: column; gap: 5px; cursor: pointer;" 
+                     onclick="openTechnicianDetailModal()" 
+                     title="Detayları görmek için tıklayın">
                     <span class="nav-user-name" id="navUserName">👤 Kullanıcı</span>
                     <div class="nav-user-scores" id="navUserScores"
                         style="display: none; flex-direction: column; gap: 3px;">
@@ -1806,6 +1808,44 @@
                                 <div id="primResults" class="prim-results-grid">
                                     <!-- Buraya hesaplama sonuçları eklenecek -->
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TEKNİSYEN DETAY MODAL (KENDİ PRİM BİLGİLERİ) -->
+            <div class="modal-overlay" id="technicianDetailModal" style="display: none;">
+                <div class="modal" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-header">
+                        <h2>📊 Prim Detaylarım</h2>
+                        <button class="close-modal-btn" onclick="closeTechnicianDetailModal()">✕</button>
+                    </div>
+
+                    <div class="modal-body" style="padding: 20px;">
+                        <!-- KULLANICI BİLGİLERİ -->
+                        <div style="text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15)); border-radius: 16px;">
+                            <div id="techDetailPhoto" style="width: 100px; height: 100px; margin: 0 auto 15px; border-radius: 50%; overflow: hidden; border: 4px solid rgba(255,255,255,0.3);"></div>
+                            <h3 id="techDetailName" style="font-size: 24px; margin-bottom: 10px; color: white;">👤 Teknisyen</h3>
+                        </div>
+
+                        <!-- AY SEÇİMİ -->
+                        <div style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;">
+                            <button class="modal-button secondary" onclick="loadTechnicianDetails('thisMonth')" style="flex: 1; min-width: 150px;">
+                                🔥 Bu Ay
+                            </button>
+                            <button class="modal-button secondary" onclick="loadTechnicianDetails('lastMonth')" style="flex: 1; min-width: 150px;">
+                                💵 Geçen Ay
+                            </button>
+                            <button class="modal-button secondary" onclick="loadTechnicianDetails('last3Months')" style="flex: 1; min-width: 150px;">
+                                📊 Son 3 Ay
+                            </button>
+                        </div>
+
+                        <!-- DETAY KART -->
+                        <div id="techDetailCard" class="prim-result-card" style="max-width: 100%;">
+                            <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">
+                                Bir dönem seçin...
                             </div>
                         </div>
                     </div>
