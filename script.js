@@ -2145,12 +2145,15 @@ function displayPrimResults(scores, details, damages, primValues) {
         card.innerHTML = `
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
                 ${info.photo ? `
-                    <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.3); flex-shrink: 0;">
-                        <img src="${info.photo}" alt="${technician}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;\\'>👤</div>'">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.3); flex-shrink: 0; background: rgba(255,255,255,0.1);">
+                        <img src="${info.photo}" 
+                             alt="${technician}" 
+                             style="width: 100%; height: 100%; object-fit: cover;" 
+                             onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;background:${info.color};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:white;\\'>${technician.charAt(0)}</div>'">
                     </div>
                 ` : `
-                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 28px; border: 3px solid rgba(255,255,255,0.3);">
-                        🧑‍🔧
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: ${info.color}; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: white; border: 3px solid rgba(255,255,255,0.3);">
+                        ${technician.charAt(0)}
                     </div>
                 `}
                 <div style="flex: 1;">
