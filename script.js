@@ -105,6 +105,104 @@ const DirtyLists = {
 };
 
 // ========================================
+// PERFORMANCE OPTIMIZATION UTILITIES
+// ========================================
+
+/**
+ * Debounce function - Delays execution until after wait time has elapsed since last call
+ * @param {Function} func - Function to debounce
+ * @param {number} wait - Wait time in milliseconds
+ * @returns {Function} - Debounced function
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+/**
+ * Throttle function - Limits execution to once per wait period
+ * @param {Function} func - Function to throttle
+ * @param {number} wait - Wait time in milliseconds
+ * @returns {Function} - Throttled function
+ */
+function throttle(func, wait) {
+    let inThrottle;
+    return function (...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, wait);
+        }
+    };
+}
+
+// ========================================
+// ROLE-BASED UI VISIBILITY
+// ========================================
+
+/**
+ * Apply role-based visibility to UI elements
+ * Hides scanner and gri liste sections for warehouse users
+ * 
+ * IMPORTANT: Call this function after setting currentUserRole or window.currentUserRole
+ * Example: After authentication, call: applyRoleBasedVisibility();
+ */
+function applyRoleBasedVisibility() {
+    // Get current user role (check multiple possible locations)
+    const role = window.currentUserRole || currentUserRole || '';
+
+    console.log('🔒 Applying role-based visibility for role:', role);
+    console.log('🔍 window.currentUserRole:', window.currentUserRole);
+    console.log('🔍 currentUserRole:', typeof currentUserRole !== 'undefined' ? currentUserRole : 'undefined');
+
+    // Hide scanner section and gri liste section for warehouse users
+    if (role === 'warehouse' || role === 'depocu') {
+        const scannerSection = document.getElementById('scannerSection');
+        const griListeSection = document.getElementById('griListeSection');
+        const qrScannerSection = document.getElementById('qrScannerSection');
+        const qrApproveSection = document.getElementById('qrApproveSection');
+
+        console.log('📦 Depocu detected! Hiding sections...');
+        console.log('scannerSection:', scannerSection);
+        console.log('griListeSection:', griListeSection);
+
+        if (scannerSection) {
+            scannerSection.style.display = 'none';
+            console.log('✅ Scanner section gizlendi');
+        }
+
+        if (griListeSection) {
+            griListeSection.style.display = 'none';
+            console.log('✅ Gri liste section gizlendi');
+        }
+
+        if (qrScannerSection) {
+            qrScannerSection.style.display = 'none';
+            console.log('✅ QR scanner section gizlendi');
+        }
+
+        if (qrApproveSection) {
+            qrApproveSection.style.display = 'none';
+            console.log('✅ QR approve section gizlendi');
+        }
+
+        console.log('✅ Depocu UI optimizasyonu tamamlandı');
+    } else {
+        console.log('✅ Role-based visibility: Tüm bölümler görünür (role:', role + ')');
+    }
+}
+
+// Make function globally accessible for calling after authentication
+window.applyRoleBasedVisibility = applyRoleBasedVisibility;
+
+// ========================================
 // ========================================
 // DATA SYNC VERIFICATION SYSTEM
 // ========================================
@@ -157,6 +255,11 @@ document.addEventListener('DOMContentLoaded', function () {
     applyTheme();
     initAdminNavState(); // Initialize admin nav collapsed state for mobile
     // initPartsDashboardClickHandlers() artık gerekli değil, onclick HTML'de tanımlı
+
+    // Apply role-based visibility after a short delay to ensure DOM is fully loaded
+    setTimeout(() => {
+        applyRoleBasedVisibility();
+    }, 100);
 });
 
 // ========================================
@@ -2029,10 +2132,10 @@ async function savePrimValues() {
 
         // Threshold değerini kaydet
         const threshold = parseInt(document.getElementById('primThreshold').value) || 0;
-        
+
         await db.ref('primSettings/values').set(values);
         await db.ref('primSettings/threshold').set(threshold);
-        
+
         showToast('Puan değerleri ve eşik kaydedildi!', 'success');
     } catch (error) {
         console.error('Puan değerleri kaydedilirken hata:', error);
@@ -2115,13 +2218,13 @@ async function hesaplaPrim() {
                 if (order.service) {
                     // Hizmet string'i virgülle ayrılmış olabilir: "Genel Bakım, Temizlik"
                     const services = order.service.split(',').map(s => s.trim());
-                    
+
                     services.forEach(serviceName => {
                         const servicePoints = calculatePartPoints(serviceName, primValues);
-                        
+
                         if (servicePoints > 0) {
                             technicianScores[technician] += servicePoints;
-                            
+
                             // Hangi hizmet türü olduğunu bul
                             const serviceKey = findPartKey(serviceName, primValues);
                             if (serviceKey) {
@@ -2136,11 +2239,11 @@ async function hesaplaPrim() {
                 if (order.technicianDamage && order.technicianDamage !== 'Hasar Yok') {
                     // Hasar adından key oluştur: "Batarya Hasarı" -> "bataryaHasari"
                     const damageKey = convertDamageNameToKey(order.technicianDamage);
-                    
+
                     if (damageKey && primValues[damageKey] !== undefined) {
                         const damagePoints = primValues[damageKey];
                         technicianScores[technician] += damagePoints; // Negatif puan ekle (düşür)
-                        technicianDamages[technician][damageKey] = 
+                        technicianDamages[technician][damageKey] =
                             (technicianDamages[technician][damageKey] || 0) + 1;
                     }
                 }
@@ -2170,7 +2273,7 @@ async function displayPrimResults(scores, details, damages, primValues) {
     // Threshold ve admin bonuslarını yükle
     const thresholdSnapshot = await db.ref('primSettings/threshold').once('value');
     const threshold = thresholdSnapshot.val() || 0;
-    
+
     const adminBonusSnapshot = await db.ref('primSettings/adminBonus').once('value');
     const adminBonuses = adminBonusSnapshot.val() || {};
 
@@ -2178,8 +2281,8 @@ async function displayPrimResults(scores, details, damages, primValues) {
     const technicianInfo = {
         'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'images/gokhan.jpg' },
         'gokhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'images/gokhan.jpg' },
-        'Enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: 'images/enes.jpg' },
-        'enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: 'images/enes.jpg' },
+        'Enes': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/enes.jpg' },
+        'enes': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/enes.jpg' },
         'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/yusuf.jpg' },
         'yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/yusuf.jpg' },
         'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'images/samet.jpg' },
@@ -2205,15 +2308,15 @@ async function displayPrimResults(scores, details, damages, primValues) {
     sortedTechs.forEach(([technician, score], index) => {
         const card = document.createElement('div');
         card.className = 'prim-result-card';
-        
+
         const info = technicianInfo[technician] || { color: '#667eea', gradient: 'linear-gradient(135deg, #667eea, #764ba2)', photo: null };
-        
+
         // Debug: Fotoğraf yolunu kontrol et
         console.log(`Teknisyen: ${technician}, Fotoğraf yolu: ${info.photo}`);
-        
+
         // Sıralama badge'i
         const rankBadge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
-        
+
         // Pozitif puanları topla
         let totalPositive = 0;
         if (details[technician]) {
@@ -2221,7 +2324,7 @@ async function displayPrimResults(scores, details, damages, primValues) {
                 totalPositive += primValues[key] * count;
             }
         }
-        
+
         // Negatif puanları topla
         let totalNegative = 0;
         if (damages[technician]) {
@@ -2233,7 +2336,7 @@ async function displayPrimResults(scores, details, damages, primValues) {
         // Admin bonusu ekle
         const adminBonus = adminBonuses[technician] || 0;
         const rawScore = score + adminBonus; // Ham puan (hesaplanan + admin bonusu)
-        
+
         // Threshold kontrolü
         let finalScore = rawScore;
         let thresholdApplied = false;
@@ -2383,7 +2486,7 @@ async function saveAdminBonus(technician, bonus) {
         const bonusValue = parseInt(bonus) || 0;
         await db.ref(`primSettings/adminBonus/${technician}`).set(bonusValue);
         showToast(`${technician} için bonus kaydedildi: ${bonusValue > 0 ? '+' : ''}${bonusValue}`, 'success');
-        
+
         // Sayfayı yenile
         setTimeout(() => {
             hesaplaPrim();
@@ -2501,10 +2604,10 @@ async function calculateTechnicianScores(technicianName) {
             if (order.service) {
                 // Hizmet string'i virgülle ayrılmış olabilir: "Genel Bakım, Temizlik"
                 const services = order.service.split(',').map(s => s.trim());
-                
+
                 services.forEach(serviceName => {
                     const servicePoints = calculatePartPoints(serviceName, primValues);
-                    
+
                     if (isLastMonth) {
                         lastMonthScore += servicePoints;
                     }
@@ -2518,10 +2621,10 @@ async function calculateTechnicianScores(technicianName) {
             if (order.technicianDamage && order.technicianDamage !== 'Hasar Yok') {
                 // Hasar adından key oluştur: "Batarya Hasarı" -> "bataryaHasari"
                 const damageKey = convertDamageNameToKey(order.technicianDamage);
-                
+
                 if (damageKey && primValues[damageKey] !== undefined) {
                     const damagePoints = primValues[damageKey];
-                    
+
                     if (isLastMonth) {
                         lastMonthScore += damagePoints; // Negatif puan ekle
                     }
@@ -2612,7 +2715,7 @@ function calculatePartPoints(partName, primValues) {
 // Hasar adından key oluştur: "Batarya Hasarı" -> "bataryaHasari"
 function convertDamageNameToKey(damageName) {
     if (!damageName) return null;
-    
+
     // "Batarya Hasarı" -> "batarya"
     const baseName = damageName
         .replace(' Hasarı', '')
@@ -2625,7 +2728,7 @@ function convertDamageNameToKey(damageName) {
         .replace(/ı/g, 'i')
         .replace(/İ/g, 'i')
         .replace(/\s+/g, '');
-    
+
     // Eşleşme tablosu - hepsi için manuel mapping
     const damageKeyMap = {
         'batarya': 'bataryaHasari',
@@ -2662,7 +2765,7 @@ function convertDamageNameToKey(damageName) {
         'arkakapakyapistirma': 'arkaKapakYapistirmaHasari',
         'ekranbandiyenileme': 'ekranBandiYenilemeHasari'
     };
-    
+
     return damageKeyMap[baseName] || null;
 }
 
@@ -7616,26 +7719,26 @@ auth.onAuthStateChanged(async user => {
 
 
 
-                // ✅ DATA SYNC AUTO CHECK BAŞLAT (SADECE ADMIN)
+                // ✅ DATA SYNC AUTO CHECK BAŞLAT (SADECE ADMIN) - Performans için süreler artırıldı
                 setTimeout(() => {
                     startDataSyncAutoCheck();
                     console.log('✅ Data Sync Otomatik Kontrol Sistemi Başlatıldı');
-                }, 3000);
+                }, 10000); // 3000'den 10000'e çıkarıldı
 
-                // ✅ BAKIM MODU SİSTEMİNİ BAŞLAT (SADECE ADMIN)
+                // ✅ BAKIM MODU SİSTEMİNİ BAŞLAT (SADECE ADMIN) - Performans için süreler artırıldı
                 setTimeout(() => {
                     initMaintenanceMode();
                     console.log('✅ Bakım Modu Sistemi Başlatıldı');
-                }, 3000);
+                }, 5000); // 3000'den 5000'e çıkarıldı
 
-                // ✅ ADMIN DASHBOARD KONTROLLERINI GÖSTER
+                // ✅ ADMIN DASHBOARD KONTROLLERINI GÖSTER - Performans için hafif gecikme
                 setTimeout(() => {
                     updateAdminDashboardControls();
                     console.log('✅ Admin Dashboard Kontrolleri Gösterildi');
-                }, 500);
+                }, 1000); // 500'den 1000'e çıkarıldı
 
                 // ✅ ADMIN DOĞRUDAN ANA SAYFAYI GÖRSÜN
-                setTimeout(() => showMainView(), 100);
+                setTimeout(() => showMainView(), 200); // 100'den 200'e çıkarıldı
             } else if (user.email === 'depo@mobilfon.com') {
                 currentUserRole = 'warehouse';
                 currentUserPermissions = null;
@@ -7751,9 +7854,16 @@ auth.onAuthStateChanged(async user => {
 
             // ✅ DEPOCU İÇİN ÖZEL KONTROL - SADECE WAREHOUSE PANEL
             if (currentUserRole === 'warehouse') {
+                // SADECE DEPOCU PANELİNİ GÖSTER
                 document.getElementById('warehousePanel').style.display = 'block';
+
+                // DİĞER TÜM PANELLERİ GİZLE
                 document.getElementById('mainLayout').style.display = 'none';
                 document.getElementById('adminPanel').style.display = 'none';
+                document.getElementById('dashboardPanel').style.display = 'none'; // Günlük Dashboard gizlendi
+                document.getElementById('timeoutDashboardPanel').style.display = 'none'; // Zaman Aşımı Dashboard gizlendi
+                document.getElementById('partTypesDashboardPanel').style.display = 'none'; // Parça Türleri Dashboard gizlendi
+
                 loadWarehouseOrders();
             }
 
@@ -7877,10 +7987,12 @@ function showWarehouseView() {
     isNavigationInProgress = true;
 
     try {
-        // ✅ TÜM DİĞER PANELLERİ GİZLE
+        // ✅ TÜM DİĞER PANELLERİ GİZLE - DEPOCU İÇİN SADECE WAREHOUSE PANEL GÖRÜNMELI
         document.getElementById('mainLayout').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'none';
-        document.getElementById('dashboardPanel').style.display = 'none';
+        document.getElementById('dashboardPanel').style.display = 'none'; // Günlük Dashboard gizlendi
+        document.getElementById('timeoutDashboardPanel').style.display = 'none'; // Zaman Aşımı Dashboard gizlendi
+        document.getElementById('partTypesDashboardPanel').style.display = 'none'; // Parça Türleri Dashboard gizlendi
         document.getElementById('userManagement').style.display = 'none';
 
         // ✅ SADECE WAREHOUSE PANELİNİ GÖSTER
