@@ -2840,6 +2840,16 @@ async function saveAdminBonus(technician, bonus) {
         await db.ref(`primSettings/adminBonus/${technician}`).set(bonusValue);
         showToast(`${technician} için bonus kaydedildi: ${bonusValue > 0 ? '+' : ''}${bonusValue}`, 'success');
 
+        // Cache'i temizle - yeni bonus hemen görünsün
+        localStorage.removeItem(`techScoreLastMonth_${technician}`);
+        localStorage.removeItem(`techScoreCurrentMonth_${technician}`);
+        localStorage.removeItem(`lastScoreCalc_${technician}`);
+
+        // Eğer bu teknisyen giriş yapmışsa puanını güncelle
+        if (currentUserName === technician) {
+            await calculateAndDisplayTechnicianScore(technician);
+        }
+
         // Sayfayı yenile
         setTimeout(() => {
             hesaplaPrim();
@@ -2901,6 +2911,11 @@ async function calculateTechnicianScores(technicianName) {
         const valuesSnapshot = await db.ref('primSettings/values').once('value');
         const primValues = valuesSnapshot.val() || defaultPrimValues;
 
+        // Admin bonusunu yükle
+        const adminBonusSnapshot = await db.ref('primSettings/adminBonus').once('value');
+        const adminBonuses = adminBonusSnapshot.val() || {};
+        const adminBonus = adminBonuses[technicianName] || 0;
+
         const now = new Date();
 
         // BU AY (Ayın 1'inden bugüne kadar)
@@ -2916,7 +2931,7 @@ async function calculateTechnicianScores(technicianName) {
         const partOrdersData = partOrdersSnapshot.val();
 
         if (!partOrdersData) {
-            return { lastMonth: 0, currentMonth: 0 };
+            return { lastMonth: adminBonus, currentMonth: adminBonus };
         }
 
         let lastMonthScore = 0;
@@ -2989,8 +3004,8 @@ async function calculateTechnicianScores(technicianName) {
         }
 
         return {
-            lastMonth: lastMonthScore,
-            currentMonth: currentMonthScore
+            lastMonth: lastMonthScore + adminBonus,
+            currentMonth: currentMonthScore + adminBonus
         };
 
     } catch (error) {
