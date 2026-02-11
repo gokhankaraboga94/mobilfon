@@ -2010,6 +2010,27 @@ async function hesaplaPrim() {
                     });
                 }
 
+                // HİZMETLERİ KONTROL ET VE PUAN EKLE
+                if (order.service) {
+                    // Hizmet string'i virgülle ayrılmış olabilir: "Genel Bakım, Temizlik"
+                    const services = order.service.split(',').map(s => s.trim());
+                    
+                    services.forEach(serviceName => {
+                        const servicePoints = calculatePartPoints(serviceName, primValues);
+                        
+                        if (servicePoints > 0) {
+                            technicianScores[technician] += servicePoints;
+                            
+                            // Hangi hizmet türü olduğunu bul
+                            const serviceKey = findPartKey(serviceName, primValues);
+                            if (serviceKey) {
+                                technicianDetails[technician][serviceKey] =
+                                    (technicianDetails[technician][serviceKey] || 0) + 1;
+                            }
+                        }
+                    });
+                }
+
                 // TEKNİSYEN HASARLARINI KONTROL ET VE PUANDAN DÜŞ
                 if (order.technicianDamage && order.technicianDamage !== 'Hasar Yok') {
                     let damageKey = null;
@@ -2061,22 +2082,22 @@ function displayPrimResults(scores, details, damages, primValues) {
 
     // Teknisyen renk ve fotoğraf bilgileri
     const technicianInfo = {
-        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'images/gokhan.jpg' },
-        'gokhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'images/gokhan.jpg' },
-        'Enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: 'images/enes.jpg' },
-        'enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: 'images/enes.jpg' },
-        'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/yusuf.jpg' },
-        'yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/yusuf.jpg' },
-        'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'images/samet.jpg' },
-        'samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'images/samet.jpg' },
-        'Engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: 'images/engin.jpg' },
-        'engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: 'images/engin.jpg' },
-        'İsmail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: 'images/ismail.jpg' },
-        'ismail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: 'images/ismail.jpg' },
-        'Mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: 'images/mehmet.jpg' },
-        'mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: 'images/mehmet.jpg' },
-        'Mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: 'images/mert.jpg' },
-        'mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: 'images/mert.jpg' }
+        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'gokhan.jpg' },
+        'gokhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'gokhan.jpg' },
+        'Enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: 'enes.jpg' },
+        'enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: 'enes.jpg' },
+        'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'yusuf.jpg' },
+        'yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'yusuf.jpg' },
+        'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'samet.jpg' },
+        'samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'samet.jpg' },
+        'Engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: 'engin.jpg' },
+        'engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: 'engin.jpg' },
+        'İsmail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: 'ismail.jpg' },
+        'ismail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: 'ismail.jpg' },
+        'Mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: 'mehmet.jpg' },
+        'mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: 'mehmet.jpg' },
+        'Mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: 'mert.jpg' },
+        'mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: 'mert.jpg' }
     };
 
     // Puanlara göre sırala (en yüksek önce)
@@ -2313,6 +2334,23 @@ async function calculateTechnicianScores(technicianName) {
                     }
                     if (isCurrentMonth) {
                         currentMonthScore += points;
+                    }
+                });
+            }
+
+            // HİZMETLERİ KONTROL ET VE PUAN EKLE
+            if (order.service) {
+                // Hizmet string'i virgülle ayrılmış olabilir: "Genel Bakım, Temizlik"
+                const services = order.service.split(',').map(s => s.trim());
+                
+                services.forEach(serviceName => {
+                    const servicePoints = calculatePartPoints(serviceName, primValues);
+                    
+                    if (isLastMonth) {
+                        lastMonthScore += servicePoints;
+                    }
+                    if (isCurrentMonth) {
+                        currentMonthScore += servicePoints;
                     }
                 });
             }
