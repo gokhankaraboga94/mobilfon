@@ -2061,14 +2061,14 @@ function displayPrimResults(scores, details, damages, primValues) {
 
     // Teknisyen renk ve fotoğraf bilgileri
     const technicianInfo = {
-        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'images/gokhan.jpg' },
-        'Enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: 'images/enes.jpg' },
-        'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/yusuf.jpg' },
-        'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'images/samet.jpg' },
-        'Engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: 'images/engin.jpg' },
-        'İsmail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: 'images/ismail.jpg' },
-        'Mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: 'images/mehmet.jpg' },
-        'Mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: 'images/mert.jpg' }
+        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: './images/gokhan.jpg' },
+        'Enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: './images/enes.jpg' },
+        'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: './images/yusuf.jpg' },
+        'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: './images/samet.jpg' },
+        'Engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: './images/engin.jpg' },
+        'İsmail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: './images/ismail.jpg' },
+        'Mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: './images/mehmet.jpg' },
+        'Mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: './images/mert.jpg' }
     };
 
     // Puanlara göre sırala (en yüksek önce)
@@ -2084,6 +2084,9 @@ function displayPrimResults(scores, details, damages, primValues) {
         card.className = 'prim-result-card';
         
         const info = technicianInfo[technician] || { color: '#667eea', gradient: 'linear-gradient(135deg, #667eea, #764ba2)', photo: null };
+        
+        // Debug: Fotoğraf yolunu kontrol et
+        console.log(`Teknisyen: ${technician}, Fotoğraf yolu: ${info.photo}`);
         
         // Sıralama badge'i
         const rankBadge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
@@ -2148,8 +2151,9 @@ function displayPrimResults(scores, details, damages, primValues) {
                     <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.3); flex-shrink: 0; background: rgba(255,255,255,0.1);">
                         <img src="${info.photo}" 
                              alt="${technician}" 
-                             style="width: 100%; height: 100%; object-fit: cover;" 
-                             onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;background:${info.color};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:white;\\'>${technician.charAt(0)}</div>'">
+                             style="width: 100%; height: 100%; object-fit: cover; display: block;" 
+                             onload="console.log('✅ Fotoğraf yüklendi: ${info.photo}');"
+                             onerror="console.error('❌ Fotoğraf yüklenemedi: ${info.photo}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;background:${info.color};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:white;\\'>${technician.charAt(0)}</div>'">
                     </div>
                 ` : `
                     <div style="width: 60px; height: 60px; border-radius: 50%; background: ${info.color}; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: white; border: 3px solid rgba(255,255,255,0.3);">
