@@ -2061,7 +2061,7 @@ function displayPrimResults(scores, details, damages, primValues) {
 
     // Teknisyen renk ve fotoğraf bilgileri
     const technicianInfo = {
-        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: './images/gokhan.jpg' },
+        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'gokhan.jpg' },
         'Enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: './images/enes.jpg' },
         'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: './images/yusuf.jpg' },
         'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: './images/samet.jpg' },
