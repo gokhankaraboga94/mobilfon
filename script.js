@@ -1889,6 +1889,359 @@ function closePrimHesaplama() {
     document.getElementById('primResultsContainer').style.display = 'none';
 }
 
+// TEKNİSYEN DETAY MODAL FONKSİYONLARI
+function openTechnicianDetailModal() {
+    // Mevcut kullanıcı bilgilerini al
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) {
+        showToast('Kullanıcı bilgisi bulunamadı!', 'error');
+        return;
+    }
+
+    const userName = currentUser.email.split('@')[0];
+    const technicianName = userName.charAt(0).toUpperCase() + userName.slice(1).toLowerCase();
+
+    // Teknisyen bilgilerini ayarla
+    document.getElementById('techDetailName').textContent = `👤 ${technicianName}`;
+
+    // Teknisyen fotoğrafını ayarla
+    const technicianInfo = {
+        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'images/gokhan.jpg' },
+        'gokhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'images/gokhan.jpg' },
+        'Enes': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/enes.jpg' },
+        'enes': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/enes.jpg' },
+        'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/yusuf.jpg' },
+        'yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'images/yusuf.jpg' },
+        'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'images/samet.jpg' },
+        'samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'images/samet.jpg' },
+        'Engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: 'images/engin.jpg' },
+        'engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: 'images/engin.jpg' },
+        'İsmail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: 'images/ismail.jpg' },
+        'ismail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: 'images/ismail.jpg' },
+        'Mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: 'images/mehmet.jpg' },
+        'mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: 'images/mehmet.jpg' },
+        'Mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: 'images/mert.jpg' },
+        'mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: 'images/mert.jpg' }
+    };
+
+    const info = technicianInfo[technicianName] || technicianInfo[userName] || { 
+        color: '#667eea', 
+        gradient: 'linear-gradient(135deg, #667eea, #764ba2)', 
+        photo: null 
+    };
+
+    const photoDiv = document.getElementById('techDetailPhoto');
+    if (info.photo) {
+        photoDiv.innerHTML = `
+            <img src="${info.photo}" 
+                 alt="${technicianName}" 
+                 style="width: 100%; height: 100%; object-fit: cover;" 
+                 onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;background:${info.color};display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700;color:white;\\'>${technicianName.charAt(0)}</div>'">
+        `;
+    } else {
+        photoDiv.innerHTML = `
+            <div style="width: 100%; height: 100%; background: ${info.color}; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 700; color: white;">
+                ${technicianName.charAt(0)}
+            </div>
+        `;
+    }
+
+    // Modalı göster
+    document.getElementById('technicianDetailModal').style.display = 'flex';
+}
+
+function closeTechnicianDetailModal() {
+    document.getElementById('technicianDetailModal').style.display = 'none';
+}
+
+async function loadTechnicianDetails(period) {
+    const currentUser = firebase.auth().currentUser;
+    if (!currentUser) {
+        showToast('Kullanıcı bilgisi bulunamadı!', 'error');
+        return;
+    }
+
+    const userName = currentUser.email.split('@')[0];
+    // Teknisyen adını normalize et (ilk harf büyük, diğerleri küçük)
+    const technicianName = userName.charAt(0).toUpperCase() + userName.slice(1).toLowerCase();
+
+    console.log('🔍 Teknisyen bilgileri:', {
+        email: currentUser.email,
+        userName: userName,
+        technicianName: technicianName,
+        period: period
+    });
+
+    // Tarih aralığını belirle
+    let startDate, endDate;
+    const now = new Date();
+
+    if (period === 'thisMonth') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (period === 'lastMonth') {
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    } else if (period === 'last3Months') {
+        startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+
+    const startOfPeriod = startDate.getTime();
+    const endOfPeriod = endDate.getTime();
+
+    console.log('📅 Tarih aralığı:', {
+        startDate: startDate.toLocaleDateString('tr-TR'),
+        endDate: endDate.toLocaleDateString('tr-TR'),
+        startOfPeriod: startOfPeriod,
+        endOfPeriod: endOfPeriod
+    });
+
+    try {
+        // Puan değerlerini yükle
+        const valuesSnapshot = await db.ref('primSettings/values').once('value');
+        const primValues = valuesSnapshot.val() || defaultPrimValues;
+
+        // Threshold ve admin bonuslarını yükle
+        const thresholdSnapshot = await db.ref('primSettings/threshold').once('value');
+        const threshold = thresholdSnapshot.val() || 0;
+
+        const adminBonusSnapshot = await db.ref('primSettings/adminBonus').once('value');
+        const adminBonuses = adminBonusSnapshot.val() || {};
+
+        // Parça siparişlerini çek
+        const partOrdersSnapshot = await db.ref('partOrders').once('value');
+        const partOrdersData = partOrdersSnapshot.val();
+
+        console.log('📦 Toplam sipariş sayısı:', partOrdersData ? Object.keys(partOrdersData).length : 0);
+
+        let totalScore = 0;
+        let details = {};
+        let damages = {};
+        let matchedOrdersCount = 0;
+
+        if (partOrdersData) {
+            for (const [orderId, order] of Object.entries(partOrdersData)) {
+                // Teknisyen adı eşleştirme - hem büyük hem küçük harfle dene
+                const orderTechnician = order.technician || '';
+                const orderTechnicianNormalized = orderTechnician.charAt(0).toUpperCase() + orderTechnician.slice(1).toLowerCase();
+                
+                // Tarih kontrolü
+                const isInDateRange = order.timestamp >= startOfPeriod && order.timestamp <= endOfPeriod;
+                
+                // Teknisyen kontrolü - birden fazla eşleştirme yöntemi
+                const isTechnicianMatch = (
+                    orderTechnician === technicianName || 
+                    orderTechnicianNormalized === technicianName ||
+                    orderTechnician.toLowerCase() === userName.toLowerCase()
+                );
+
+                if (isTechnicianMatch && isInDateRange) {
+                    matchedOrdersCount++;
+                    
+                    console.log(`✅ Eşleşen sipariş #${matchedOrdersCount}:`, {
+                        orderId: orderId,
+                        technician: orderTechnician,
+                        date: new Date(order.timestamp).toLocaleDateString('tr-TR'),
+                        parts: order.parts?.length || 0,
+                        service: order.service || 'yok'
+                    });
+                    
+                    // Parçaları kontrol et
+                    if (order.parts && Array.isArray(order.parts)) {
+                        order.parts.forEach(part => {
+                            const points = calculatePartPoints(part.name, primValues);
+                            if (points > 0) {
+                                totalScore += points;
+                                const partKey = findPartKey(part.name, primValues);
+                                if (partKey) {
+                                    details[partKey] = (details[partKey] || 0) + 1;
+                                }
+                            }
+                        });
+                    }
+
+                    // Hizmetleri kontrol et
+                    if (order.service) {
+                        const services = order.service.split(',').map(s => s.trim());
+                        services.forEach(serviceName => {
+                            const servicePoints = calculatePartPoints(serviceName, primValues);
+                            if (servicePoints > 0) {
+                                totalScore += servicePoints;
+                                const serviceKey = findPartKey(serviceName, primValues);
+                                if (serviceKey) {
+                                    details[serviceKey] = (details[serviceKey] || 0) + 1;
+                                }
+                            }
+                        });
+                    }
+
+                    // Hasarları kontrol et
+                    if (order.technicianDamage && order.technicianDamage !== 'Hasar Yok') {
+                        const damageKey = convertDamageNameToKey(order.technicianDamage);
+                        if (damageKey && primValues[damageKey] !== undefined) {
+                            const damagePoints = primValues[damageKey];
+                            totalScore += damagePoints;
+                            damages[damageKey] = (damages[damageKey] || 0) + 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log('📊 Sonuçlar:', {
+            matchedOrdersCount: matchedOrdersCount,
+            totalScore: totalScore,
+            detailsCount: Object.keys(details).length,
+            damagesCount: Object.keys(damages).length
+        });
+
+        if (matchedOrdersCount === 0) {
+            showToast('Bu dönemde hiç kaydınız bulunmamaktadır.', 'info');
+        }
+
+        // Admin bonusu ekle
+        const adminBonus = adminBonuses[technicianName] || 0;
+        const rawScore = totalScore + adminBonus;
+
+        // Threshold kontrolü
+        let finalScore = rawScore;
+        let thresholdApplied = false;
+        if (threshold > 0 && rawScore < threshold) {
+            finalScore = 0;
+            thresholdApplied = true;
+        }
+
+        // Kartı oluştur
+        displayTechnicianDetailCard(technicianName, finalScore, rawScore, details, damages, primValues, adminBonus, threshold, thresholdApplied);
+
+    } catch (error) {
+        console.error('❌ Teknisyen detayları yüklenirken hata:', error);
+        showToast('Detaylar yüklenirken hata oluştu!', 'error');
+    }
+}
+
+function displayTechnicianDetailCard(technician, finalScore, rawScore, details, damages, primValues, adminBonus, threshold, thresholdApplied) {
+    const card = document.getElementById('techDetailCard');
+    
+    if (!card) {
+        console.error('❌ techDetailCard elementi bulunamadı!');
+        return;
+    }
+
+    // Teknisyen renk bilgileri
+    const technicianInfo = {
+        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)' },
+        'Enes': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)' },
+        'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)' },
+        'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)' },
+        'Engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)' },
+        'İsmail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)' },
+        'Mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)' },
+        'Mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)' }
+    };
+
+    const info = technicianInfo[technician] || { color: '#667eea', gradient: 'linear-gradient(135deg, #667eea, #764ba2)' };
+
+    // Pozitif puanlar
+    let detailsHTML = '';
+    let totalPositive = 0;
+    if (Object.keys(details).length > 0) {
+        for (const [key, count] of Object.entries(details)) {
+            const fieldName = formatPrimFieldName(key);
+            const points = primValues[key] * count;
+            totalPositive += points;
+            detailsHTML += `
+                <div class="prim-detail-item">
+                    <span class="prim-detail-label">${fieldName} (${count} adet)</span>
+                    <span class="prim-detail-value" style="color: #2ecc71;">+${points}</span>
+                </div>
+            `;
+        }
+    } else {
+        detailsHTML = '<div style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5);">Bu dönemde parça/hizmet kaydı yok</div>';
+    }
+
+    // Negatif puanlar (hasarlar)
+    let damagesHTML = '';
+    let totalNegative = 0;
+    if (Object.keys(damages).length > 0) {
+        damagesHTML = '<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(243, 156, 18, 0.3);"><h4 style="margin-bottom: 10px; color: #f39c12;">⚠️ Hasarlar</h4>';
+        for (const [key, count] of Object.entries(damages)) {
+            const fieldName = formatPrimFieldName(key);
+            const points = primValues[key] * count;
+            totalNegative += points;
+            damagesHTML += `
+                <div class="prim-detail-item">
+                    <span class="prim-detail-label">${fieldName} (${count} adet)</span>
+                    <span class="prim-detail-value" style="color: #f39c12;">${points}</span>
+                </div>
+            `;
+        }
+        damagesHTML += '</div>';
+    }
+
+    // Stil ayarlarını önce yap
+    card.style.background = info.gradient;
+    card.style.borderColor = info.color;
+
+    // Sonra innerHTML'i ayarla
+    card.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div class="prim-result-score" style="font-size: 48px; margin-bottom: 5px;">
+                ${finalScore.toLocaleString('tr-TR')}
+            </div>
+            <div class="prim-result-label">TOPLAM PUAN</div>
+        </div>
+
+        ${thresholdApplied ? `
+            <div style="background: rgba(231, 76, 60, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 2px solid rgba(231, 76, 60, 0.4); text-align: center;">
+                <div style="font-size: 18px; font-weight: 700; color: #e74c3c; margin-bottom: 5px;">
+                    ⚠️ ESİK UYGULAMASI
+                </div>
+                <div style="font-size: 14px; color: rgba(255,255,255,0.8);">
+                    Ham puan: ${rawScore.toLocaleString('tr-TR')}<br>
+                    Minimum eşik: ${threshold.toLocaleString('tr-TR')}<br>
+                    <strong>Eşiğin altında kaldığınız için puan 0'a çekildi!</strong>
+                </div>
+            </div>
+        ` : ''}
+
+        <div class="prim-result-details">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div style="text-align: center; padding: 15px; background: rgba(46, 204, 113, 0.15); border-radius: 12px;">
+                    <div style="font-size: 28px; font-weight: 700; color: #2ecc71;">+${totalPositive}</div>
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 5px;">Kazanılan</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: rgba(243, 156, 18, 0.15); border-radius: 12px;">
+                    <div style="font-size: 28px; font-weight: 700; color: #f39c12;">${totalNegative}</div>
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 5px;">Kesinti</div>
+                </div>
+            </div>
+
+            ${adminBonus !== 0 ? `
+                <div style="background: rgba(155, 89, 182, 0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 2px solid rgba(155, 89, 182, 0.4);">
+                    <div style="font-size: 16px; font-weight: 700; color: #9b59b6; margin-bottom: 5px;">
+                        👑 Admin Bonusu
+                    </div>
+                    <div style="font-size: 24px; font-weight: 900; color: #9b59b6;">
+                        ${adminBonus > 0 ? '+' : ''}${adminBonus.toLocaleString('tr-TR')}
+                    </div>
+                </div>
+            ` : ''}
+
+            <h4 style="margin-bottom: 15px; color: rgba(255,255,255,0.9);">📋 Detaylar</h4>
+            <div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                ${detailsHTML}
+                ${damagesHTML}
+            </div>
+        </div>
+    `;
+    
+    console.log('✅ Kart başarıyla oluşturuldu!');
+}
+
+
 // Puan değerlerini Firebase'den yükle
 async function loadPrimValues() {
     try {
