@@ -1691,7 +1691,13 @@ const defaultPrimValues = {
     'musteriIade': 3,
     'onarim': 10,
     'arkaKapakYapistirma': 7,
-    'ekranBandiYenileme': 8
+    'ekranBandiYenileme': 8,
+
+    // TEKNİSYEN HASARLARI (NEGATİF PUANLAR)
+    'ekranHasari': -10,
+    'pilHasari': -5,
+    'faceIdHasari': -10,
+    'kameraHasari': -10
 };
 
 // Prim hesaplama modalını aç
@@ -1829,6 +1835,35 @@ async function loadPrimValues() {
             }
         });
 
+        // TEKNİSYEN HASAR PUANLARI başlığı
+        const hasarHeader = document.createElement('div');
+        hasarHeader.className = 'prim-section-header';
+        hasarHeader.innerHTML = '<h4 style="color: #e74c3c;">⚠️ TEKNİSYEN HASAR PUANLARI (NEGATİF)</h4>';
+        grid.appendChild(hasarHeader);
+
+        // Hasar alanları - negatif değerler
+        const hasarKeys = [
+            'ekranHasari', 'pilHasari', 'faceIdHasari', 'kameraHasari'
+        ];
+
+        hasarKeys.forEach(key => {
+            if (values[key] !== undefined) {
+                const item = document.createElement('div');
+                item.className = 'prim-value-item';
+                item.innerHTML = `
+                    <label style="color: #e74c3c;">${formatPrimFieldName(key)}</label>
+                    <input type="number" 
+                           data-field="${key}" 
+                           value="${values[key]}" 
+                           max="0" 
+                           step="1"
+                           placeholder="Negatif puan"
+                           style="border-color: #e74c3c;">
+                `;
+                grid.appendChild(item);
+            }
+        });
+
     } catch (error) {
         console.error('Puan değerleri yüklenirken hata:', error);
         showToast('Puan değerleri yüklenirken hata oluştu!', 'error');
@@ -1873,7 +1908,13 @@ function formatPrimFieldName(key) {
         'musteriIade': '👤 Müşteri İade',
         'onarim': '🔧 Onarım',
         'arkaKapakYapistirma': '🔙 Arka Kapak Yapıştırma',
-        'ekranBandiYenileme': '📱 Ekran Bandı Yenileme'
+        'ekranBandiYenileme': '📱 Ekran Bandı Yenileme',
+
+        // TEKNİSYEN HASARLARI
+        'ekranHasari': '📱 Ekran Hasarı',
+        'pilHasari': '🔋 Pil Hasarı',
+        'faceIdHasari': '👁️ Face ID Hasarı',
+        'kameraHasari': '📷 Kamera Hasarı'
     };
     return names[key] || key;
 }
@@ -1937,6 +1978,7 @@ async function hesaplaPrim() {
         // Teknisyen puanlarını hesapla
         const technicianScores = {};
         const technicianDetails = {};
+        const technicianDamages = {}; // Hasar sayılarını takip et
 
         for (const [orderId, order] of Object.entries(partOrdersData)) {
             // Tarih aralığında mı kontrol et
@@ -1946,6 +1988,7 @@ async function hesaplaPrim() {
                 if (!technicianScores[technician]) {
                     technicianScores[technician] = 0;
                     technicianDetails[technician] = {};
+                    technicianDamages[technician] = {}; // Hasar detaylarını sakla
                 }
 
                 // Parçaları kontrol et
@@ -1966,11 +2009,38 @@ async function hesaplaPrim() {
                         }
                     });
                 }
+
+                // TEKNİSYEN HASARLARINI KONTROL ET VE PUANDAN DÜŞ
+                if (order.technicianDamage && order.technicianDamage !== 'Hasar Yok') {
+                    let damageKey = null;
+                    let damagePoints = 0;
+
+                    // Hasar tipine göre puan düş
+                    if (order.technicianDamage === 'Ekran Hasarı') {
+                        damageKey = 'ekranHasari';
+                        damagePoints = primValues.ekranHasari || -10;
+                    } else if (order.technicianDamage === 'Pil Hasarı') {
+                        damageKey = 'pilHasari';
+                        damagePoints = primValues.pilHasari || -5;
+                    } else if (order.technicianDamage === 'Face ID Hasarı') {
+                        damageKey = 'faceIdHasari';
+                        damagePoints = primValues.faceIdHasari || -10;
+                    } else if (order.technicianDamage === 'Kamera Hasarı') {
+                        damageKey = 'kameraHasari';
+                        damagePoints = primValues.kameraHasari || -10;
+                    }
+
+                    if (damageKey) {
+                        technicianScores[technician] += damagePoints; // Negatif puan ekle (düşür)
+                        technicianDamages[technician][damageKey] = 
+                            (technicianDamages[technician][damageKey] || 0) + 1;
+                    }
+                }
             }
         }
 
         // Sonuçları göster
-        displayPrimResults(technicianScores, technicianDetails, primValues);
+        displayPrimResults(technicianScores, technicianDetails, technicianDamages, primValues);
 
     } catch (error) {
         console.error('Prim hesaplanırken hata:', error);
@@ -1979,7 +2049,7 @@ async function hesaplaPrim() {
 }
 
 // Prim sonuçlarını göster
-function displayPrimResults(scores, details, primValues) {
+function displayPrimResults(scores, details, damages, primValues) {
     const resultsContainer = document.getElementById('primResultsContainer');
     const resultsGrid = document.getElementById('primResults');
 
@@ -1989,15 +2059,55 @@ function displayPrimResults(scores, details, primValues) {
         return;
     }
 
+    // Teknisyen renk ve fotoğraf bilgileri
+    const technicianInfo = {
+        'Gökhan': { color: '#3498db', gradient: 'linear-gradient(135deg, #3498db, #2980b9)', photo: 'gokhan.jpg' },
+        'Enes': { color: '#e74c3c', gradient: 'linear-gradient(135deg, #e74c3c, #c0392b)', photo: 'enes.jpg' },
+        'Yusuf': { color: '#2ecc71', gradient: 'linear-gradient(135deg, #2ecc71, #27ae60)', photo: 'yusuf.jpg' },
+        'Samet': { color: '#f39c12', gradient: 'linear-gradient(135deg, #f39c12, #e67e22)', photo: 'samet.jpg' },
+        'Engin': { color: '#9b59b6', gradient: 'linear-gradient(135deg, #9b59b6, #8e44ad)', photo: 'engin.jpg' },
+        'İsmail': { color: '#1abc9c', gradient: 'linear-gradient(135deg, #1abc9c, #16a085)', photo: 'ismail.jpg' },
+        'Mehmet': { color: '#34495e', gradient: 'linear-gradient(135deg, #34495e, #2c3e50)', photo: 'mehmet.jpg' },
+        'Mert': { color: '#e67e22', gradient: 'linear-gradient(135deg, #e67e22, #d35400)', photo: 'mert.jpg' }
+    };
+
     // Puanlara göre sırala (en yüksek önce)
     const sortedTechs = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
+    // Toplam puanları hesapla (grafik için yüzde hesabı)
+    const totalPositivePoints = Math.max(...sortedTechs.map(([_, score]) => score > 0 ? score : 0));
+
     resultsGrid.innerHTML = '';
 
-    sortedTechs.forEach(([technician, score]) => {
+    sortedTechs.forEach(([technician, score], index) => {
         const card = document.createElement('div');
         card.className = 'prim-result-card';
+        
+        const info = technicianInfo[technician] || { color: '#667eea', gradient: 'linear-gradient(135deg, #667eea, #764ba2)', photo: null };
+        
+        // Sıralama badge'i
+        const rankBadge = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+        
+        // Pozitif puanları topla
+        let totalPositive = 0;
+        if (details[technician]) {
+            for (const [key, count] of Object.entries(details[technician])) {
+                totalPositive += primValues[key] * count;
+            }
+        }
+        
+        // Negatif puanları topla
+        let totalNegative = 0;
+        if (damages[technician]) {
+            for (const [key, count] of Object.entries(damages[technician])) {
+                totalNegative += primValues[key] * count;
+            }
+        }
 
+        // Progress bar yüzdesi (en yüksek puana göre)
+        const progressPercent = totalPositivePoints > 0 ? Math.min(100, (Math.max(0, score) / totalPositivePoints) * 100) : 0;
+
+        // Pozitif puanlar (parçalar)
         let detailsHTML = '';
         if (details[technician]) {
             for (const [key, count] of Object.entries(details[technician])) {
@@ -2006,19 +2116,81 @@ function displayPrimResults(scores, details, primValues) {
                 detailsHTML += `
                     <div class="prim-detail-item">
                         <span class="prim-detail-label">${fieldName} (${count} adet)</span>
-                        <span class="prim-detail-value">${points} puan</span>
+                        <span class="prim-detail-value" style="color: #2ecc71;">+${points}</span>
                     </div>
                 `;
             }
         }
 
+        // Negatif puanlar (hasarlar)
+        let damagesHTML = '';
+        if (damages[technician] && Object.keys(damages[technician]).length > 0) {
+            damagesHTML = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(231, 76, 60, 0.3);">';
+            for (const [key, count] of Object.entries(damages[technician])) {
+                const fieldName = formatPrimFieldName(key);
+                const points = primValues[key] * count;
+                damagesHTML += `
+                    <div class="prim-detail-item">
+                        <span class="prim-detail-label" style="color: #e74c3c;">⚠️ ${fieldName} (${count} adet)</span>
+                        <span class="prim-detail-value" style="color: #e74c3c;">${points}</span>
+                    </div>
+                `;
+            }
+            damagesHTML += '</div>';
+        }
+
+        card.style.background = `${info.gradient}`;
+        card.style.borderColor = info.color;
+
         card.innerHTML = `
-            <div class="prim-result-technician">
-                🧑‍🔧 ${technician}
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                ${info.photo ? `
+                    <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255,255,255,0.3); flex-shrink: 0;">
+                        <img src="${info.photo}" alt="${technician}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;\\'>👤</div>'">
+                    </div>
+                ` : `
+                    <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 28px; border: 3px solid rgba(255,255,255,0.3);">
+                        🧑‍🔧
+                    </div>
+                `}
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                        <span style="font-size: 20px; font-weight: 700; color: white;">${technician}</span>
+                        <span style="font-size: 16px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 12px; font-weight: 600;">${rankBadge}</span>
+                    </div>
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.5px;">
+                        Toplam İşlem: ${(details[technician] ? Object.values(details[technician]).reduce((a, b) => a + b, 0) : 0) + (damages[technician] ? Object.values(damages[technician]).reduce((a, b) => a + b, 0) : 0)} adet
+                    </div>
+                </div>
             </div>
-            <div class="prim-result-score">${score}</div>
-            <div class="prim-result-label">TOPLAM PUAN</div>
-            ${detailsHTML ? `<div class="prim-result-details">${detailsHTML}</div>` : ''}
+
+            <div style="margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+                    <span style="font-size: 42px; font-weight: 900; color: white; text-shadow: 2px 2px 8px rgba(0,0,0,0.3);">${score}</span>
+                    <span style="font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 600;">NET PUAN</span>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                    <div style="background: rgba(255,255,255,0.8); height: 100%; width: ${progressPercent}%; transition: width 0.5s ease; border-radius: 4px;"></div>
+                </div>
+                <div style="display: flex; gap: 15px; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span style="color: rgba(255,255,255,0.7);">Kazanç:</span>
+                        <span style="color: #2ecc71; font-weight: 700;">+${totalPositive}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span style="color: rgba(255,255,255,0.7);">Ceza:</span>
+                        <span style="color: #e74c3c; font-weight: 700;">${totalNegative}</span>
+                    </div>
+                </div>
+            </div>
+
+            ${detailsHTML ? `
+                <div style="background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; max-height: 200px; overflow-y: auto;">
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600;">📊 Detaylar</div>
+                    ${detailsHTML}
+                </div>
+            ` : ''}
+            ${damagesHTML}
         `;
 
         resultsGrid.appendChild(card);
@@ -2044,8 +2216,8 @@ async function calculateAndDisplayTechnicianScore(technicianName) {
         const lastCalculation = localStorage.getItem(`lastScoreCalc_${technicianName}`);
         const now = Date.now();
 
-        // 1 saatte bir güncelle (3600000 ms = 1 saat) - daha sık güncellenme için
-        if (lastCalculation && (now - parseInt(lastCalculation)) < 3600000) {
+        // 5 dakikada bir güncelle (300000 ms = 5 dakika) - kullanıcılar yeni puanları hızlıca görsün
+        if (lastCalculation && (now - parseInt(lastCalculation)) < 300000) {
             // Cache'den puanları al
             const cachedLastMonth = localStorage.getItem(`techScoreLastMonth_${technicianName}`);
             const cachedCurrentMonth = localStorage.getItem(`techScoreCurrentMonth_${technicianName}`);
@@ -2128,6 +2300,29 @@ async function calculateTechnicianScores(technicianName) {
                         currentMonthScore += points;
                     }
                 });
+            }
+
+            // TEKNİSYEN HASARLARINI KONTROL ET VE PUANDAN DÜŞ
+            if (order.technicianDamage && order.technicianDamage !== 'Hasar Yok') {
+                let damagePoints = 0;
+
+                // Hasar tipine göre puan düş
+                if (order.technicianDamage === 'Ekran Hasarı') {
+                    damagePoints = primValues.ekranHasari || -10;
+                } else if (order.technicianDamage === 'Pil Hasarı') {
+                    damagePoints = primValues.pilHasari || -5;
+                } else if (order.technicianDamage === 'Face ID Hasarı') {
+                    damagePoints = primValues.faceIdHasari || -10;
+                } else if (order.technicianDamage === 'Kamera Hasarı') {
+                    damagePoints = primValues.kameraHasari || -10;
+                }
+
+                if (isLastMonth) {
+                    lastMonthScore += damagePoints; // Negatif puan ekle
+                }
+                if (isCurrentMonth) {
+                    currentMonthScore += damagePoints; // Negatif puan ekle
+                }
             }
         }
 
