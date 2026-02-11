@@ -1656,7 +1656,7 @@ function openPriceList() {
 
 // Varsayılan puan değerleri
 const defaultPrimValues = {
-    // PARÇALAR
+    // PARÇALAR (POZİTİF)
     'batarya': 15,
     'arkaKamera': 10,
     'faceId': 12,
@@ -1677,7 +1677,7 @@ const defaultPrimValues = {
     'montaj': 5,
     'demontaj': 5,
 
-    // HİZMETLER
+    // HİZMETLER (POZİTİF)
     'yukseltme': 10,
     'camSilme': 8,
     'yazilimYukleme': 10,
@@ -1693,11 +1693,42 @@ const defaultPrimValues = {
     'arkaKapakYapistirma': 7,
     'ekranBandiYenileme': 8,
 
-    // TEKNİSYEN HASARLARI (NEGATİF PUANLAR)
+    // PARÇA HASARLARI (NEGATİF)
+    'bataryaHasari': -15,
+    'arkaKameraHasari': -10,
+    'faceIdHasari': -12,
+    'flexHasari': -8,
+    'sarjSoketiHasari': -10,
+    'ustAhizeHasari': -6,
+    'altAhizeHasari': -6,
+    'arkaCamHasari': -10,
+    'onKameraHasari': -8,
+    'onCamHasari': -10,
+    'cipAktarmaHasari': -25,
     'ekranHasari': -10,
-    'pilHasari': -5,
-    'faceIdHasari': -10,
-    'kameraHasari': -10
+    'kasaHasari': -20,
+    'kameraCamiHasari': -8,
+    'arkaKapakHasari': -12,
+    'sesFlexiHasari': -7,
+    'hoparlorHasari': -7,
+    'montajHasari': -5,
+    'demontajHasari': -5,
+
+    // HİZMET HASARLARI (NEGATİF)
+    'yukseltmeHasari': -10,
+    'camSilmeHasari': -8,
+    'yazilimYuklemeHasari': -10,
+    'swapKarariHasari': -15,
+    'temizlikHasari': -5,
+    'kasaParlatmaHasari': -8,
+    'imeiKontrolHasari': -5,
+    'lehimIslemHasari': -15,
+    'genelBakimHasari': -12,
+    'iadeDepoHasari': -3,
+    'musteriIadeHasari': -3,
+    'onarimHasari': -10,
+    'arkaKapakYapistirmaHasari': -7,
+    'ekranBandiYenilemeHasari': -8
 };
 
 // Prim hesaplama modalını aç
@@ -1761,6 +1792,11 @@ async function loadPrimValues() {
         // Önce Firebase'den mevcut değerleri kontrol et
         const snapshot = await db.ref('primSettings/values').once('value');
         let values = snapshot.val();
+
+        // Threshold değerini yükle
+        const thresholdSnapshot = await db.ref('primSettings/threshold').once('value');
+        const threshold = thresholdSnapshot.val() || 0;
+        document.getElementById('primThreshold').value = threshold;
 
         // Eğer Firebase'de değer yoksa veya eksik alanlar varsa, defaultPrimValues'ı kullan
         if (!values || Object.keys(values).length !== Object.keys(defaultPrimValues).length) {
@@ -1841,12 +1877,41 @@ async function loadPrimValues() {
         hasarHeader.innerHTML = '<h4 style="color: #e74c3c;">⚠️ TEKNİSYEN HASAR PUANLARI (NEGATİF)</h4>';
         grid.appendChild(hasarHeader);
 
-        // Hasar alanları - negatif değerler
-        const hasarKeys = [
-            'ekranHasari', 'pilHasari', 'faceIdHasari', 'kameraHasari'
+        // PARÇA HASARLARI
+        const parcaHasarKeys = [
+            'bataryaHasari', 'arkaKameraHasari', 'faceIdHasari', 'flexHasari', 'sarjSoketiHasari',
+            'ustAhizeHasari', 'altAhizeHasari', 'arkaCamHasari', 'onKameraHasari', 'onCamHasari',
+            'cipAktarmaHasari', 'ekranHasari', 'kasaHasari', 'kameraCamiHasari', 'arkaKapakHasari',
+            'sesFlexiHasari', 'hoparlorHasari', 'montajHasari', 'demontajHasari'
         ];
 
-        hasarKeys.forEach(key => {
+        parcaHasarKeys.forEach(key => {
+            if (values[key] !== undefined) {
+                const item = document.createElement('div');
+                item.className = 'prim-value-item';
+                item.innerHTML = `
+                    <label style="color: #e74c3c;">${formatPrimFieldName(key)}</label>
+                    <input type="number" 
+                           data-field="${key}" 
+                           value="${values[key]}" 
+                           max="0" 
+                           step="1"
+                           placeholder="Negatif puan"
+                           style="border-color: #e74c3c;">
+                `;
+                grid.appendChild(item);
+            }
+        });
+
+        // HİZMET HASARLARI
+        const hizmetHasarKeys = [
+            'yukseltmeHasari', 'camSilmeHasari', 'yazilimYuklemeHasari', 'swapKarariHasari',
+            'temizlikHasari', 'kasaParlatmaHasari', 'imeiKontrolHasari', 'lehimIslemHasari',
+            'genelBakimHasari', 'iadeDepoHasari', 'musteriIadeHasari', 'onarimHasari',
+            'arkaKapakYapistirmaHasari', 'ekranBandiYenilemeHasari'
+        ];
+
+        hizmetHasarKeys.forEach(key => {
             if (values[key] !== undefined) {
                 const item = document.createElement('div');
                 item.className = 'prim-value-item';
@@ -1905,17 +1970,47 @@ function formatPrimFieldName(key) {
         'lehimIslem': '🔥 Lehim İşlem',
         'genelBakim': '🔧 Genel Bakım',
         'iadeDepo': '📦 İade Depo',
-        'ucretlionarim': 'ucretli onarim',
         'musteriIade': '👤 Müşteri İade',
         'onarim': '🔧 Onarım',
         'arkaKapakYapistirma': '🔙 Arka Kapak Yapıştırma',
         'ekranBandiYenileme': '📱 Ekran Bandı Yenileme',
 
-        // TEKNİSYEN HASARLARI
+        // PARÇA HASARLARI
+        'bataryaHasari': '🔋 Batarya Hasarı',
+        'arkaKameraHasari': '📷 Arka Kamera Hasarı',
+        'faceIdHasari': '🆔 Face ID Hasarı',
+        'flexHasari': '🔌 Flex Hasarı',
+        'sarjSoketiHasari': '🔌 Şarj Soketi Hasarı',
+        'ustAhizeHasari': '📞 Üst Ahize Hasarı',
+        'altAhizeHasari': '📞 Alt Ahize Hasarı',
+        'arkaCamHasari': '🪟 Arka Cam Hasarı',
+        'onKameraHasari': '📷 Ön Kamera Hasarı',
+        'onCamHasari': '🪟 Ön Cam Hasarı',
+        'cipAktarmaHasari': '💾 Çip Aktarma Hasarı',
         'ekranHasari': '📱 Ekran Hasarı',
-        'pilHasari': '🔋 Pil Hasarı',
-        'faceIdHasari': '👁️ Face ID Hasarı',
-        'kameraHasari': '📷 Kamera Hasarı'
+        'kasaHasari': '📦 Kasa Hasarı',
+        'kameraCamiHasari': '📷 Kamera Camı Hasarı',
+        'arkaKapakHasari': '🔙 Arka Kapak Hasarı',
+        'sesFlexiHasari': '🔊 Ses Flexi Hasarı',
+        'hoparlorHasari': '🔊 Hoparlör Hasarı',
+        'montajHasari': '🔧 Montaj Hasarı',
+        'demontajHasari': '🔧 Demontaj Hasarı',
+
+        // HİZMET HASARLARI
+        'yukseltmeHasari': '⬆️ Yükseltme Hasarı',
+        'camSilmeHasari': '🧹 Cam Silme Hasarı',
+        'yazilimYuklemeHasari': '💿 Yazılım Yükleme Hasarı',
+        'swapKarariHasari': '🔄 Swap Kararı Hasarı',
+        'temizlikHasari': '🧼 Temizlik Hasarı',
+        'kasaParlatmaHasari': '✨ Kasa Parlatma Hasarı',
+        'imeiKontrolHasari': '🔍 IMEI Kontrol Hasarı',
+        'lehimIslemHasari': '🔥 Lehim İşlem Hasarı',
+        'genelBakimHasari': '🔧 Genel Bakım Hasarı',
+        'iadeDepoHasari': '📦 İade Depo Hasarı',
+        'musteriIadeHasari': '👤 Müşteri İade Hasarı',
+        'onarimHasari': '🔧 Onarım Hasarı',
+        'arkaKapakYapistirmaHasari': '🔙 Arka Kapak Yapıştırma Hasarı',
+        'ekranBandiYenilemeHasari': '📱 Ekran Bandı Yenileme Hasarı'
     };
     return names[key] || key;
 }
@@ -1932,8 +2027,13 @@ async function savePrimValues() {
             values[field] = value;
         });
 
+        // Threshold değerini kaydet
+        const threshold = parseInt(document.getElementById('primThreshold').value) || 0;
+        
         await db.ref('primSettings/values').set(values);
-        showToast('Puan değerleri kaydedildi!', 'success');
+        await db.ref('primSettings/threshold').set(threshold);
+        
+        showToast('Puan değerleri ve eşik kaydedildi!', 'success');
     } catch (error) {
         console.error('Puan değerleri kaydedilirken hata:', error);
         showToast('Puan değerleri kaydedilirken hata oluştu!', 'error');
@@ -2034,25 +2134,11 @@ async function hesaplaPrim() {
 
                 // TEKNİSYEN HASARLARINI KONTROL ET VE PUANDAN DÜŞ
                 if (order.technicianDamage && order.technicianDamage !== 'Hasar Yok') {
-                    let damageKey = null;
-                    let damagePoints = 0;
-
-                    // Hasar tipine göre puan düş
-                    if (order.technicianDamage === 'Ekran Hasarı') {
-                        damageKey = 'ekranHasari';
-                        damagePoints = primValues.ekranHasari || -10;
-                    } else if (order.technicianDamage === 'Pil Hasarı') {
-                        damageKey = 'pilHasari';
-                        damagePoints = primValues.pilHasari || -5;
-                    } else if (order.technicianDamage === 'Face ID Hasarı') {
-                        damageKey = 'faceIdHasari';
-                        damagePoints = primValues.faceIdHasari || -10;
-                    } else if (order.technicianDamage === 'Kamera Hasarı') {
-                        damageKey = 'kameraHasari';
-                        damagePoints = primValues.kameraHasari || -10;
-                    }
-
-                    if (damageKey) {
+                    // Hasar adından key oluştur: "Batarya Hasarı" -> "bataryaHasari"
+                    const damageKey = convertDamageNameToKey(order.technicianDamage);
+                    
+                    if (damageKey && primValues[damageKey] !== undefined) {
+                        const damagePoints = primValues[damageKey];
                         technicianScores[technician] += damagePoints; // Negatif puan ekle (düşür)
                         technicianDamages[technician][damageKey] = 
                             (technicianDamages[technician][damageKey] || 0) + 1;
@@ -2071,7 +2157,7 @@ async function hesaplaPrim() {
 }
 
 // Prim sonuçlarını göster
-function displayPrimResults(scores, details, damages, primValues) {
+async function displayPrimResults(scores, details, damages, primValues) {
     const resultsContainer = document.getElementById('primResultsContainer');
     const resultsGrid = document.getElementById('primResults');
 
@@ -2080,6 +2166,13 @@ function displayPrimResults(scores, details, damages, primValues) {
         resultsContainer.style.display = 'block';
         return;
     }
+
+    // Threshold ve admin bonuslarını yükle
+    const thresholdSnapshot = await db.ref('primSettings/threshold').once('value');
+    const threshold = thresholdSnapshot.val() || 0;
+    
+    const adminBonusSnapshot = await db.ref('primSettings/adminBonus').once('value');
+    const adminBonuses = adminBonusSnapshot.val() || {};
 
     // Teknisyen renk ve fotoğraf bilgileri
     const technicianInfo = {
@@ -2137,8 +2230,20 @@ function displayPrimResults(scores, details, damages, primValues) {
             }
         }
 
+        // Admin bonusu ekle
+        const adminBonus = adminBonuses[technician] || 0;
+        const rawScore = score + adminBonus; // Ham puan (hesaplanan + admin bonusu)
+        
+        // Threshold kontrolü
+        let finalScore = rawScore;
+        let thresholdApplied = false;
+        if (threshold > 0 && rawScore < threshold) {
+            finalScore = 0;
+            thresholdApplied = true;
+        }
+
         // Progress bar yüzdesi (en yüksek puana göre)
-        const progressPercent = totalPositivePoints > 0 ? Math.min(100, (Math.max(0, score) / totalPositivePoints) * 100) : 0;
+        const progressPercent = totalPositivePoints > 0 ? Math.min(100, (Math.max(0, finalScore) / totalPositivePoints) * 100) : 0;
 
         // Pozitif puanlar (parçalar)
         let detailsHTML = '';
@@ -2158,14 +2263,14 @@ function displayPrimResults(scores, details, damages, primValues) {
         // Negatif puanlar (hasarlar)
         let damagesHTML = '';
         if (damages[technician] && Object.keys(damages[technician]).length > 0) {
-            damagesHTML = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(231, 76, 60, 0.3);">';
+            damagesHTML = '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(243, 156, 18, 0.3);">';
             for (const [key, count] of Object.entries(damages[technician])) {
                 const fieldName = formatPrimFieldName(key);
                 const points = primValues[key] * count;
                 damagesHTML += `
                     <div class="prim-detail-item">
-                        <span class="prim-detail-label" style="color: #e74c3c;">⚠️ ${fieldName} (${count} adet)</span>
-                        <span class="prim-detail-value" style="color: #e74c3c;">${points}</span>
+                        <span class="prim-detail-label" style="color: #f39c12;">⚠️ ${fieldName} (${count} adet)</span>
+                        <span class="prim-detail-value" style="color: #f39c12;">${points}</span>
                     </div>
                 `;
             }
@@ -2203,20 +2308,56 @@ function displayPrimResults(scores, details, damages, primValues) {
 
             <div style="margin-bottom: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-                    <span style="font-size: 42px; font-weight: 900; color: white; text-shadow: 2px 2px 8px rgba(0,0,0,0.3);">${score}</span>
-                    <span style="font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 600;">NET PUAN</span>
+                    <span style="font-size: 42px; font-weight: 900; color: ${thresholdApplied ? '#f39c12' : 'white'}; text-shadow: 2px 2px 8px rgba(0,0,0,0.3);">${finalScore}</span>
+                    <span style="font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 600;">FİNAL PUAN</span>
                 </div>
+                ${thresholdApplied ? `
+                    <div style="background: rgba(243, 156, 18, 0.2); padding: 8px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #f39c12;">
+                        <span style="font-size: 11px; color: #f39c12; font-weight: 600;">⚠️ Eşik altı: ${rawScore} < ${threshold} → Puan sıfırlandı</span>
+                    </div>
+                ` : ''}
                 <div style="background: rgba(0,0,0,0.2); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
                     <div style="background: rgba(255,255,255,0.8); height: 100%; width: ${progressPercent}%; transition: width 0.5s ease; border-radius: 4px;"></div>
                 </div>
-                <div style="display: flex; gap: 15px; font-size: 12px;">
+                
+                <!-- Yönetici Bonusu Input -->
+                <div style="background: rgba(155, 89, 182, 0.15); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(155, 89, 182, 0.3);">
+                    <label style="font-size: 11px; color: rgba(255,255,255,0.7); display: block; margin-bottom: 5px;">
+                        👨‍💼 Yönetici Bonusu 
+                        <span style="font-size: 10px; opacity: 0.7;">(+ veya - değer girebilirsiniz)</span>
+                    </label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="number" 
+                               id="adminBonus_${technician}" 
+                               value="${adminBonus}" 
+                               placeholder="Örn: +500 veya -300" 
+                               style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid rgba(155, 89, 182, 0.5); background: rgba(0,0,0,0.3); color: white; font-size: 14px; font-weight: 600;"
+                               onchange="saveAdminBonus('${technician}', this.value)">
+                        <button onclick="saveAdminBonus('${technician}', document.getElementById('adminBonus_${technician}').value)" 
+                                style="padding: 8px 12px; background: #9b59b6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                            💾
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; font-size: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span style="color: rgba(255,255,255,0.7);">Ham Puan:</span>
+                        <span style="color: white; font-weight: 700;">${score}</span>
+                    </div>
+                    ${adminBonus !== 0 ? `
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="color: rgba(255,255,255,0.7);">Bonus:</span>
+                            <span style="color: ${adminBonus > 0 ? '#9b59b6' : '#f39c12'}; font-weight: 700;">${adminBonus > 0 ? '+' : ''}${adminBonus}</span>
+                        </div>
+                    ` : ''}
                     <div style="display: flex; align-items: center; gap: 5px;">
                         <span style="color: rgba(255,255,255,0.7);">Kazanç:</span>
                         <span style="color: #2ecc71; font-weight: 700;">+${totalPositive}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 5px;">
-                        <span style="color: rgba(255,255,255,0.7);">Ceza:</span>
-                        <span style="color: #e74c3c; font-weight: 700;">${totalNegative}</span>
+                        <span style="color: rgba(255,255,255,0.7);">Hasar Puanı:</span>
+                        <span style="color: #f39c12; font-weight: 700;">${totalNegative}</span>
                     </div>
                 </div>
             </div>
@@ -2234,6 +2375,23 @@ function displayPrimResults(scores, details, damages, primValues) {
     });
 
     resultsContainer.style.display = 'block';
+}
+
+// Yönetici bonusunu kaydet
+async function saveAdminBonus(technician, bonus) {
+    try {
+        const bonusValue = parseInt(bonus) || 0;
+        await db.ref(`primSettings/adminBonus/${technician}`).set(bonusValue);
+        showToast(`${technician} için bonus kaydedildi: ${bonusValue > 0 ? '+' : ''}${bonusValue}`, 'success');
+        
+        // Sayfayı yenile
+        setTimeout(() => {
+            hesaplaPrim();
+        }, 500);
+    } catch (error) {
+        console.error('Admin bonusu kaydedilirken hata:', error);
+        showToast('Bonus kaydedilirken hata oluştu!', 'error');
+    }
 }
 
 // ========================================
@@ -2358,24 +2516,18 @@ async function calculateTechnicianScores(technicianName) {
 
             // TEKNİSYEN HASARLARINI KONTROL ET VE PUANDAN DÜŞ
             if (order.technicianDamage && order.technicianDamage !== 'Hasar Yok') {
-                let damagePoints = 0;
-
-                // Hasar tipine göre puan düş
-                if (order.technicianDamage === 'Ekran Hasarı') {
-                    damagePoints = primValues.ekranHasari || -10;
-                } else if (order.technicianDamage === 'Pil Hasarı') {
-                    damagePoints = primValues.pilHasari || -5;
-                } else if (order.technicianDamage === 'Face ID Hasarı') {
-                    damagePoints = primValues.faceIdHasari || -10;
-                } else if (order.technicianDamage === 'Kamera Hasarı') {
-                    damagePoints = primValues.kameraHasari || -10;
-                }
-
-                if (isLastMonth) {
-                    lastMonthScore += damagePoints; // Negatif puan ekle
-                }
-                if (isCurrentMonth) {
-                    currentMonthScore += damagePoints; // Negatif puan ekle
+                // Hasar adından key oluştur: "Batarya Hasarı" -> "bataryaHasari"
+                const damageKey = convertDamageNameToKey(order.technicianDamage);
+                
+                if (damageKey && primValues[damageKey] !== undefined) {
+                    const damagePoints = primValues[damageKey];
+                    
+                    if (isLastMonth) {
+                        lastMonthScore += damagePoints; // Negatif puan ekle
+                    }
+                    if (isCurrentMonth) {
+                        currentMonthScore += damagePoints; // Negatif puan ekle
+                    }
                 }
             }
         }
@@ -2455,6 +2607,63 @@ function calculatePartPoints(partName, primValues) {
     }
 
     return 0;
+}
+
+// Hasar adından key oluştur: "Batarya Hasarı" -> "bataryaHasari"
+function convertDamageNameToKey(damageName) {
+    if (!damageName) return null;
+    
+    // "Batarya Hasarı" -> "batarya"
+    const baseName = damageName
+        .replace(' Hasarı', '')
+        .toLowerCase()
+        .replace(/ş/g, 's')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/ı/g, 'i')
+        .replace(/İ/g, 'i')
+        .replace(/\s+/g, '');
+    
+    // Eşleşme tablosu - hepsi için manuel mapping
+    const damageKeyMap = {
+        'batarya': 'bataryaHasari',
+        'arkakamera': 'arkaKameraHasari',
+        'faceid': 'faceIdHasari',
+        'flex': 'flexHasari',
+        'sarjsoketi': 'sarjSoketiHasari',
+        'ustahize': 'ustAhizeHasari',
+        'altahize': 'altAhizeHasari',
+        'arkacam': 'arkaCamHasari',
+        'onkamera': 'onKameraHasari',
+        'oncam': 'onCamHasari',
+        'cipaktarma': 'cipAktarmaHasari',
+        'ekran': 'ekranHasari',
+        'kasa': 'kasaHasari',
+        'kameracami': 'kameraCamiHasari',
+        'arkakapak': 'arkaKapakHasari',
+        'sesflexi': 'sesFlexiHasari',
+        'hoparlor': 'hoparlorHasari',
+        'montaj': 'montajHasari',
+        'demontaj': 'demontajHasari',
+        'yukseltme': 'yukseltmeHasari',
+        'camsilme': 'camSilmeHasari',
+        'yazilimyukleme': 'yazilimYuklemeHasari',
+        'swapkarari': 'swapKarariHasari',
+        'temizlik': 'temizlikHasari',
+        'kasaparlatma': 'kasaParlatmaHasari',
+        'imeikontrol': 'imeiKontrolHasari',
+        'lehimislem': 'lehimIslemHasari',
+        'genelbakim': 'genelBakimHasari',
+        'iadedepo': 'iadeDepoHasari',
+        'musteriiade': 'musteriIadeHasari',
+        'onarim': 'onarimHasari',
+        'arkakapakyapistirma': 'arkaKapakYapistirmaHasari',
+        'ekranbandiyenileme': 'ekranBandiYenilemeHasari'
+    };
+    
+    return damageKeyMap[baseName] || null;
 }
 
 // Parça adından hangi prim kategorisine ait olduğunu bul
