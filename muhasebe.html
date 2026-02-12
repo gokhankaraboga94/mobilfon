@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -42,7 +41,7 @@
             border-radius: 20px;
             box-shadow: var(--shadow-lg);
             width: 100%;
-            max-width: 1400px;
+            max-width: 95%;
             overflow: hidden;
         }
 
@@ -693,6 +692,73 @@
             color: #166534;
             font-weight: 600;
             margin-left: 8px;
+        }
+
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 20px 0;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: auto;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .pagination button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pagination .page-numbers {
+            display: flex;
+            gap: 5px;
+        }
+
+        .pagination .page-number {
+            padding: 8px 12px;
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: auto;
+        }
+
+        .pagination .page-number:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .pagination .page-number.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .pagination-info {
+            color: #6b7280;
+            font-size: 14px;
+            font-weight: 600;
         }
     </style>
 
@@ -1346,6 +1412,7 @@
                                     <tbody></tbody>
                                 </table>
                             </div>
+                            <div id="mehmetTransactionsPagination"></div>
                         </div>
                     </div>
 
@@ -2954,32 +3021,50 @@ invoices.sort((a, b) => b.timestamp - a.timestamp).forEach(invoice => {
                     }
                 });
                 
-                const tbody = document.querySelector('#mehmetTransactionsTable tbody');
-                tbody.innerHTML = '';
-                transactions.sort((a, b) => b.timestamp - a.timestamp).forEach(transaction => {
-                    const paymentDate = transaction.paymentDate ? new Date(transaction.paymentDate).toLocaleDateString('tr-TR') : '-';
-                    const canEdit = transaction.status === '1. Onay Bekliyor';
-                    const linkedBadge = transaction.linkedInvoiceId ? '<span class="linked-indicator">🔗 Fatura Bağlantılı</span>' : '';
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${transaction.customId || transaction.id.substring(0, 6)}</strong>${linkedBadge}</td>
-                            <td>${transaction.customerName}</td>
-                            <td>${transaction.imeiNumber}</td>
-                            <td>${transaction.tcNumber || '-'}</td>
-                            <td>${transaction.brandModel}</td>
-                            <td>${transaction.serviceType || '-'}</td>
-                            <td>${transaction.amount.toLocaleString('tr-TR')} ₺</td>
-                            <td>${transaction.paymentMethod}</td>
-                            <td>${paymentDate}</td>
-                            <td><div class="cost-info">${transaction.note || '-'}</div></td>
-                            <td>${transaction.detail || '-'}</td>
-                            <td><span class="badge ${getStatusBadge(transaction.status)}">${transaction.status}</span></td>
-                            <td>
-                                ${canEdit ? `<button class="action-btn btn-warning" onclick="openEditTransactionModal('${transaction.id}')">✏️ Düzenle</button>` : '<span style="color: #9ca3af; font-size: 12px;">Düzenlenemez</span>'}
-                            </td>
-                        </tr>
-                    `;
-                });
+                // Sayfalama için
+                const itemsPerPage = 20;
+                let currentPage = 1;
+                const totalPages = Math.ceil(transactions.length / itemsPerPage);
+                
+                function renderTransactions(page) {
+                    const start = (page - 1) * itemsPerPage;
+                    const end = start + itemsPerPage;
+                    const pageTransactions = transactions.sort((a, b) => b.timestamp - a.timestamp).slice(start, end);
+                    
+                    const tbody = document.querySelector('#mehmetTransactionsTable tbody');
+                    tbody.innerHTML = '';
+                    
+                    pageTransactions.forEach(transaction => {
+                        const paymentDate = transaction.paymentDate ? new Date(transaction.paymentDate).toLocaleDateString('tr-TR') : '-';
+                        const canEdit = transaction.status === '1. Onay Bekliyor';
+                        const linkedBadge = transaction.linkedInvoiceId ? '<span class="linked-indicator">🔗 Fatura Bağlantılı</span>' : '';
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><strong>${transaction.customId || transaction.id.substring(0, 6)}</strong>${linkedBadge}</td>
+                                <td>${transaction.customerName}</td>
+                                <td>${transaction.imeiNumber}</td>
+                                <td>${transaction.tcNumber || '-'}</td>
+                                <td>${transaction.brandModel}</td>
+                                <td>${transaction.serviceType || '-'}</td>
+                                <td>${transaction.amount.toLocaleString('tr-TR')} ₺</td>
+                                <td>${transaction.paymentMethod}</td>
+                                <td>${paymentDate}</td>
+                                <td><div class="cost-info">${transaction.note || '-'}</div></td>
+                                <td>${transaction.detail || '-'}</td>
+                                <td><span class="badge ${getStatusBadge(transaction.status)}">${transaction.status}</span></td>
+                                <td>
+                                    ${canEdit ? `<button class="action-btn btn-warning" onclick="openEditTransactionModal('${transaction.id}')">✏️ Düzenle</button>` : '<span style="color: #9ca3af; font-size: 12px;">Düzenlenemez</span>'}
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    // Sayfalama kontrollerini göster
+                    renderPagination(page, totalPages, 'mehmetTransactionsPagination', renderTransactions);
+                }
+                
+                // İlk sayfayı göster
+                renderTransactions(currentPage);
             });
 
             dbOnValue(invoicesRef, (snapshot) => {
@@ -3632,6 +3717,88 @@ invoices.sort((a, b) => b.timestamp - a.timestamp).forEach(invoice => {
             if (status === 'Tamamlandı') return 'badge-completed';
             if (status === 'Reddedildi') return 'badge-rejected';
             return 'badge-pending';
+        }
+
+        // Sayfalama fonksiyonu
+        function renderPagination(currentPage, totalPages, containerId, callback) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            const paginationDiv = document.createElement('div');
+            paginationDiv.className = 'pagination';
+            
+            // Önceki butonu
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '« Önceki';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => callback(currentPage - 1);
+            paginationDiv.appendChild(prevBtn);
+            
+            // Sayfa numaraları
+            const pageNumbers = document.createElement('div');
+            pageNumbers.className = 'page-numbers';
+            
+            // İlk sayfa
+            if (currentPage > 3) {
+                const btn = document.createElement('button');
+                btn.className = 'page-number';
+                btn.textContent = '1';
+                btn.onclick = () => callback(1);
+                pageNumbers.appendChild(btn);
+                
+                if (currentPage > 4) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '8px';
+                    pageNumbers.appendChild(dots);
+                }
+            }
+            
+            // Mevcut sayfanın etrafındaki sayfalar
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                const btn = document.createElement('button');
+                btn.className = 'page-number' + (i === currentPage ? ' active' : '');
+                btn.textContent = i;
+                btn.onclick = () => callback(i);
+                pageNumbers.appendChild(btn);
+            }
+            
+            // Son sayfa
+            if (currentPage < totalPages - 2) {
+                if (currentPage < totalPages - 3) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '8px';
+                    pageNumbers.appendChild(dots);
+                }
+                
+                const btn = document.createElement('button');
+                btn.className = 'page-number';
+                btn.textContent = totalPages;
+                btn.onclick = () => callback(totalPages);
+                pageNumbers.appendChild(btn);
+            }
+            
+            paginationDiv.appendChild(pageNumbers);
+            
+            // Sonraki butonu
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Sonraki »';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => callback(currentPage + 1);
+            paginationDiv.appendChild(nextBtn);
+            
+            // Bilgi
+            const info = document.createElement('div');
+            info.className = 'pagination-info';
+            info.textContent = `Sayfa ${currentPage} / ${totalPages}`;
+            paginationDiv.appendChild(info);
+            
+            container.appendChild(paginationDiv);
         }
 
         window.switchTab = function(tabName) {
