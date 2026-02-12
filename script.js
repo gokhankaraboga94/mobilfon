@@ -6425,7 +6425,7 @@ function renderTechnicianCards() {
         'samet': 'DOÇ.DR.SAMET',
         'engin': 'PROF.DR.ENGİN',
         'ismail': 'ORD.PROF.DR.İSMAİL',
-        'mehmet': 'DOÇ.DR.MEHMET',
+        'mehmet': 'OP.DR.MEHMET',
         'mert': 'STJ.DR.MERT'
     };
 
