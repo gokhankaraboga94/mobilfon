@@ -6419,7 +6419,7 @@ function renderTechnicianCards() {
     // Özel unvanlar (varsa kullanılır)
     const technicianTitles = {
         'gokhan': 'DOÇ.DR.GÖKHAN',
-        'yusuf': 'DR.YUSUF',
+        'yusuf': 'UZM.DR.YUSUF',
         'tolga': 'DR.TOLGA',
         'enes': 'DOÇ.DR.ENES',
         'samet': 'DOÇ.DR.SAMET',
