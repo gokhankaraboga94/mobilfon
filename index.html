@@ -1107,11 +1107,15 @@
                     </div>
                 </div>
 
-                <!-- TOPLU HAZIR BUTONU -->
-                <button id="markAllReadyBtn" class="mark-all-ready-btn" onclick="markAllOrdersReady()"
-                    style="display: none;">
-                    ✅ Tümünü Hazır İşaretle
-                </button>
+                <!-- TOPLU BUTONLAR -->
+                <div id="warehouseBulkActions" style="display: none; gap: 10px; margin-top: 15px; flex-direction: column;">
+                    <button id="markAllReadyBtn" class="mark-all-ready-btn" onclick="markAllOrdersReady()">
+                        ✅ Tümünü Hazır İşaretle
+                    </button>
+                    <button id="cancelAllPendingBtn" class="cancel-all-pending-btn" onclick="cancelAllPendingOrders()">
+                        🗑️ Bekleyenleri Tümünü İptal Et
+                    </button>
+                </div>
             </div>
 
             <div class="warehouse-orders-container">
