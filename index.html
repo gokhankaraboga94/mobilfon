@@ -473,26 +473,37 @@
                 </div>
 
                 <div>
-                    <label>Hizmetler (İsteğe Bağlı):</label>
-                    <select id="partOrderService" class="modal-input">
-                        <option value="">-- Seçiniz (İsteğe Bağlı) --</option>
-                        <option value="YÜKSELTME">YÜKSELTME</option>
-                        <option value="CAM SİLME">CAM SİLME</option>
-                        <option value="YAZILIM YÜKLEME">YAZILIM YÜKLEME</option>
-                        <option value="SWAP KARARI">SWAP KARARI</option>
-                        <option value="TEMİZLİK">TEMİZLİK</option>
-                        <option value="KASA PARLATMA">KASA PARLATMA</option>
-                        <option value="İMEİ KONTROL">İMEİ KONTROL</option>
-                        <option value="LEHİM İŞLEM">LEHİM İŞLEM</option>
-                        <option value="GENEL BAKIM">GENEL BAKIM</option>
-                        <option value="İADE DEPO">İADE DEPO</option>
-                        <option value="MÜŞTERİ İADE">MÜŞTERİ İADE</option>
-                        <option value="ONARIM">ONARIM</option>
-                        <option value="ARKA KAPAK YAPIŞTIRMA">ARKA KAPAK YAPIŞTIRMA</option>
-                        <option value="EKRAN BANDI YENİLEME">EKRAN BANDI YENİLEME</option>
-                        <option value="CHİP AKTARIM">CHİP AKTARIM</option>
-                        <option value="FACE ID">FACE ID</option>
-                    </select>
+                    <label>Hizmetler (İsteğe Bağlı - Çoklu Seçim):</label>
+                    <div class="service-multiselect" id="serviceMultiselect">
+                        <div class="service-multiselect-toggle" onclick="toggleServiceDropdown()">
+                            <span id="serviceSelectedText">-- Seçiniz (İsteğe Bağlı) --</span>
+                            <span class="service-toggle-arrow">&#9660;</span>
+                        </div>
+                        <div class="service-multiselect-dropdown" id="serviceDropdown" style="display:none;">
+                            <div class="service-checkbox-grid">
+                                <label class="service-checkbox-item"><input type="checkbox" value="YÜKSELTME"> &#11014;&#65039; YÜKSELTME</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="CAM SİLME"> &#129529; CAM SİLME</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="YAZILIM YÜKLEME"> &#128191; YAZILIM YÜKLEME</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="SWAP KARARI"> &#128260; SWAP KARARI</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="TEMİZLİK"> &#129529; TEMİZLİK</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="KASA PARLATMA"> &#10024; KASA PARLATMA</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="İMEİ KONTROL"> &#128269; İMEİ KONTROL</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="LEHİM İŞLEM"> &#128293; LEHİM İŞLEM</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="GENEL BAKIM"> &#128295; GENEL BAKIM</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="İADE DEPO"> &#128230; İADE DEPO</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="MÜŞTERİ İADE"> &#128100; MÜŞTERİ İADE</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="ONARIM"> &#128295; ONARIM</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="ARKA KAPAK YAPIŞTIRMA"> &#128281; ARKA KAPAK YAPIŞTIRMA</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="EKRAN BANDI YENİLEME"> &#128241; EKRAN BANDI YENİLEME</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="CHİP AKTARIM"> &#128190; CHİP AKTARIM</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="FACE ID"> &#128221; FACE ID</label>
+                                <label class="service-checkbox-item"><input type="checkbox" value="PHONECHECK"> &#128241; PHONECHECK</label>
+                            </div>
+                            <div style="padding: 8px 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <button type="button" onclick="clearServiceSelections()" style="font-size:12px; background:rgba(231,76,60,0.2); border:1px solid rgba(231,76,60,0.4); color:#e74c3c; border-radius:6px; padding:4px 10px; cursor:pointer;">Temizle</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -1754,6 +1765,7 @@
                             <div class="prim-values-grid" id="primValuesGrid">
                                 <!-- Buraya dinamik olarak puan değerleri eklenecek -->
                             </div>
+                            <button class="modal-button secondary" onclick="resetHasarValues()" style="margin-top: 15px; background: rgba(231,76,60,0.3); border-color: rgba(231,76,60,0.6);">&#9889; Hasar x2 Uygula</button>
                             <button class="modal-button secondary" onclick="savePrimValues()" style="margin-top: 15px;">
                                 💾 Değerleri Kaydet
                             </button>
