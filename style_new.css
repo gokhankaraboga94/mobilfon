@@ -1774,7 +1774,6 @@ body::before {
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    margin-top: 15px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
 }
@@ -1782,6 +1781,32 @@ body::before {
 .mark-all-ready-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+}
+
+.cancel-all-pending-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+
+.cancel-all-pending-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+}
+
+#warehouseBulkActions {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
 }
 
 .warehouse-orders-container {
@@ -1838,12 +1863,6 @@ body::before {
     gap: 20px;
 }
 
-
-
-.mark-all-ready-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
-}
 
 /* ========================================
    MAIN LAYOUT - SECTIONS
