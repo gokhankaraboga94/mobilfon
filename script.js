@@ -1583,6 +1583,9 @@ function showMainView() {
     if (isNavigationInProgress) return;
     isNavigationInProgress = true;
 
+    // Depocu listener varsa temizle
+    stopWarehouseListener();
+
     try {
         // ✅ TÜM PANELLERİ ÖNCE GİZLE
         document.getElementById('warehousePanel').style.display = 'none';
@@ -7123,86 +7126,104 @@ function createTechnicianOrderCard(orderId, order) {
     return card;
 }
 
-async function loadWarehouseOrders() {
+// ============================================================
+//  WAREHOUSE ORDERS — Realtime listener + optimized rendering
+// ============================================================
+let _warehouseListener = null; // aktif Firebase listener referansı
+
+function loadWarehouseOrders() {
     if (currentUserRole !== 'warehouse') return;
 
-    try {
-        const snapshot = await db.ref('partOrders').once('value');
-        const orders = snapshot.val();
+    // Önceki listener varsa temizle (çift abonelik önleme)
+    if (_warehouseListener) {
+        db.ref('partOrders').off('value', _warehouseListener);
+        _warehouseListener = null;
+    }
 
-        // Containers
-        const pendingContainer = document.getElementById('warehousePendingOrders');
-        const completedContainer = document.getElementById('warehouseCompletedOrders');
-        const markAllBtn = document.getElementById('markAllReadyBtn');
-
-        // Clear containers
-        pendingContainer.innerHTML = '';
-        completedContainer.innerHTML = '';
-
-        if (!orders) {
-            pendingContainer.innerHTML = '<div class="no-warehouse-orders">Bekleyen parça siparişi bulunmuyor.</div>';
-            completedContainer.innerHTML = '<div class="no-warehouse-orders">Tamamlanan sipariş bulunmuyor.</div>';
-            updateWarehouseStats(0, 0);
-            if (markAllBtn) markAllBtn.style.display = 'none';
-            return;
-        }
-
-        const ordersArray = Object.entries(orders).sort(([_, a], [__, b]) => b.timestamp - a.timestamp);
-
-        // Bekleyen ve hazır siparişleri ayır
-        const pendingOrders = ordersArray.filter(([_, order]) => order.status === 'pending');
-        const readyOrders = ordersArray.filter(([_, order]) => order.status === 'ready');
-
-        // Toplu hazır butonunu göster/gizle
-        if (markAllBtn) {
-            markAllBtn.style.display = pendingOrders.length > 0 ? 'block' : 'none';
-        }
-
-        // Bekleyen siparişler başlık
-        const pendingHeader = document.createElement('div');
-        pendingHeader.style.padding = '10px';
-        pendingHeader.style.marginBottom = '10px';
-        pendingHeader.innerHTML = '<h3 style="margin: 0; font-size: 18px; color: #f39c12;">⏳ Bekleyen İstekler</h3>';
-        pendingContainer.appendChild(pendingHeader);
-
-        if (pendingOrders.length === 0) {
-            const noPending = document.createElement('div');
-            noPending.className = 'no-warehouse-orders';
-            noPending.textContent = 'Bekleyen istek yok.';
-            pendingContainer.appendChild(noPending);
-        } else {
-            pendingOrders.forEach(([orderId, order]) => {
-                const card = createWarehouseOrderCard(orderId, order, true);
-                pendingContainer.appendChild(card);
-            });
-        }
-
-        // Hazır siparişler başlık
-        const readyHeader = document.createElement('div');
-        readyHeader.style.padding = '10px';
-        readyHeader.style.marginBottom = '10px';
-        readyHeader.style.position = 'sticky';
-        readyHeader.style.top = '0';
-        readyHeader.style.background = 'rgba(40, 45, 75, 0.95)';
-        readyHeader.style.zIndex = '10';
-        readyHeader.innerHTML = '<h3 style="margin: 0; font-size: 18px; color: #2ecc71;">✅ Tamamlanan İstekler (Son 3)</h3>';
-        completedContainer.appendChild(readyHeader);
-
-        if (readyOrders.length === 0) {
-            const noReady = document.createElement('div');
-            noReady.className = 'no-warehouse-orders';
-            noReady.textContent = 'Tamamlanan istek yok.';
-            completedContainer.appendChild(noReady);
-        } else {
-            readyOrders.forEach(([orderId, order]) => {
-                const card = createWarehouseOrderCard(orderId, order, false);
-                completedContainer.appendChild(card);
-            });
-        }
-
-        updateWarehouseStats(pendingOrders.length, readyOrders.length);
-    } catch (error) {
+    // Realtime listener — veri değişince otomatik render
+    _warehouseListener = db.ref('partOrders').on('value', (snapshot) => {
+        _renderWarehouseOrders(snapshot.val());
+    }, (error) => {
         console.error('Depo siparişleri yüklenirken hata:', error);
+        showToast('Siparişler yüklenirken hata oluştu!', 'error');
+    });
+}
+
+function _renderWarehouseOrders(orders) {
+    const pendingContainer = document.getElementById('warehousePendingOrders');
+    const completedContainer = document.getElementById('warehouseCompletedOrders');
+    const bulkActionsDiv = document.getElementById('warehouseBulkActions');
+
+    if (!pendingContainer || !completedContainer) return;
+
+    // Fragment kullan → DOM repaint minimuma insin
+    const pendingFrag = document.createDocumentFragment();
+    const completedFrag = document.createDocumentFragment();
+
+    if (!orders) {
+        pendingContainer.innerHTML = '<div class="no-warehouse-orders">Bekleyen parça siparişi bulunmuyor.</div>';
+        completedContainer.innerHTML = '<div class="no-warehouse-orders">Tamamlanan sipariş bulunmuyor.</div>';
+        if (bulkActionsDiv) bulkActionsDiv.style.display = 'none';
+        updateWarehouseStats(0, 0);
+        return;
+    }
+
+    const ordersArray = Object.entries(orders).sort(([, a], [, b]) => b.timestamp - a.timestamp);
+    const pendingOrders  = ordersArray.filter(([, o]) => o.status === 'pending');
+    const readyOrders    = ordersArray.filter(([, o]) => o.status === 'ready');
+
+    // Toplu butonları göster/gizle
+    if (bulkActionsDiv) {
+        bulkActionsDiv.style.display = pendingOrders.length > 0 ? 'flex' : 'none';
+    }
+
+    // --- Bekleyen başlık ---
+    const pendingHeader = document.createElement('div');
+    pendingHeader.style.cssText = 'padding:10px;margin-bottom:10px;';
+    pendingHeader.innerHTML = '<h3 style="margin:0;font-size:18px;color:#f39c12;">⏳ Bekleyen İstekler</h3>';
+    pendingFrag.appendChild(pendingHeader);
+
+    if (pendingOrders.length === 0) {
+        const noPending = document.createElement('div');
+        noPending.className = 'no-warehouse-orders';
+        noPending.textContent = 'Bekleyen istek yok.';
+        pendingFrag.appendChild(noPending);
+    } else {
+        pendingOrders.forEach(([id, o]) => pendingFrag.appendChild(createWarehouseOrderCard(id, o, true)));
+    }
+
+    // --- Tamamlanan başlık (sadece son 3 göster) ---
+    const READY_LIMIT = 3;
+    const visibleReady = readyOrders.slice(0, READY_LIMIT);
+
+    const readyHeader = document.createElement('div');
+    readyHeader.style.cssText = 'padding:10px;margin-bottom:10px;position:sticky;top:0;background:rgba(40,45,75,0.95);z-index:10;';
+    readyHeader.innerHTML = `<h3 style="margin:0;font-size:18px;color:#2ecc71;">✅ Tamamlanan İstekler (Son ${READY_LIMIT})</h3>`;
+    completedFrag.appendChild(readyHeader);
+
+    if (visibleReady.length === 0) {
+        const noReady = document.createElement('div');
+        noReady.className = 'no-warehouse-orders';
+        noReady.textContent = 'Tamamlanan istek yok.';
+        completedFrag.appendChild(noReady);
+    } else {
+        visibleReady.forEach(([id, o]) => completedFrag.appendChild(createWarehouseOrderCard(id, o, false)));
+    }
+
+    // Tek seferde DOM'a yaz
+    pendingContainer.innerHTML = '';
+    completedContainer.innerHTML = '';
+    pendingContainer.appendChild(pendingFrag);
+    completedContainer.appendChild(completedFrag);
+
+    updateWarehouseStats(pendingOrders.length, readyOrders.length);
+}
+
+// Warehouse panel kapandığında listener'ı temizle
+function stopWarehouseListener() {
+    if (_warehouseListener) {
+        db.ref('partOrders').off('value', _warehouseListener);
+        _warehouseListener = null;
     }
 }
 
@@ -7314,7 +7335,7 @@ async function updatePartStatus(orderId, partIndex, status) {
     try {
         await db.ref(`partOrders/${orderId}/parts/${partIndex}/status`).set(status);
         showToast(`Parça durumu güncellendi: ${status === 'available' ? 'Stokta var' : 'Stokta yok'}`, 'info');
-        loadWarehouseOrders();
+        // Listener otomatik günceller — loadWarehouseOrders() gereksiz
     } catch (error) {
         console.error('Parça durumu güncellenirken hata:', error);
         showToast('Parça durumu güncellenirken hata oluştu!', 'error');
@@ -7325,7 +7346,7 @@ async function markOrderReady(orderId) {
     try {
         await db.ref(`partOrders/${orderId}/status`).set('ready');
         showToast('Sipariş hazır olarak işaretlendi!', 'success');
-        loadWarehouseOrders();
+        // Listener otomatik günceller — loadWarehouseOrders() gereksiz
     } catch (error) {
         console.error('Sipariş hazır olarak işaretlenirken hata:', error);
         showToast('Sipariş işaretlenirken hata oluştu!', 'error');
@@ -7340,7 +7361,7 @@ async function cancelOrder(orderId) {
     try {
         await db.ref(`partOrders/${orderId}`).remove();
         showToast('Sipariş iptal edildi!', 'success');
-        loadWarehouseOrders();
+        // Listener otomatik günceller — loadWarehouseOrders() gereksiz
     } catch (error) {
         console.error('Sipariş iptal edilirken hata:', error);
         showToast('Sipariş iptal edilirken hata oluştu!', 'error');
@@ -7362,40 +7383,60 @@ async function markAllOrdersReady() {
             return;
         }
 
-        // Bekleyen siparişleri bul
-        const pendingOrders = Object.entries(orders).filter(([_, order]) => order.status === 'pending');
+        const pendingOrders = Object.entries(orders).filter(([, o]) => o.status === 'pending');
 
         if (pendingOrders.length === 0) {
             showToast('Bekleyen sipariş bulunamadı!', 'warning');
             return;
         }
 
-        let successCount = 0;
+        // Tek batch update → Firebase'e tek istek
+        const updates = {};
+        pendingOrders.forEach(([id]) => { updates[`partOrders/${id}/status`] = 'ready'; });
+        await db.ref().update(updates);
 
-        // Her bir siparişi hazır olarak işaretle
-        for (const [orderId, order] of pendingOrders) {
-            try {
-                await db.ref(`partOrders/${orderId}/status`).set('ready');
-                successCount++;
-            } catch (error) {
-                console.error(`Sipariş ${orderId} işaretlenirken hata:`, error);
-            }
-        }
-
-        if (successCount > 0) {
-            showToast(`${successCount} sipariş başarıyla hazır olarak işaretlendi!`, 'success');
-        } else {
-            showToast('Hiçbir sipariş işaretlenemedi!', 'error');
-        }
-
-        loadWarehouseOrders();
+        showToast(`${pendingOrders.length} sipariş başarıyla hazır olarak işaretlendi!`, 'success');
+        // Listener otomatik günceller — loadWarehouseOrders() gereksiz
     } catch (error) {
         console.error('Toplu işaretleme sırasında hata:', error);
         showToast('Toplu işaretleme sırasında bir hata oluştu!', 'error');
     }
 }
 
-// Parça bilgilerini gösterme fonksiyonu - Aynı barkoda birden fazla sipariş olabileceği için güncelledik
+// TOPLU BEKLEYEN İPTAL FONKSİYONU
+async function cancelAllPendingOrders() {
+    if (!confirm('⚠️ Tüm BEKLEYEN siparişleri iptal etmek istediğinizden emin misiniz?\n\n✅ Hazır işaretlenmiş siparişler korunacaktır.')) {
+        return;
+    }
+
+    try {
+        const snapshot = await db.ref('partOrders').once('value');
+        const orders = snapshot.val();
+
+        if (!orders) {
+            showToast('İptal edilecek sipariş bulunamadı!', 'warning');
+            return;
+        }
+
+        const pendingOrders = Object.entries(orders).filter(([, o]) => o.status === 'pending');
+
+        if (pendingOrders.length === 0) {
+            showToast('Bekleyen sipariş bulunamadı!', 'warning');
+            return;
+        }
+
+        // Tek batch silme → Firebase'e tek istek, hazır olanlar korunur
+        const updates = {};
+        pendingOrders.forEach(([id]) => { updates[`partOrders/${id}`] = null; });
+        await db.ref().update(updates);
+
+        showToast(`${pendingOrders.length} bekleyen sipariş iptal edildi. Hazır olanlar korundu.`, 'success');
+        // Listener otomatik günceller — loadWarehouseOrders() gereksiz
+    } catch (error) {
+        console.error('Toplu iptal sırasında hata:', error);
+        showToast('Toplu iptal sırasında bir hata oluştu!', 'error');
+    }
+}
 
 async function displayPartInfo(barcode, containerElementId) {
     try {
