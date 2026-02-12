@@ -8616,3 +8616,57 @@ body.light-mode .nav-user-score-current {
     background: linear-gradient(135deg, rgba(243, 156, 18, 0.15), rgba(230, 126, 34, 0.15));
     border: 1px solid rgba(243, 156, 18, 0.4);
 }
+
+/* ========================================
+   HİZMET ÇOKLU SEÇİM WIDGET
+   ======================================== */
+.service-multiselect { position: relative; width: 100%; }
+
+.service-multiselect-toggle {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 15px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px; cursor: pointer;
+    color: rgba(255,255,255,0.85); font-size: 14px;
+    transition: all 0.2s ease; user-select: none;
+}
+.service-multiselect-toggle:hover { background: rgba(255,255,255,0.12); border-color: rgba(102,126,234,0.6); }
+.service-multiselect-toggle.has-selection { border-color: rgba(102,126,234,0.8); background: rgba(102,126,234,0.12); }
+.service-toggle-arrow { font-size: 11px; opacity: 0.6; transition: transform 0.2s ease; flex-shrink: 0; margin-left: 8px; }
+.service-multiselect-toggle.open .service-toggle-arrow { transform: rotate(180deg); }
+#serviceSelectedText { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.service-multiselect-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: #1a1a2e;
+    border: 1px solid rgba(102,126,234,0.4);
+    border-radius: 10px; z-index: 9999;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    max-height: 320px; overflow-y: auto;
+}
+.service-checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 8px; }
+
+.service-checkbox-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; color: rgba(255,255,255,0.8);
+    transition: background 0.15s ease; user-select: none;
+}
+.service-checkbox-item:hover { background: rgba(102,126,234,0.2); color: #fff; }
+.service-checkbox-item input[type="checkbox"] { width: 15px; height: 15px; accent-color: #667eea; cursor: pointer; flex-shrink: 0; }
+.service-checkbox-item:has(input:checked) { background: rgba(102,126,234,0.25); color: #fff; font-weight: 600; }
+
+.service-tags-inline { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.service-tag { display: inline-block; padding: 3px 9px; background: rgba(102,126,234,0.2); border: 1px solid rgba(102,126,234,0.4); border-radius: 12px; font-size: 12px; color: #a0b4ff; font-weight: 500; white-space: nowrap; }
+
+.user-stat-item { flex-wrap: wrap; gap: 6px; }
+.user-stat-services { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; margin-top: 4px; }
+
+body.light-mode .service-multiselect-toggle { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.15); color: #333; }
+body.light-mode .service-multiselect-dropdown { background: #ffffff; border-color: rgba(102,126,234,0.4); }
+body.light-mode .service-checkbox-item { color: #333; }
+body.light-mode .service-checkbox-item:hover { background: rgba(102,126,234,0.1); }
+body.light-mode .service-checkbox-item:has(input:checked) { background: rgba(102,126,234,0.15); }
+
+@media (max-width: 480px) { .service-checkbox-grid { grid-template-columns: 1fr; } }
