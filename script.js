@@ -1795,43 +1795,45 @@ const defaultPrimValues = {
     'onarim': 10,
     'arkaKapakYapistirma': 7,
     'ekranBandiYenileme': 8,
+    'phonecheck': 10,
 
-    // PARÇA HASARLARI (NEGATİF)
-    'bataryaHasari': -15,
-    'arkaKameraHasari': -10,
-    'faceIdHasari': -12,
-    'flexHasari': -8,
-    'sarjSoketiHasari': -10,
-    'ustAhizeHasari': -6,
-    'altAhizeHasari': -6,
-    'arkaCamHasari': -10,
-    'onKameraHasari': -8,
-    'onCamHasari': -10,
-    'cipAktarmaHasari': -25,
-    'ekranHasari': -10,
-    'kasaHasari': -20,
-    'kameraCamiHasari': -8,
-    'arkaKapakHasari': -12,
-    'sesFlexiHasari': -7,
-    'hoparlorHasari': -7,
-    'montajHasari': -5,
-    'demontajHasari': -5,
+    // PARÇA HASARLARI (NEGATİF - pozitif değerin 2 katı)
+    'bataryaHasari': -30,
+    'arkaKameraHasari': -20,
+    'faceIdHasari': -24,
+    'flexHasari': -16,
+    'sarjSoketiHasari': -20,
+    'ustAhizeHasari': -12,
+    'altAhizeHasari': -12,
+    'arkaCamHasari': -20,
+    'onKameraHasari': -16,
+    'onCamHasari': -20,
+    'cipAktarmaHasari': -50,
+    'ekranHasari': -20,
+    'kasaHasari': -40,
+    'kameraCamiHasari': -16,
+    'arkaKapakHasari': -24,
+    'sesFlexiHasari': -14,
+    'hoparlorHasari': -14,
+    'montajHasari': -10,
+    'demontajHasari': -10,
 
-    // HİZMET HASARLARI (NEGATİF)
-    'yukseltmeHasari': -10,
-    'camSilmeHasari': -8,
-    'yazilimYuklemeHasari': -10,
-    'swapKarariHasari': -15,
-    'temizlikHasari': -5,
-    'kasaParlatmaHasari': -8,
-    'imeiKontrolHasari': -5,
-    'lehimIslemHasari': -15,
-    'genelBakimHasari': -12,
-    'iadeDepoHasari': -3,
-    'musteriIadeHasari': -3,
-    'onarimHasari': -10,
-    'arkaKapakYapistirmaHasari': -7,
-    'ekranBandiYenilemeHasari': -8
+    // HİZMET HASARLARI (NEGATİF - pozitif değerin 2 katı)
+    'yukseltmeHasari': -20,
+    'camSilmeHasari': -16,
+    'yazilimYuklemeHasari': -20,
+    'swapKarariHasari': -30,
+    'temizlikHasari': -10,
+    'kasaParlatmaHasari': -16,
+    'imeiKontrolHasari': -10,
+    'lehimIslemHasari': -30,
+    'genelBakimHasari': -24,
+    'iadeDepoHasari': -6,
+    'musteriIadeHasari': -6,
+    'onarimHasari': -20,
+    'arkaKapakYapistirmaHasari': -14,
+    'ekranBandiYenilemeHasari': -16,
+    'phonecheckHasari': -20
 };
 
 // Prim hesaplama modalını aç
@@ -2242,6 +2244,103 @@ function displayTechnicianDetailCard(technician, finalScore, rawScore, details, 
 }
 
 
+
+// ========================================
+// HİZMET ÇOKLU SEÇİM YARDIMCI FONKSİYONLARI
+// ========================================
+
+function toggleServiceDropdown() {
+    const dropdown = document.getElementById('serviceDropdown');
+    const toggle = document.querySelector('.service-multiselect-toggle');
+    if (!dropdown || !toggle) return;
+    const isOpen = dropdown.style.display !== 'none';
+    dropdown.style.display = isOpen ? 'none' : 'block';
+    toggle.classList.toggle('open', !isOpen);
+}
+
+document.addEventListener('click', function(e) {
+    const ms = document.getElementById('serviceMultiselect');
+    if (ms && !ms.contains(e.target)) {
+        const dropdown = document.getElementById('serviceDropdown');
+        const toggle = document.querySelector('.service-multiselect-toggle');
+        if (dropdown) dropdown.style.display = 'none';
+        if (toggle) toggle.classList.remove('open');
+    }
+});
+
+function getSelectedServices() {
+    const checkboxes = document.querySelectorAll('#serviceDropdown input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value).join(', ');
+}
+
+function updateServiceToggleText() {
+    const selected = getSelectedServices();
+    const textEl = document.getElementById('serviceSelectedText');
+    const toggle = document.querySelector('.service-multiselect-toggle');
+    if (!textEl) return;
+    if (selected) {
+        textEl.textContent = selected;
+        if (toggle) toggle.classList.add('has-selection');
+    } else {
+        textEl.textContent = '-- Seçiniz (İsteğe Bağlı) --';
+        if (toggle) toggle.classList.remove('has-selection');
+    }
+}
+
+function clearServiceSelections() {
+    const checkboxes = document.querySelectorAll('#serviceDropdown input[type="checkbox"]');
+    checkboxes.forEach(cb => { cb.checked = false; });
+    updateServiceToggleText();
+}
+
+function initServiceCheckboxListeners() {
+    const checkboxes = document.querySelectorAll('#serviceDropdown input[type="checkbox"]');
+    checkboxes.forEach(cb => { cb.addEventListener('change', updateServiceToggleText); });
+}
+
+document.addEventListener('DOMContentLoaded', initServiceCheckboxListeners);
+
+// Hasar değerlerini pozitif puanın x2 negatifine zorla güncelle (Firebase'e yazar)
+async function resetHasarValues() {
+    if (!confirm('⚠️ Tüm hasar puanları, ilgili pozitif puanın 2 katı eksi değerine sıfırlanacak.\n\nÖrnek: Ekran = 10 → Ekran Hasarı = -20\n\nDevam etmek istiyor musunuz?')) return;
+    try {
+        const snapshot = await db.ref('primSettings/values').once('value');
+        const values = snapshot.val() || { ...defaultPrimValues };
+
+        const hasarMap = {
+            'bataryaHasari': 'batarya', 'arkaKameraHasari': 'arkaKamera',
+            'faceIdHasari': 'faceId', 'flexHasari': 'flex',
+            'sarjSoketiHasari': 'sarjSoketi', 'ustAhizeHasari': 'ustAhize',
+            'altAhizeHasari': 'altAhize', 'arkaCamHasari': 'arkaCam',
+            'onKameraHasari': 'onKamera', 'onCamHasari': 'onCam',
+            'cipAktarmaHasari': 'cipAktarma', 'ekranHasari': 'ekran',
+            'kasaHasari': 'kasa', 'kameraCamiHasari': 'kameraCami',
+            'arkaKapakHasari': 'arkaKapak', 'sesFlexiHasari': 'sesFlexi',
+            'hoparlorHasari': 'hoparlor', 'montajHasari': 'montaj',
+            'demontajHasari': 'demontaj', 'yukseltmeHasari': 'yukseltme',
+            'camSilmeHasari': 'camSilme', 'yazilimYuklemeHasari': 'yazilimYukleme',
+            'swapKarariHasari': 'swapKarari', 'temizlikHasari': 'temizlik',
+            'kasaParlatmaHasari': 'kasaParlatma', 'imeiKontrolHasari': 'imeiKontrol',
+            'lehimIslemHasari': 'lehimIslem', 'genelBakimHasari': 'genelBakim',
+            'iadeDepoHasari': 'iadeDepo', 'musteriIadeHasari': 'musteriIade',
+            'onarimHasari': 'onarim', 'arkaKapakYapistirmaHasari': 'arkaKapakYapistirma',
+            'ekranBandiYenilemeHasari': 'ekranBandiYenileme', 'phonecheckHasari': 'phonecheck'
+        };
+
+        for (const [hasarKey, pozitifKey] of Object.entries(hasarMap)) {
+            const pozitifValue = values[pozitifKey] !== undefined ? values[pozitifKey] : defaultPrimValues[pozitifKey] || 0;
+            values[hasarKey] = -(Math.abs(pozitifValue) * 2);
+        }
+
+        await db.ref('primSettings/values').set(values);
+        showToast('✅ Tüm hasar puanları x2 negatif olarak güncellendi!', 'success');
+        await loadPrimValues();
+    } catch (err) {
+        console.error('Hasar reset hatası:', err);
+        showToast('❌ Hasar değerleri güncellenirken hata oluştu!', 'error');
+    }
+}
+
 // Puan değerlerini Firebase'den yükle
 async function loadPrimValues() {
     try {
@@ -2254,13 +2353,46 @@ async function loadPrimValues() {
         const threshold = thresholdSnapshot.val() || 0;
         document.getElementById('primThreshold').value = threshold;
 
-        // Eğer Firebase'de değer yoksa veya eksik alanlar varsa, defaultPrimValues'ı kullan
-        if (!values || Object.keys(values).length !== Object.keys(defaultPrimValues).length) {
-            // Firebase'e default değerleri kaydet
+        // Firebase'de yoksa veya boşsa default yükle
+        if (!values) {
             await db.ref('primSettings/values').set(defaultPrimValues);
             values = defaultPrimValues;
-            showToast('Puan değerleri varsayılan değerlerle güncellendi!', 'info');
+            showToast('Puan değerleri varsayılan değerlerle yüklendi!', 'info');
         }
+
+        // Eksik anahtarları x2 hasar kuralıyla tamamla
+        const _hasarMap = {
+            'bataryaHasari': 'batarya', 'arkaKameraHasari': 'arkaKamera',
+            'faceIdHasari': 'faceId', 'flexHasari': 'flex',
+            'sarjSoketiHasari': 'sarjSoketi', 'ustAhizeHasari': 'ustAhize',
+            'altAhizeHasari': 'altAhize', 'arkaCamHasari': 'arkaCam',
+            'onKameraHasari': 'onKamera', 'onCamHasari': 'onCam',
+            'cipAktarmaHasari': 'cipAktarma', 'ekranHasari': 'ekran',
+            'kasaHasari': 'kasa', 'kameraCamiHasari': 'kameraCami',
+            'arkaKapakHasari': 'arkaKapak', 'sesFlexiHasari': 'sesFlexi',
+            'hoparlorHasari': 'hoparlor', 'montajHasari': 'montaj',
+            'demontajHasari': 'demontaj', 'yukseltmeHasari': 'yukseltme',
+            'camSilmeHasari': 'camSilme', 'yazilimYuklemeHasari': 'yazilimYukleme',
+            'swapKarariHasari': 'swapKarari', 'temizlikHasari': 'temizlik',
+            'kasaParlatmaHasari': 'kasaParlatma', 'imeiKontrolHasari': 'imeiKontrol',
+            'lehimIslemHasari': 'lehimIslem', 'genelBakimHasari': 'genelBakim',
+            'iadeDepoHasari': 'iadeDepo', 'musteriIadeHasari': 'musteriIade',
+            'onarimHasari': 'onarim', 'arkaKapakYapistirmaHasari': 'arkaKapakYapistirma',
+            'ekranBandiYenilemeHasari': 'ekranBandiYenileme', 'phonecheckHasari': 'phonecheck'
+        };
+        let _updated = false;
+        for (const key of Object.keys(defaultPrimValues)) {
+            if (values[key] === undefined) {
+                if (_hasarMap[key]) {
+                    const poz = values[_hasarMap[key]] !== undefined ? values[_hasarMap[key]] : defaultPrimValues[_hasarMap[key]] || 0;
+                    values[key] = -(Math.abs(poz) * 2);
+                } else {
+                    values[key] = defaultPrimValues[key];
+                }
+                _updated = true;
+            }
+        }
+        if (_updated) await db.ref('primSettings/values').set(values);
 
         const grid = document.getElementById('primValuesGrid');
         grid.innerHTML = '';
@@ -2307,7 +2439,7 @@ async function loadPrimValues() {
             'yukseltme', 'camSilme', 'yazilimYukleme', 'swapKarari',
             'temizlik', 'kasaParlatma', 'imeiKontrol', 'lehimIslem',
             'genelBakim', 'iadeDepo', 'musteriIade', 'onarim',
-            'arkaKapakYapistirma', 'ekranBandiYenileme'
+            'arkaKapakYapistirma', 'ekranBandiYenileme', 'phonecheck'
         ];
 
         hizmetKeys.forEach(key => {
@@ -2364,7 +2496,7 @@ async function loadPrimValues() {
             'yukseltmeHasari', 'camSilmeHasari', 'yazilimYuklemeHasari', 'swapKarariHasari',
             'temizlikHasari', 'kasaParlatmaHasari', 'imeiKontrolHasari', 'lehimIslemHasari',
             'genelBakimHasari', 'iadeDepoHasari', 'musteriIadeHasari', 'onarimHasari',
-            'arkaKapakYapistirmaHasari', 'ekranBandiYenilemeHasari'
+            'arkaKapakYapistirmaHasari', 'ekranBandiYenilemeHasari', 'phonecheckHasari'
         ];
 
         hizmetHasarKeys.forEach(key => {
@@ -2430,6 +2562,7 @@ function formatPrimFieldName(key) {
         'onarim': '🔧 Onarım',
         'arkaKapakYapistirma': '🔙 Arka Kapak Yapıştırma',
         'ekranBandiYenileme': '📱 Ekran Bandı Yenileme',
+        'phonecheck': '📱 PhoneCheck',
 
         // PARÇA HASARLARI
         'bataryaHasari': '🔋 Batarya Hasarı',
@@ -2466,7 +2599,8 @@ function formatPrimFieldName(key) {
         'musteriIadeHasari': '👤 Müşteri İade Hasarı',
         'onarimHasari': '🔧 Onarım Hasarı',
         'arkaKapakYapistirmaHasari': '🔙 Arka Kapak Yapıştırma Hasarı',
-        'ekranBandiYenilemeHasari': '📱 Ekran Bandı Yenileme Hasarı'
+        'ekranBandiYenilemeHasari': '📱 Ekran Bandı Yenileme Hasarı',
+        'phonecheckHasari': '📱 PhoneCheck Hasarı'
     };
     return names[key] || key;
 }
@@ -3054,28 +3188,32 @@ function calculatePartPoints(partName, primValues) {
         'yazilimYukleme': ['yazilim', 'software', 'firmware', 'yukleme'],
         'swapKarari': ['swap', 'degisim', 'karar'],
         'temizlik': ['temizlik', 'clean'],
-        'kasaParlatma': ['parlatma', 'polish'],
-        'imeiKontrol': ['imei', 'seri', 'kontrol'],
+        'kasaParlatma': ['kasa parlatma', 'parlatma', 'polish'],
+        'imeiKontrol': ['imei kontrol', 'imei', 'seri'],
         'lehimIslem': ['lehim', 'solder', 'islem'],
-        'genelBakim': ['genel bakim', 'general maintenance', 'bakim'],
+        'genelBakim': ['genel bakim', 'general maintenance'],
         'iadeDepo': ['iade depo', 'return warehouse'],
         'musteriIade': ['musteri iade', 'customer return'],
         'onarim': ['onarim', 'repair'],
         'arkaKapakYapistirma': ['arka kapak yapistirma', 'back cover adhesive', 'yapistirma'],
-        'ekranBandiYenileme': ['ekran bandi', 'screen tape', 'display adhesive', 'bandi']
+        'ekranBandiYenileme': ['ekran bandi', 'screen tape', 'display adhesive', 'bandi'],
+        'phonecheck': ['phonecheck', 'phone check', 'phonechek']
     };
 
-    // Her primValues anahtarı için kontrol yap
+    // En uzun eşleşen keyword öncelikli (kasaParlatma vs kasa gibi çakışmaları önler)
+    let bestKey = null;
+    let bestMatchLen = 0;
     for (const [key, value] of Object.entries(primValues)) {
-        // Eğer bu anahtar için kontrol listesi varsa
         if (checks[key]) {
             for (const check of checks[key]) {
-                if (partNameLower.includes(check)) {
-                    return value;
+                if (partNameLower.includes(check) && check.length > bestMatchLen) {
+                    bestKey = key;
+                    bestMatchLen = check.length;
                 }
             }
         }
     }
+    if (bestKey !== null) return primValues[bestKey];
 
     return 0;
 }
@@ -3131,7 +3269,8 @@ function convertDamageNameToKey(damageName) {
         'musteriiade': 'musteriIadeHasari',
         'onarim': 'onarimHasari',
         'arkakapakyapistirma': 'arkaKapakYapistirmaHasari',
-        'ekranbandiyenileme': 'ekranBandiYenilemeHasari'
+        'ekranbandiyenileme': 'ekranBandiYenilemeHasari',
+        'phonecheck': 'phonecheckHasari'
     };
 
     return damageKeyMap[baseName] || null;
@@ -3177,30 +3316,32 @@ function findPartKey(partName, primValues) {
         'yazilimYukleme': ['yazilim', 'software', 'firmware', 'yukleme'],
         'swapKarari': ['swap', 'degisim', 'karar'],
         'temizlik': ['temizlik', 'clean'],
-        'kasaParlatma': ['parlatma', 'polish'],
-        'imeiKontrol': ['imei', 'seri', 'kontrol'],
+        'kasaParlatma': ['kasa parlatma', 'parlatma', 'polish'],
+        'imeiKontrol': ['imei kontrol', 'imei', 'seri'],
         'lehimIslem': ['lehim', 'solder', 'islem'],
-        'genelBakim': ['genel bakim', 'general maintenance', 'bakim'],
+        'genelBakim': ['genel bakim', 'general maintenance'],
         'iadeDepo': ['iade depo', 'return warehouse'],
         'musteriIade': ['musteri iade', 'customer return'],
         'onarim': ['onarim', 'repair'],
         'arkaKapakYapistirma': ['arka kapak yapistirma', 'back cover adhesive', 'yapistirma'],
-        'ekranBandiYenileme': ['ekran bandi', 'screen tape', 'display adhesive', 'bandi']
+        'ekranBandiYenileme': ['ekran bandi', 'screen tape', 'display adhesive', 'bandi'],
+        'phonecheck': ['phonecheck', 'phone check', 'phonechek']
     };
 
-    // Her primValues anahtarı için kontrol yap
+    // En uzun eşleşen keyword öncelikli
+    let bestKey = null;
+    let bestMatchLen = 0;
     for (const [key, value] of Object.entries(primValues)) {
-        // Eğer bu anahtar için kontrol listesi varsa
         if (checks[key]) {
             for (const check of checks[key]) {
-                if (partNameLower.includes(check)) {
-                    return key;
+                if (partNameLower.includes(check) && check.length > bestMatchLen) {
+                    bestKey = key;
+                    bestMatchLen = check.length;
                 }
             }
         }
     }
-
-    return null;
+    return bestKey;
 }
 
 // Hem geçen ay hem bu ay puanlarını ekranda göster
@@ -3689,6 +3830,7 @@ async function generatePartOrdersReport(startDateInput, endDateInput) {
         let readyCount = 0;
         let ordersArray = [];
         let technicianStats = {};
+        let technicianServices = {};
         let statusStats = { pending: 0, ready: 0 };
 
         for (const [orderId, order] of Object.entries(ordersData)) {
@@ -3706,6 +3848,14 @@ async function generatePartOrdersReport(startDateInput, endDateInput) {
 
                 // Teknisyen istatistikleri
                 technicianStats[order.technician] = (technicianStats[order.technician] || 0) + 1;
+
+                // Teknisyen hizmet istatistikleri topla
+                if (order.service) {
+                    if (!technicianServices[order.technician]) technicianServices[order.technician] = {};
+                    order.service.split(',').map(s => s.trim()).filter(Boolean).forEach(svc => {
+                        technicianServices[order.technician][svc] = (technicianServices[order.technician][svc] || 0) + 1;
+                    });
+                }
 
                 ordersArray.push({
                     orderId: orderId,
@@ -3752,10 +3902,20 @@ async function generatePartOrdersReport(startDateInput, endDateInput) {
         let techStatsHTML = '<div class="user-stats"><h4>👥 Teknisyen İstatistikleri</h4>';
         const sortedTechs = Object.entries(technicianStats).sort((a, b) => b[1] - a[1]);
         sortedTechs.forEach(([tech, count]) => {
+            let svcsHTML = '';
+            if (technicianServices[tech]) {
+                const entries = Object.entries(technicianServices[tech]).sort((a, b) => b[1] - a[1]);
+                if (entries.length > 0) {
+                    svcsHTML = '<div class="user-stat-services">' +
+                        entries.map(([svc, cnt]) => `<span class="service-tag">${svc}${cnt > 1 ? ' x' + cnt : ''}</span>`).join('') +
+                        '</div>';
+                }
+            }
             techStatsHTML += `
         <div class="user-stat-item">
           <span class="user-stat-name">👤 ${tech}</span>
           <span class="user-stat-count">${count} istek</span>
+          ${svcsHTML}
         </div>
       `;
         });
@@ -3772,7 +3932,7 @@ async function generatePartOrdersReport(startDateInput, endDateInput) {
           <div class="info"><strong>📱 Model:</strong> ${order.model}</div>
           ${order.customer ? `<div class="info"><strong>👤 Müşteri/Bayi:</strong> ${order.customer}</div>` : ''}
           ${order.statusField ? `<div class="info"><strong>📊 Statü:</strong> ${order.statusField}</div>` : ''}
-          ${order.service ? `<div class="info"><strong>🔧 Hizmet:</strong> ${order.service}</div>` : ''}
+          ${order.service ? `<div class="info"><strong>🔧 Hizmet:</strong> <span class="service-tags-inline">${order.service.split(',').map(s => `<span class="service-tag">${s.trim()}</span>`).join('')}</span></div>` : ''}
           ${order.technicianDamage ? `<div class="info"><strong>⚠️ Teknisyen Hasarı:</strong> ${order.technicianDamage}</div>` : ''}
           <div class="info"><strong>🧑‍🔧 Teknisyen:</strong> ${order.technician}</div>
           <div class="info"><strong>📦 Parçalar:</strong> ${order.parts && Array.isArray(order.parts) ? order.parts.map(p => p.name).join(', ') : 'Parça bilgisi yok'}</div>
@@ -6757,7 +6917,7 @@ function openPartOrderModal() {
     document.getElementById('partOrderModel').value = '';
     document.getElementById('partOrderCustomer').value = '';
     document.getElementById('partOrderStatus').value = '';
-    document.getElementById('partOrderService').value = '';
+    clearServiceSelections();
     document.getElementById('partOrderNote').value = '';
     document.getElementById('partOrderPart1').value = '';
     document.getElementById('partOrderPart2').value = '';
@@ -6774,7 +6934,7 @@ async function submitPartOrder() {
     const model = document.getElementById('partOrderModel').value.trim();
     const customer = document.getElementById('partOrderCustomer').value.trim();
     const statusField = document.getElementById('partOrderStatus').value.trim();
-    const service = document.getElementById('partOrderService').value.trim();
+    const service = getSelectedServices();
     const note = document.getElementById('partOrderNote').value.trim();
     const part1 = document.getElementById('partOrderPart1').value.trim();
     const part2 = document.getElementById('partOrderPart2').value.trim();
@@ -12504,7 +12664,7 @@ function selectPartOrderType(type) {
     document.getElementById('partOrderModel').value = '';
     document.getElementById('partOrderCustomer').value = '';
     document.getElementById('partOrderStatus').value = '';
-    document.getElementById('partOrderService').value = '';
+    clearServiceSelections();
     document.getElementById('partOrderNote').value = '';
     document.getElementById('partOrderTechnicianDamage').value = '';
     document.getElementById('partOrderPart1').value = '';
@@ -12574,7 +12734,7 @@ async function submitPartOrder() {
         const model = document.getElementById('partOrderModel').value;
         const customer = document.getElementById('partOrderCustomer').value;
         const statusField = document.getElementById('partOrderStatus').value;
-        const service = document.getElementById('partOrderService').value;
+        const service = getSelectedServices();
         const note = document.getElementById('partOrderNote').value;
         const technicianDamage = document.getElementById('partOrderTechnicianDamage').value;
 
